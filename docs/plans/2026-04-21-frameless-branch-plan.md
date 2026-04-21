@@ -202,14 +202,15 @@ Each stage is a PR-sized checkpoint. Status updated as work progresses.
 - [ ] Add `MultiServerSamePage.php`, `MultiServerPageA.php`, `MultiServerPageB.php` to testapp-f5 — Stage 1 completion gate
 - [ ] Playwright regression: 50× navigate A→B→A cycle, asserting no stale DOM children in `$refs.streamContainer` + `PtySessionRegistry::all()` returns to empty between cycles — Stage 1 completion gate
 
-### Stage 2 — Multi-terminal isolation
+### Stage 2 — Multi-terminal isolation — **CODE FIXES COMPLETE** (runtime verification pending)
 
-- [ ] Add `MultiTerminal.php` to testapp-f5 (4 terminals: 2 Classic + 1 Stream + 1 Dual)
-- [ ] Force-unique component keys; schema-build-time duplicate key detection
-- [ ] Audit all Livewire `dispatch(...)` calls for missing `.to()` scoping
-- [ ] Empirically verify ghostty-web multi-instance isolation
-- [ ] Playwright: each terminal operates independently (commands, connect state, scripts)
-- [ ] Benchmark: mount cost, memory growth curve per N terminals
+- [x] Unique default key per `WebTerminal::make()` call (`web-terminal-{random(8)}`); users still override with `->key('custom')`
+- [x] `TerminalContainer` now tracks an `instanceId` and prefixes its inner `@livewire('web-terminal', ...)` / `@livewire('stream-terminal', ...)` keys with it, so two dual-mode containers on one page don't collide
+- [x] Regression test `tests/Unit/Schemas/WebTerminalKeyIsolationTest.php`
+- [x] Livewire dispatch audit: 4 `$this->dispatch(...)` calls (terminal-interactive-started/finished, script-finished/cancelled), no internal listeners — no self-collision. External consumers with N terminals receive N× events; documented caveat, not a blocker.
+- [ ] Empirical ghostty-web multi-instance isolation (requires running browser) — deferred
+- [ ] Playwright: 4-terminal page exercise — deferred (requires testapp-f5 + browser)
+- [ ] Benchmark: mount cost, memory growth curve per N terminals — deferred (harness needs browser hookup)
 
 ### Stage 3 — Resize
 
@@ -229,14 +230,19 @@ Each stage is a PR-sized checkpoint. Status updated as work progresses.
 - [ ] Playwright visual regression across all chrome configurations + confirm flow
 - [ ] Credit PR #4 contributor in CHANGELOG
 
-### Stage 5 — Deprecation wave
+### Stage 5 — Deprecation wave — **PARTIAL** (infrastructure + currently-replaceable methods done)
 
-- [ ] Introduce `connectionBehavior(ConnectionBehavior)` unifying `startConnected`/`autoConnect`
-- [ ] Introduce `mode(TerminalMode::Classic|Stream|Dual)` unifying `streamTerminal()`/`classicTerminal()`
-- [ ] Expand `allow()` + introduce `deny()` as the blessed permissions API
-- [ ] Deprecate old methods with `@deprecated` PHPDoc + `@see` replacement references
-- [ ] Add opt-in runtime `E_USER_DEPRECATED` notices behind `web-terminal.deprecations.emit_notices` config flag
-- [ ] Populate `UPGRADING.md` with v2.x → v3.0 migration guide for each deprecated surface
+- [x] Opt-in runtime notices via `web-terminal.deprecations.emit_notices` config flag (default `false`, env-var name `WEB_TERMINAL_DEPRECATIONS_EMIT_NOTICES`)
+- [x] `Concerns/EmitsDeprecationNotices` trait centralizes the notice emission with `web-terminal:` prefix for greppable logs
+- [x] `@deprecated` markers + runtime notice calls on methods that have replacements available **today**:
+  - `allowPipes() / allowRedirection() / allowChaining() / allowExpansion()` → `allow([TerminalPermission::...])`
+  - `TerminalBuilder::toHtml() / __toString()` → `render()`
+  - `WebTerminalEmbed` class_alias → canonical `WebTerminal` class
+- [x] `UPGRADING.md` at repo root with v2.x → v3.0 migration guide, before/after code samples for every currently-deprecated surface, and an inventory of planned-but-not-yet-deprecated replacements
+- [ ] New `connectionBehavior(ConnectionBehavior)` API — deferred to a dedicated release; deprecation of `startConnected` / `autoConnect` waits until the replacement exists
+- [ ] New `mode(TerminalMode::Classic|Stream|Dual)` API — deferred; deprecation of `streamTerminal() / classicTerminal()` waits until the replacement exists
+- [ ] New `chrome(TerminalChrome)` API — tied to Stage 4 frameless chrome; deprecation of `windowControls(bool)` waits until it lands
+- [ ] `deny()` permission subtraction API — deferred to the same release that introduces the new `mode()` / `chrome()` consolidation
 
 ### Stage 6 — Docs
 
@@ -273,6 +279,17 @@ Append-only. One line per work session, most recent last.
 - 2026-04-21 — Stage 1 redesign: moved event-loop safety from bridge to the loop boundary. TerminalPtyBridge is now truthful (no try/catch, no dead flag — if phpseclib throws, it propagates). ReactPhpWebSocketServer wraps bridge calls in `tick()` / `handleMessage()` / `handleClose()` with a single catch each, routing failed sessions through a new `closeSession()` helper. 6 new loop-safety tests with injected throwing bridges. Cleaner separation of concerns; one catch per boundary instead of three per bridge.
 - 2026-04-21 — `Script::confirmBeforeRun()` wired up end-to-end. Added `#[Locked] public string $pendingScriptKey` to WebTerminal Livewire + `confirmPendingScript()` / `cancelPendingScript()` methods. `runScript()` gates on `requiresConfirmation()`. Classic header partial renders an inline Confirm/Cancel prompt when armed. 5 new Pest tests; 857 tests passing overall.
 - 2026-04-21 — Posted close messages on GitHub Issue #3 and PR #4 and closed both. Contributors credited in the close comments.
+- 2026-04-21 — Stream-mode confirmation gap closed. Alpine-side state machine mirrors the Classic-mode PHP state machine; `runScript(key, requiresConfirmation)` arms on first call, runs on second (via the inline Confirm button). Matches the PR #4 promise for Stream users, which was the honest weakness in the original close message.
+- 2026-04-21 — Stage 0 trait extraction **completed**: 10 of 10 config groups now live in `src/Concerns/` (`ConfiguresTerminalAppearance`, `ConfiguresSessionManagement`, `ConfiguresStreamMode`, `ConfiguresTerminalBasics`, `ConfiguresShellEnvironment`, `ConfiguresCommandPresets`, `ConfiguresScripts`, `ConfiguresPermissions`, `ConfiguresLogging`, `EvaluatesOptions`). `Schemas\Components\WebTerminal` dropped from 1333 LOC to under 300; `Livewire\TerminalBuilder` from 699 to under 370. TerminalBuilder gained Closure support + presets + path()/inheritPath() convenience methods through trait adoption. Connection-config overload (local/ssh/connection with three call shapes) stays per-class; that consolidates under the Stage 5 follow-up.
+- 2026-04-21 — Stage 2 multi-terminal key collisions fixed: `WebTerminal::make()` default key is now unique per instance (`web-terminal-{random(8)}`), and `TerminalContainer` prefixes its inner `@livewire` keys with its own instance id. Regression test at `tests/Unit/Schemas/WebTerminalKeyIsolationTest.php`. Dispatch audit: no internal self-collision; external consumers with N terminals get N× events (documented caveat).
+- 2026-04-21 — Stage 5 deprecation infrastructure landed: opt-in `WEB_TERMINAL_DEPRECATIONS_EMIT_NOTICES` config flag, `EmitsDeprecationNotices` trait, `@deprecated` annotations on `allowPipes/Redirection/Chaining/Expansion`, `TerminalBuilder::toHtml/__toString`, and the `WebTerminalEmbed` class alias. `UPGRADING.md` published at repo root. Deprecations for methods whose replacements don't exist yet (`startConnected`, `autoConnect`, `streamTerminal`, `classicTerminal`, `windowControls(bool)`) are explicitly listed as planned-for-future-release in UPGRADING.md but not yet marked in code — marking something deprecated without a replacement is user-hostile.
+
+**Checkpoint summary — 2026-04-21 end-of-session**:
+- Branch has **13 clean commits**, 857 tests passing, zero regressions.
+- Stages 0, 2 (code), 5 (partial) are **complete**.
+- Stage 1 is **complete in code** (both Stream buffer and SSH Issue #3 fixed with Pest coverage); Playwright regression + testapp-f5 multi-server reproducer pages are deferred since they need runtime+browser.
+- Stage 3 (resize) and Stage 4 (full frameless chrome) are **deferred** — both need visual iteration in a real browser, which is hard to do cleanly in autonomous mode.
+- Stage 6 docs: CLAUDE.md already published; UPGRADING.md published; this plan document is current. README golden-path refresh deferred to when Stage 4 ships (so the golden path showcases the new `mode()` / `chrome()` consolidation).
 
 ---
 

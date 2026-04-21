@@ -127,6 +127,8 @@ Installer/scaffolder stubs live in `stubs/`.
 ## Conventions Specific to This Repo
 
 - **Filament 5 namespaces must be exact** (`Filament\Schemas\*` for layout + `form()`/`schema()`, `Filament\Forms\Components\*` for fields, `Filament\Actions\*` for all actions, `Filament\Tables\*` unchanged). When editing resources/pages here, follow the v5 rules in the user's global `project-v5.md` — several classes exist with identical names across v4 and v5 namespaces, and the wrong import silently breaks the page.
+- **Fluent config lives in `src/Concerns/`.** `Schemas\Components\WebTerminal` and `Livewire\TerminalBuilder` share their fluent API by composing traits (`ConfiguresPermissions`, `ConfiguresLogging`, `ConfiguresShellEnvironment`, etc.). When adding a new fluent knob, it belongs in the matching trait — not duplicated across the two classes. `EvaluatesOptions` gives the Builder a Closure-aware `evaluate()` method matching the one the Schema component inherits from Filament.
+- **Deprecations.** Use the `EmitsDeprecationNotices` trait + the `@deprecated` PHPDoc tag. The opt-in `web-terminal.deprecations.emit_notices` config flag is off by default; do not turn it on globally. Every deprecation must have a replacement available the same release it's marked — don't deprecate APIs whose replacements don't exist yet.
 - **`declare(strict_types=1);`** is used across `src/` — keep it on new files.
 - **PHP Attributes for features** — e.g. `#[ValidCommand]`, `#[ValidPath]`, `#[ValidHost]` in `src/Attributes/` and `#[Locked]` on Livewire state that must not round-trip from the client. Prefer these over custom request validation layers.
 - **Enums everywhere** — `ConnectionType`, `TerminalMode`, `TerminalPermission`, `OutputType`, `ScriptCommandStatus`. Never use raw strings for these concepts in new code (config keys, tests, Blade, migrations).
@@ -138,6 +140,8 @@ Installer/scaffolder stubs live in `stubs/`.
 ## Key Reference Docs in This Repo
 
 - `README.md` — full public API reference (every fluent method, config option, and installation flag is documented here).
+- `UPGRADING.md` — migration guide for major versions, currently tracking the v2.x → v3.0 deprecation runway.
 - `CHANGELOG.md` — version history; `v2.0.0` is the Filament 5 upgrade boundary.
 - `CONTRIBUTING.md` — contribution workflow.
-- `docs/plans/` — historical design docs per feature (shell operators, interactive mode, copy/paste, file session manager, TUI detection). Read the matching `-design.md` before modifying the corresponding subsystem.
+- `docs/plans/` — historical design docs per feature (shell operators, interactive mode, copy/paste, file session manager, TUI detection, and the active `feature/frameless` branch plan). Read the matching `-design.md` before modifying the corresponding subsystem.
+- `docs/benchmarks/` — advisory performance baselines + `composer bench` harness. See `docs/benchmarks/README.md`.
