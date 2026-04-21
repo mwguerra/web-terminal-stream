@@ -194,4 +194,47 @@ trait ConfiguresPermissions
 
         return $this;
     }
+
+    /**
+     * Remove specific permissions previously granted.
+     *
+     * Useful for "almost all shell operators" patterns:
+     *   ->allow([TerminalPermission::ShellOperators])
+     *   ->deny([TerminalPermission::Expansion])
+     *
+     * @param array<TerminalPermission> $permissions
+     */
+    public function deny(array $permissions): static
+    {
+        $flags = TerminalPermission::resolveManyFlags($permissions);
+
+        if ($flags['allowAllCommands'] ?? false) {
+            $this->allowAllCommands = false;
+        }
+        if ($flags['allowPipes'] ?? false) {
+            $this->allowPipes = false;
+        }
+        if ($flags['allowRedirection'] ?? false) {
+            $this->allowRedirection = false;
+        }
+        if ($flags['allowChaining'] ?? false) {
+            $this->allowChaining = false;
+        }
+        if ($flags['allowExpansion'] ?? false) {
+            $this->allowExpansion = false;
+        }
+        if ($flags['allowAllShellOperators'] ?? false) {
+            $this->allowAllShellOperators = false;
+            // Denying the aggregate revokes all four individual flags.
+            $this->allowPipes = false;
+            $this->allowRedirection = false;
+            $this->allowChaining = false;
+            $this->allowExpansion = false;
+        }
+        if ($flags['allowInteractiveMode'] ?? false) {
+            $this->allowInteractiveMode = false;
+        }
+
+        return $this;
+    }
 }

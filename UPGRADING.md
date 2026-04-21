@@ -101,18 +101,80 @@ use MWGuerra\WebTerminal\Schemas\Components\WebTerminal;
 
 The old alias continues to resolve through every 2.x release.
 
-### Planned (not yet deprecated in the code)
+#### `startConnected()` + `autoConnect()` → `connectionBehavior()`
 
-These replacements are tracked for 2.x as new APIs land. Until the
-replacement exists, you do not need to do anything:
+The pair has always been confusing: `autoConnect(true)` implies
+`startConnected(true)` but users setting them independently couldn't
+predict which combination they were getting. Replaced with a single
+enum-based method:
 
-- `startConnected()` + `autoConnect()` → a unified `connectionBehavior()`
-  with explicit modes (manual / auto-with-button / auto-hidden).
-- `streamTerminal()` + `classicTerminal()` → `mode(TerminalMode::Classic|Stream|Dual)`.
-- `windowControls(bool)` → `chrome(TerminalChrome::Full|Minimal|None)`.
+```php
+use MWGuerra\WebTerminal\Enums\ConnectionBehavior;
 
-When those replacement methods land in a 2.x release, this file will be
-updated with their before/after examples.
+// Before
+WebTerminal::make()->startConnected();         // auto-connect, button visible
+WebTerminal::make()->autoConnect();            // auto-connect, button hidden
+
+// After
+WebTerminal::make()->connectionBehavior(ConnectionBehavior::AutoWithButton);
+WebTerminal::make()->connectionBehavior(ConnectionBehavior::AutoHidden);
+WebTerminal::make()->connectionBehavior(ConnectionBehavior::Manual); // default
+```
+
+#### `streamTerminal()` + `classicTerminal()` → `mode()` / `dual()`
+
+The old pair had a real footgun: calling `->streamTerminal()` alone
+silently produced dual-mode because `classicEnabled` defaulted to
+`true`. To get actual stream-only you needed both
+`->streamTerminal()->classicTerminal(false)`. Fixed with an explicit
+selector:
+
+```php
+use MWGuerra\WebTerminal\Enums\TerminalMode;
+
+// Before
+WebTerminal::make()->streamTerminal()->classicTerminal(false); // stream-only
+WebTerminal::make()->streamTerminal();                         // dual (surprising)
+
+// After
+WebTerminal::make()->mode(TerminalMode::Stream);   // stream-only, unambiguous
+WebTerminal::make()->mode(TerminalMode::Classic);  // classic-only
+WebTerminal::make()->dual();                       // classic + stream with toggle
+WebTerminal::make()->dual(TerminalMode::Stream);   // dual, default to stream tab
+```
+
+#### `windowControls(bool)` → `chrome(TerminalChrome)`
+
+The boolean only toggled the three colored dots. The new enum covers
+the whole spectrum of surrounding UI:
+
+```php
+use MWGuerra\WebTerminal\Enums\TerminalChrome;
+
+// Before
+WebTerminal::make()->windowControls(true);   // dots visible
+WebTerminal::make()->windowControls(false);  // no dots, header otherwise full
+
+// After
+WebTerminal::make()->chrome(TerminalChrome::Full);      // dots + header + actions
+WebTerminal::make()->chrome(TerminalChrome::Minimal);   // header + actions, no dots
+WebTerminal::make()->chrome(TerminalChrome::None);      // no header at all (frameless)
+WebTerminal::make()->frameless();                       // shorthand for chrome(None)
+```
+
+#### New: `deny()` for permission subtraction
+
+The existing `allow()` enum-based setter is now paired with `deny()`,
+so "all shell operators except expansion" patterns stop requiring
+the individual methods:
+
+```php
+use MWGuerra\WebTerminal\Enums\TerminalPermission;
+
+WebTerminal::make()
+    ->allow([TerminalPermission::ShellOperators])
+    ->deny([TerminalPermission::Expansion]);
+```
 
 ### Breaking changes in 3.0 (inventory-only, not yet implemented)
 

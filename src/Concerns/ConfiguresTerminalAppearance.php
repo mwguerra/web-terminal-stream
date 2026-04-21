@@ -5,10 +5,12 @@ declare(strict_types=1);
 namespace MWGuerra\WebTerminal\Concerns;
 
 use Closure;
+use MWGuerra\WebTerminal\Enums\ConnectionBehavior;
+use MWGuerra\WebTerminal\Enums\TerminalChrome;
 
 /**
  * Fluent configuration for a terminal's visual shell:
- * size, title, window controls, and initial connect behavior.
+ * size, title, chrome level, and initial connect behavior.
  *
  * Consumed by both `Schemas\Components\WebTerminal` and
  * `Livewire\TerminalBuilder`. All fields accept a Closure so values
@@ -20,11 +22,15 @@ use Closure;
  */
 trait ConfiguresTerminalAppearance
 {
+    use EmitsDeprecationNotices;
+
     protected string|Closure $height = '350px';
 
     protected string|Closure $title = 'Terminal';
 
-    protected bool|Closure $showWindowControls = true;
+    protected TerminalChrome|Closure $chrome = TerminalChrome::Full;
+
+    protected ?ConnectionBehavior $connectionBehavior = null;
 
     protected bool|Closure $startConnected = false;
 
@@ -54,26 +60,87 @@ trait ConfiguresTerminalAppearance
         return $this->evaluate($this->title);
     }
 
+    /**
+     * Set the terminal chrome level.
+     *
+     * - `TerminalChrome::Full` — header bar with window-control dots, title, and actions.
+     * - `TerminalChrome::Minimal` — header bar without the dots.
+     * - `TerminalChrome::None` — no header; actions move to floating controls.
+     */
+    public function chrome(TerminalChrome|Closure $chrome): static
+    {
+        $this->chrome = $chrome;
+
+        return $this;
+    }
+
+    public function getChrome(): TerminalChrome
+    {
+        return $this->evaluate($this->chrome);
+    }
+
+    /**
+     * Shorthand for `->chrome(TerminalChrome::None)`. The terminal renders
+     * as a plain surface with no header or footer — suitable for embedding
+     * inside custom layouts.
+     */
+    public function frameless(): static
+    {
+        return $this->chrome(TerminalChrome::None);
+    }
+
+    /**
+     * @deprecated since 2.x, will be removed in 3.0.
+     *             Use `->chrome(TerminalChrome::Full|Minimal)` instead.
+     */
     public function windowControls(bool|Closure $show = true): static
     {
-        $this->showWindowControls = $show;
+        $this->emitDeprecationNotice('windowControls()', 'chrome(TerminalChrome::Full|Minimal)');
+
+        // Preserve previous semantics: windowControls(true) == Full, (false) == Minimal.
+        // Callers that want truly frameless must opt in explicitly via chrome()/frameless().
+        $resolver = function () use ($show): TerminalChrome {
+            return ($this->evaluate($show))
+                ? TerminalChrome::Full
+                : TerminalChrome::Minimal;
+        };
+        $this->chrome = $resolver;
 
         return $this;
     }
 
     public function getShowWindowControls(): bool
     {
-        return $this->evaluate($this->showWindowControls);
+        return $this->getChrome()->showsWindowControls();
     }
 
     /**
-     * Start the terminal already connected on mount.
-     *
-     * The connect/disconnect button stays visible; the user can still disconnect
-     * manually. For a button-hidden, session-persistent variant use `autoConnect()`.
+     * Declarative connection behavior. Preferred over the individual
+     * `startConnected()` / `autoConnect()` setters.
+     */
+    public function connectionBehavior(ConnectionBehavior $behavior): static
+    {
+        $this->connectionBehavior = $behavior;
+
+        $flags = $behavior->toFlags();
+        $this->startConnected = $flags['startConnected'];
+        $this->autoConnect = $flags['autoConnect'];
+
+        return $this;
+    }
+
+    public function getConnectionBehavior(): ?ConnectionBehavior
+    {
+        return $this->connectionBehavior;
+    }
+
+    /**
+     * @deprecated since 2.x, will be removed in 3.0.
+     *             Use `->connectionBehavior(ConnectionBehavior::AutoWithButton|Manual)` instead.
      */
     public function startConnected(bool|Closure $startConnected = true): static
     {
+        $this->emitDeprecationNotice('startConnected()', 'connectionBehavior(ConnectionBehavior::AutoWithButton)');
         $this->startConnected = $startConnected;
 
         return $this;
@@ -85,14 +152,12 @@ trait ConfiguresTerminalAppearance
     }
 
     /**
-     * Enable auto-connect mode: connects on mount and hides the
-     * connect/disconnect button so the session persists for the view.
-     *
-     * Implies `startConnected(true)` downstream; setting both is equivalent
-     * to setting `autoConnect(true)` alone.
+     * @deprecated since 2.x, will be removed in 3.0.
+     *             Use `->connectionBehavior(ConnectionBehavior::AutoHidden)` instead.
      */
     public function autoConnect(bool|Closure $autoConnect = true): static
     {
+        $this->emitDeprecationNotice('autoConnect()', 'connectionBehavior(ConnectionBehavior::AutoHidden)');
         $this->autoConnect = $autoConnect;
 
         return $this;
