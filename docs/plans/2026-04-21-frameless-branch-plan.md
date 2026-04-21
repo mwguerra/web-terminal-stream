@@ -269,13 +269,34 @@ Append-only. One line per work session, most recent last.
 - 2026-04-21 — Branch created. CLAUDE.md written. Architecture audit complete. Decisions captured via AskUserQuestion (§2). GitHub issue #3 and PR #4 assessed (§3). testapp-f5 audited (§4). This plan document created. Beginning Stage 0.
 - 2026-04-21 — Stage 0 checkpoint 1: benchmark harness wired up (`composer bench`, `scripts/bench.php`, `tests/Benchmarks/`, phpunit Benchmarks testsuite). First real benchmarks on `CommandValidator::isAllowed`. Pre-frameless baseline captured. First trait `ConfiguresTerminalAppearance` extracted from Schema component + TerminalBuilder; 844 tests passing (+2 vs baseline; the two baseline flakes passed this run). Microbenchmarks stable within ±10% noise.
 - 2026-04-21 — Stage 0 checkpoint 2: three more traits extracted — `ConfiguresSessionManagement`, `ConfiguresStreamMode`, `ConfiguresTerminalBasics`. 844 tests still passing. Documented a minor TerminalBuilder behavior expansion (clamps removed from timeout/historyLimit/maxOutputLines). Pivoting to Stage 1 next; remaining complex-overload traits (logging, permissions, connection, commands, shell env, scripts) deferred to a dedicated Stage 0.3 commit.
-- 2026-04-21 — Stage 1 core code fixes landed. Client teardown bound to `livewire:navigating` + `pagehide` + `beforeunload` with stable handler refs (was only `beforeunload` — missing Filament SPA nav entirely). Container reset on mount kills stale DOM inside `wire:ignore`. Defensive dispose at every `connect()` entry. SSH bootstrap switched to CHANNEL_SHELL with proper timeout sequencing; `read()` / `isRunning()` / `terminate()` now catch exceptions and mark the bridge dead so one failed SSH session can't crash the shared event loop. 5 new Pest tests cover the SSH failure paths; 849 tests passing overall. GitHub Issue #3 integrated and credit queued in CHANGELOG. Playwright regression + testapp-f5 multi-server pages still outstanding — those are the completion gate for Stage 1.
+- 2026-04-21 — Stage 1 core code fixes landed. Client teardown bound to `livewire:navigating` + `pagehide` + `beforeunload` with stable handler refs (was only `beforeunload` — missing Filament SPA nav entirely). Container reset on mount kills stale DOM inside `wire:ignore`. Defensive dispose at every `connect()` entry. SSH bootstrap switched to CHANNEL_SHELL with proper timeout sequencing; `read()` / `isRunning()` / `terminate()` now catch exceptions and mark the bridge dead so one failed SSH session can't crash the shared event loop. 5 new Pest tests cover the SSH failure paths; 849 tests passing overall.
+- 2026-04-21 — Stage 1 redesign: moved event-loop safety from bridge to the loop boundary. TerminalPtyBridge is now truthful (no try/catch, no dead flag — if phpseclib throws, it propagates). ReactPhpWebSocketServer wraps bridge calls in `tick()` / `handleMessage()` / `handleClose()` with a single catch each, routing failed sessions through a new `closeSession()` helper. 6 new loop-safety tests with injected throwing bridges. Cleaner separation of concerns; one catch per boundary instead of three per bridge.
+- 2026-04-21 — `Script::confirmBeforeRun()` wired up end-to-end. Added `#[Locked] public string $pendingScriptKey` to WebTerminal Livewire + `confirmPendingScript()` / `cancelPendingScript()` methods. `runScript()` gates on `requiresConfirmation()`. Classic header partial renders an inline Confirm/Cancel prompt when armed. 5 new Pest tests; 857 tests passing overall.
+- 2026-04-21 — Posted close messages on GitHub Issue #3 and PR #4 and closed both. Contributors credited in the close comments.
 
 ---
 
-## 9. Open Questions
+## 9. Open Questions & Follow-Ups
 
-None currently blocking. Questions that arise during work are raised via `AskUserQuestion` and the decision appended to §2 with a note in this section if scope-shaping.
+None currently blocking. Questions that arise during work are raised via `AskUserQuestion` and the decision appended to §2.
+
+### Honest gaps identified during Stage 1 (not blockers; tracked for later stages)
+
+These were surfaced during the Issue #3 + PR #4 integration. Each is a real limitation of the shipped fix that the next stage should close.
+
+1. **Stream-mode script confirmation is NOT yet covered.** Classic scripts route through `$this->runScript()` on the PHP side and hit the confirmation gate. Stream scripts route through the JS-side `runScript(key)` in `stream-terminal.blade.php` which writes raw commands to the WebSocket — it never touches the PHP state machine, so `confirmBeforeRun()` has no effect. **Must be fixed in Stage 4** (chrome rework) either by adding a JS-side confirmation gate or by routing Stream script execution through a Livewire method that reuses the state machine. Today Stream users still have the original no-op bug.
+
+2. **`Script::isCommandAllowed` pattern-match quirk.** The prefix match for `'echo *'` becomes `'echo '` (trailing space). `str_starts_with('echo', 'echo ')` is `false`, so a bare `echo` command isn't matched by an `echo *` whitelist entry. Users with `allowedCommands: ['echo *']` running a script with `echo foo` would hit "unauthorized" before reaching confirmation. Separate small bug; the confirmation tests work around it with `->elevated()`. Stage 2 polish.
+
+3. **No integration test with a real misbehaving SSH server.** The SSH robustness unit tests inject throwing mocks via reflection — they prove the loop-safety boundary works when something throws, but they don't prove phpseclib actually throws in the exact scenarios Issue #3 reported. A controlled integration test (e.g., OpenSSH in a docker container configured to close channels abruptly) would be stronger evidence. Follow-up for Stage 2 or 3.
+
+4. **SSH bootstrap timings are guesses.** `max(5, timeout)` for handshake and `0.01` for the non-blocking loop are sensible defaults but not profiled across WAN latencies or slow servers. Some users may see handshake timeouts on high-latency connections. Candidate for Stage 3 or later tuning.
+
+5. **Idle heartbeat in `tick()` is still deferred.** The loop-safety catch + mark-dead semantics solve the main failure modes, but a session where the CLIENT disconnected ungracefully (mobile network drop, laptop lid close) may keep a PTY alive until TCP keepalive eventually times out — minutes in the worst case. Tracked under Stage 1 remaining items.
+
+6. **Confirmation dropdown styling is minimal/amber.** Visual matches the existing amber/warn treatment but not the planned frameless chrome aesthetic. It gets replaced during Stage 4. Users upgrading mid-stage will see the amber version briefly.
+
+7. **`closeSession()` itself isn't guarded against throws.** If `$conn->close()` or `handleClose()` threw (unlikely for ReactPHP but possible), it would escape the outer catch in `tick()`. Belt-and-suspenders gap, low probability. Worth adding a guard in a later pass.
 
 ---
 
