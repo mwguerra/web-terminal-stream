@@ -301,9 +301,7 @@
     x-init="init()"
     wire:loading.class="opacity-90"
 >
-    @if($chrome !== 'none')
-        @include('web-terminal::partials.header')
-    @endif
+    @include('web-terminal::partials.header')
 
     @include('web-terminal::partials.info-panel')
 

@@ -1,13 +1,24 @@
-{{-- Terminal Header Bar --}}
-<div class="flex items-center px-4 py-3 bg-slate-200/80 dark:bg-black/30 border-b border-slate-300 dark:border-white/5">
-    @if($showWindowControls)
+{{-- Terminal Header Bar.
+
+     When chrome === 'none' (frameless), this renders as an absolutely-positioned
+     floating action group overlaid on the terminal body: same buttons, same Alpine
+     state, same wire:click wiring — only the outer container's layout changes. --}}
+<div @class([
+    'flex items-center px-4 py-3 bg-slate-200/80 dark:bg-black/30 border-b border-slate-300 dark:border-white/5' => ($chrome ?? 'full') !== 'none',
+    'flex items-center' => ($chrome ?? 'full') === 'none',
+])
+@if(($chrome ?? 'full') === 'none') style="position:absolute; top:0.5rem; right:0.5rem; z-index:20;" @endif
+>
+    @if($showWindowControls && ($chrome ?? 'full') !== 'none')
     <div class="flex gap-2 shrink-0">
         <span class="w-3 h-3 rounded-full bg-[#ff5f56] hover:opacity-80 transition-opacity"></span>
         <span class="w-3 h-3 rounded-full bg-[#ffbd2e] hover:opacity-80 transition-opacity"></span>
         <span class="w-3 h-3 rounded-full bg-[#27c93f] hover:opacity-80 transition-opacity"></span>
     </div>
     @endif
+    @if(($chrome ?? 'full') !== 'none')
     <div class="flex-1 min-w-0 ml-3 text-xs font-medium text-slate-500 dark:text-white/50 tracking-wide truncate">{{ $title }}</div>
+    @endif
     {{-- Header Actions --}}
     <div class="flex items-center gap-2 shrink-0">
         @if($hasModePill)
