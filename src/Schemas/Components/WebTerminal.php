@@ -14,9 +14,6 @@ use MWGuerra\WebTerminal\Concerns\ConfiguresStreamMode;
 use MWGuerra\WebTerminal\Concerns\ConfiguresTerminalAppearance;
 use MWGuerra\WebTerminal\Concerns\ConfiguresTerminalBasics;
 use MWGuerra\WebTerminal\Data\ConnectionConfig;
-use MWGuerra\WebTerminal\Data\Script;
-use MWGuerra\WebTerminal\Enums\TerminalMode;
-use MWGuerra\WebTerminal\Enums\TerminalPermission;
 use MWGuerra\WebTerminal\Livewire\StreamTerminal as StreamTerminalComponent;
 use MWGuerra\WebTerminal\Livewire\TerminalContainer as TerminalContainerComponent;
 use MWGuerra\WebTerminal\Livewire\WebTerminal as WebTerminalComponent;
@@ -334,5 +331,11 @@ class WebTerminal extends Livewire
 
 }
 
-// Backward compatibility alias
+/**
+ * Backward-compatibility alias.
+ *
+ * @deprecated since 2.x, will be removed in 3.0.
+ *             Reference the canonical class directly:
+ *             `MWGuerra\WebTerminal\Schemas\Components\WebTerminal`.
+ */
 class_alias(WebTerminal::class, 'MWGuerra\\WebTerminal\\Schemas\\Components\\WebTerminalEmbed');

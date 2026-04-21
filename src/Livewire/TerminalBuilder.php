@@ -8,6 +8,7 @@ use Illuminate\Contracts\View\View;
 use Illuminate\Support\HtmlString;
 use MWGuerra\WebTerminal\Concerns\ConfiguresCommandPresets;
 use MWGuerra\WebTerminal\Concerns\ConfiguresLogging;
+use MWGuerra\WebTerminal\Concerns\EmitsDeprecationNotices;
 use MWGuerra\WebTerminal\Concerns\ConfiguresPermissions;
 use MWGuerra\WebTerminal\Concerns\ConfiguresScripts;
 use MWGuerra\WebTerminal\Concerns\ConfiguresSessionManagement;
@@ -37,6 +38,7 @@ class TerminalBuilder
     use ConfiguresStreamMode;
     use ConfiguresTerminalAppearance;
     use ConfiguresTerminalBasics;
+    use EmitsDeprecationNotices;
     use EvaluatesOptions;
 
     /** @var array<string, mixed>|ConnectionConfig|null */
@@ -292,8 +294,16 @@ class TerminalBuilder
         );
     }
 
+    /**
+     * @deprecated since 2.x, will be removed in 3.0.
+     *             Use `render()` instead — it supports every configuration option
+     *             on the builder, while `toHtml()` silently omits Stream-mode
+     *             props, logging config, scripts, session management, etc.
+     */
     public function toHtml(): string
     {
+        $this->emitDeprecationNotice('TerminalBuilder::toHtml()', 'TerminalBuilder::render()');
+
         $params = [];
 
         if ($this->connection !== null) {
@@ -361,6 +371,11 @@ class TerminalBuilder
         return "<livewire:web-terminal {$paramsString}{$keyAttr} />";
     }
 
+    /**
+     * @deprecated since 2.x, will be removed in 3.0.
+     *             Delegates to the deprecated `toHtml()` path. Prefer
+     *             explicitly calling `render()` where you need the HTML.
+     */
     public function __toString(): string
     {
         return $this->toHtml();

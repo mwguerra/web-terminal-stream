@@ -24,6 +24,8 @@ use MWGuerra\WebTerminal\Enums\TerminalPermission;
  */
 trait ConfiguresPermissions
 {
+    use EmitsDeprecationNotices;
+
     protected bool|Closure $allowAllCommands = false;
 
     protected bool|Closure $allowInteractiveMode = false;
@@ -69,8 +71,13 @@ trait ConfiguresPermissions
         return $this->evaluate($this->allowInteractiveMode);
     }
 
+    /**
+     * @deprecated since 2.x, will be removed in 3.0.
+     *             Use `->allow([TerminalPermission::Pipes])` instead.
+     */
     public function allowPipes(bool|Closure $allow = true): static
     {
+        $this->emitDeprecationNotice('allowPipes()', 'allow([TerminalPermission::Pipes])');
         $this->allowPipes = $allow;
 
         return $this;
@@ -81,8 +88,13 @@ trait ConfiguresPermissions
         return $this->evaluate($this->allowPipes);
     }
 
+    /**
+     * @deprecated since 2.x, will be removed in 3.0.
+     *             Use `->allow([TerminalPermission::Redirection])` instead.
+     */
     public function allowRedirection(bool|Closure $allow = true): static
     {
+        $this->emitDeprecationNotice('allowRedirection()', 'allow([TerminalPermission::Redirection])');
         $this->allowRedirection = $allow;
 
         return $this;
@@ -93,8 +105,13 @@ trait ConfiguresPermissions
         return $this->evaluate($this->allowRedirection);
     }
 
+    /**
+     * @deprecated since 2.x, will be removed in 3.0.
+     *             Use `->allow([TerminalPermission::Chaining])` instead.
+     */
     public function allowChaining(bool|Closure $allow = true): static
     {
+        $this->emitDeprecationNotice('allowChaining()', 'allow([TerminalPermission::Chaining])');
         $this->allowChaining = $allow;
 
         return $this;
@@ -105,8 +122,13 @@ trait ConfiguresPermissions
         return $this->evaluate($this->allowChaining);
     }
 
+    /**
+     * @deprecated since 2.x, will be removed in 3.0.
+     *             Use `->allow([TerminalPermission::Expansion])` instead.
+     */
     public function allowExpansion(bool|Closure $allow = true): static
     {
+        $this->emitDeprecationNotice('allowExpansion()', 'allow([TerminalPermission::Expansion])');
         $this->allowExpansion = $allow;
 
         return $this;

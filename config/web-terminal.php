@@ -242,4 +242,19 @@ return [
             'fontSize' => 14,
         ],
     ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Deprecation Notices
+    |--------------------------------------------------------------------------
+    |
+    | When `emit_notices` is true, deprecated fluent-API methods trigger a
+    | PHP E_USER_DEPRECATED notice when called. Off by default so v2 users
+    | aren't flooded; flip it on in staging to surface usage before the v3
+    | upgrade, then grep logs for "web-terminal" to find all the call sites.
+    |
+    */
+    'deprecations' => [
+        'emit_notices' => env('WEB_TERMINAL_DEPRECATIONS_EMIT_NOTICES', false),
+    ],
 ];
