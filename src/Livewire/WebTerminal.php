@@ -445,6 +445,16 @@ class WebTerminal extends Component
     public bool $scriptAwaitingInput = false;
 
     /**
+     * Key of a script awaiting the user's run/cancel confirmation.
+     *
+     * Empty string means no script is pending. Locked so the client cannot
+     * mutate it — only `runScript()`, `confirmPendingScript()`, and
+     * `cancelPendingScript()` on this component may change the value.
+     */
+    #[Locked]
+    public string $pendingScriptKey = '';
+
+    /**
      * Current terminal session ID (generated on connect).
      */
     public string $terminalSessionId = '';
@@ -2183,6 +2193,18 @@ class WebTerminal extends Component
             }
         }
 
+        // Confirmation gate: the first click arms the pending state so the
+        // view can render a Confirm/Cancel prompt. The second click (via
+        // confirmPendingScript) re-enters with the key already pending and
+        // passes through. Any other input unwinds via cancelPendingScript.
+        if ($script->requiresConfirmation() && $this->pendingScriptKey !== $key) {
+            $this->pendingScriptKey = $key;
+
+            return;
+        }
+
+        $this->pendingScriptKey = '';
+
         // Show the script panel
         $this->showScriptPanel = true;
 
@@ -2213,6 +2235,28 @@ class WebTerminal extends Component
 
         // Start executing commands
         $this->executeNextScriptCommand();
+    }
+
+    /**
+     * Confirm a script queued by runScript() and start it.
+     *
+     * No-op when no script is pending.
+     */
+    public function confirmPendingScript(): void
+    {
+        if ($this->pendingScriptKey === '') {
+            return;
+        }
+
+        $this->runScript($this->pendingScriptKey);
+    }
+
+    /**
+     * Cancel a script queued by runScript() without starting it.
+     */
+    public function cancelPendingScript(): void
+    {
+        $this->pendingScriptKey = '';
     }
 
     /**

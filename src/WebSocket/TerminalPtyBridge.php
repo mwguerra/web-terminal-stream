@@ -21,14 +21,6 @@ class TerminalPtyBridge
 
     private ?object $sshShell = null;
 
-    /**
-     * Set when the SSH transport throws or otherwise becomes unusable mid-session.
-     * Once true, isRunning() returns false so the ReactPHP server's tick() stops
-     * polling us and handleClose() fires promptly instead of waiting for the
-     * client socket to time out.
-     */
-    private bool $sshDead = false;
-
     public function __construct(
         ConnectionConfig $config,
         string $sessionId,
@@ -154,24 +146,11 @@ class TerminalPtyBridge
     public function read(): string
     {
         if ($this->sshShell !== null) {
-            if ($this->sshDead) {
-                return '';
-            }
-
-            // With the tiny timeout set in startSsh() this returns quickly with
-            // whatever is buffered. Any throw from phpseclib (timeout, channel
-            // broken, transport closed) is caught so a single bad session
-            // can't crash the shared ReactPHP event loop. We also flip the
-            // dead flag so tick() stops polling us and handleClose() fires.
-            try {
-                return $this->sshShell->read('') ?: '';
-            } catch (\phpseclib3\Exception\TimeoutException) {
-                return '';
-            } catch (\Throwable) {
-                $this->sshDead = true;
-
-                return '';
-            }
+            // The tiny timeout set in startSsh() keeps this non-blocking.
+            // Transport-level failures are handled at the event-loop boundary
+            // (ReactPhpWebSocketServer::tick), not here — this method stays
+            // a simple read of whatever is buffered on the channel.
+            return $this->sshShell->read('') ?: '';
         }
 
         $output = '';
@@ -229,17 +208,7 @@ class TerminalPtyBridge
     public function isRunning(): bool
     {
         if ($this->sshShell !== null) {
-            if ($this->sshDead) {
-                return false;
-            }
-
-            try {
-                return $this->sshShell->isConnected();
-            } catch (\Throwable) {
-                $this->sshDead = true;
-
-                return false;
-            }
+            return $this->sshShell->isConnected();
         }
 
         if ($this->process === null) {
@@ -253,18 +222,10 @@ class TerminalPtyBridge
     public function terminate(): void
     {
         if ($this->sshShell !== null) {
-            // Best-effort close. Setting a tiny timeout before disconnect
-            // prevents the event loop from blocking if the remote is slow
-            // to acknowledge the SSH close.
-            try {
-                $this->sshShell->setTimeout(0.01);
-                $this->sshShell->disconnect();
-            } catch (\Throwable) {
-                // Intentional: the loop must stay healthy even if the remote
-                // close hangs or errors.
-            }
+            // Short timeout so the event loop can't be stalled by a slow remote.
+            $this->sshShell->setTimeout(0.01);
+            $this->sshShell->disconnect();
             $this->sshShell = null;
-            $this->sshDead = true;
             $this->registry->unregister($this->sessionId);
             return;
         }

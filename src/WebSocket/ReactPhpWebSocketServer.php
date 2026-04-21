@@ -171,23 +171,30 @@ class ReactPhpWebSocketServer
             return;
         }
 
-        // Check for resize messages
-        $decoded = @json_decode($payload, true);
-        if ($decoded !== null && ($decoded['type'] ?? null) === 'resize') {
-            $bridge->resize((int) $decoded['cols'], (int) $decoded['rows']);
+        try {
+            $decoded = @json_decode($payload, true);
+            if ($decoded !== null && ($decoded['type'] ?? null) === 'resize') {
+                $bridge->resize((int) $decoded['cols'], (int) $decoded['rows']);
 
-            return;
+                return;
+            }
+
+            $bridge->write($payload);
+        } catch (\Throwable) {
+            $this->closeSession($id);
         }
-
-        // Raw terminal input
-        $bridge->write($payload);
     }
 
     private function handleClose(int $id): void
     {
         $bridge = $this->bridges[$id] ?? null;
         if ($bridge !== null) {
-            $bridge->terminate();
+            try {
+                $bridge->terminate();
+            } catch (\Throwable) {
+                // Best-effort close: the loop must stay healthy even if the
+                // bridge's terminate path errors.
+            }
         }
 
         unset($this->bridges[$id], $this->connections[$id], $this->buffers[$id]);
@@ -199,21 +206,44 @@ class ReactPhpWebSocketServer
     public function tick(): void
     {
         foreach ($this->bridges as $id => $bridge) {
-            if (! $bridge->isRunning()) {
-                continue;
-            }
+            try {
+                if (! $bridge->isRunning()) {
+                    continue;
+                }
 
-            $output = $bridge->read();
-            if ($output === '') {
-                continue;
-            }
+                $output = $bridge->read();
+                if ($output === '') {
+                    continue;
+                }
 
-            $conn = $this->connections[$id] ?? null;
-            if ($conn !== null) {
-                // Send as unmasked WebSocket text frame (server -> client frames are NOT masked)
-                $frame = new Frame($output, true, Frame::OP_TEXT);
-                $conn->write($frame->getContents());
+                $conn = $this->connections[$id] ?? null;
+                if ($conn !== null) {
+                    // Server-to-client frames are not masked per RFC6455.
+                    $frame = new Frame($output, true, Frame::OP_TEXT);
+                    $conn->write($frame->getContents());
+                }
+            } catch (\Throwable) {
+                // One bad session must not crash the shared event loop or
+                // poison any of the other active sessions. Close it cleanly
+                // and move on.
+                $this->closeSession($id);
             }
         }
+    }
+
+    /**
+     * Terminate and unregister a single session from the event loop.
+     *
+     * Used both from explicit close events and from the loop's safety net
+     * (tick / handleMessage) when a bridge throws unexpectedly.
+     */
+    private function closeSession(int $id): void
+    {
+        $conn = $this->connections[$id] ?? null;
+        if ($conn !== null) {
+            $conn->close();
+        }
+
+        $this->handleClose($id);
     }
 }
