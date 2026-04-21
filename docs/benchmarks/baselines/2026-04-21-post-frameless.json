@@ -1,0 +1,57 @@
+{
+    "captured_at": "2026-04-21T11:52:28+00:00",
+    "commit": "60e5bbb",
+    "branch": "feature/frameless",
+    "php": "8.4.11",
+    "uname": "Linux 6.17.0-22-generic",
+    "measurements": {
+        "CommandValidator::isAllowed exact@50": {
+            "runs": 500,
+            "median_us": 0.443,
+            "p95_us": 0.6,
+            "stddev_us": 8.634,
+            "min_us": 0.261,
+            "max_us": 132.139
+        },
+        "CommandValidator::isAllowed wildcard@50": {
+            "runs": 500,
+            "median_us": 1.509,
+            "p95_us": 1.623,
+            "stddev_us": 37.605,
+            "min_us": 1.156,
+            "max_us": 827.287
+        },
+        "_internal/smoke": {
+            "runs": 3,
+            "median_us": 1.5,
+            "p95_us": 2,
+            "stddev_us": 0.408,
+            "min_us": 1,
+            "max_us": 2
+        },
+        "CommandValidator::isAllowed exact@5000": {
+            "runs": 500,
+            "median_us": 0.298,
+            "p95_us": 0.484,
+            "stddev_us": 12.55,
+            "min_us": 0.241,
+            "max_us": 280.944
+        },
+        "CommandValidator::isAllowed miss@500": {
+            "runs": 500,
+            "median_us": 6.299,
+            "p95_us": 7.044,
+            "stddev_us": 17.18,
+            "min_us": 5.415,
+            "max_us": 291.224
+        },
+        "CommandValidator::isAllowed exact@500": {
+            "runs": 500,
+            "median_us": 0.251,
+            "p95_us": 0.287,
+            "stddev_us": 0.161,
+            "min_us": 0.238,
+            "max_us": 3.834
+        }
+    }
+}

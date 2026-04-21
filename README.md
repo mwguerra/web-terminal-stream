@@ -278,17 +278,47 @@ public function panel(Panel $panel): Panel
 
 That's it! Visit `/admin/terminal` to access the terminal.
 
-For a custom terminal with specific commands:
+For a custom terminal using the modern fluent API:
 
 ```php
 use MWGuerra\WebTerminal\Schemas\Components\WebTerminal;
+use MWGuerra\WebTerminal\Enums\ConnectionBehavior;
+use MWGuerra\WebTerminal\Enums\TerminalChrome;
+use MWGuerra\WebTerminal\Enums\TerminalMode;
+use MWGuerra\WebTerminal\Enums\TerminalPermission;
 
 WebTerminal::make()
     ->local()
+    ->mode(TerminalMode::Classic)                              // single mode selector
+    ->chrome(TerminalChrome::Full)                             // Full | Minimal | None
+    ->connectionBehavior(ConnectionBehavior::AutoWithButton)   // declarative connect flow
+    ->allow([TerminalPermission::ShellOperators])              // enum-based permissions
+    ->deny([TerminalPermission::Expansion])                    // subtract from a granted set
     ->allowedCommands(['ls', 'pwd', 'cd', 'cat', 'git *'])
     ->workingDirectory(base_path())
-    ->height('400px')
+    ->height('400px');
 ```
+
+**Shortcuts for common shapes:**
+
+```php
+// Frameless terminal (no header, no footer chrome)
+WebTerminal::make()->local()->frameless();
+
+// Stream-only (full PTY shell via WebSocket — needs `terminal:serve`)
+WebTerminal::make()->local()->mode(TerminalMode::Stream);
+
+// Dual-mode (Classic + Stream with a header toggle pill)
+WebTerminal::make()->local()->dual();
+WebTerminal::make()->local()->dual(TerminalMode::Stream); // dual, default to Stream
+```
+
+> **Migrating from 2.0?** The older fluent methods (`streamTerminal()`,
+> `classicTerminal()`, `startConnected()`, `autoConnect()`,
+> `windowControls(bool)`, individual `allowPipes()`/`allowRedirection()`/
+> `allowChaining()`/`allowExpansion()`) still work — they're deprecated
+> for removal in 3.0. See [UPGRADING.md](UPGRADING.md) for the full
+> before/after list and an opt-in flag that surfaces every call site.
 
 ![Local Terminal](https://raw.githubusercontent.com/mwguerra/web-terminal/main/docs/images/local-terminal.jpg)
 
