@@ -251,7 +251,8 @@
         },
     }"
 >
-    {{-- Header Bar --}}
+    {{-- Header Bar — hidden when chrome is 'none' (frameless) --}}
+    @if($chrome !== 'none')
     <div class="flex items-center px-4 py-3 bg-slate-200/80 dark:bg-black/30 border-b border-slate-300 dark:border-white/5 shrink-0">
         @if($showWindowControls)
         <div class="flex gap-2 shrink-0">
@@ -390,6 +391,7 @@
 
         </div>
     </div>
+    @endif
 
     {{-- Info Panel Overlay --}}
     <div

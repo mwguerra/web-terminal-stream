@@ -29,6 +29,7 @@ class TerminalContainer extends Component
     public string $height = '400px';
     public string $title = 'Terminal';
     public bool $showWindowControls = true;
+    public string $chrome = 'full';
 
     public function mount(
         array $classicParams = [],
@@ -37,13 +38,15 @@ class TerminalContainer extends Component
         string $height = '400px',
         string $title = 'Terminal',
         bool $showWindowControls = true,
+        string $chrome = 'full',
     ): void {
         $this->classicParams = $classicParams;
         $this->streamParams = $streamParams;
         $this->defaultMode = $defaultMode;
         $this->height = $height;
         $this->title = $title;
-        $this->showWindowControls = $showWindowControls;
+        $this->chrome = in_array($chrome, ['full', 'minimal', 'none'], true) ? $chrome : 'full';
+        $this->showWindowControls = ($this->chrome === 'full') ? $showWindowControls : false;
         $this->instanceId = Str::random(8);
     }
 

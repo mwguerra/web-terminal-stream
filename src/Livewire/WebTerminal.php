@@ -140,8 +140,19 @@ class WebTerminal extends Component
 
     /**
      * Whether to show window control buttons (the three colored dots).
+     *
+     * Kept for backwards compatibility with templates and callers that
+     * read it directly. Derived from $chrome in mount().
      */
     public bool $showWindowControls = true;
+
+    /**
+     * Chrome level — 'full', 'minimal', or 'none'. Derived from the
+     * `TerminalChrome` enum at the Schema-component layer and passed
+     * through as a plain string so Livewire's property binding stays
+     * simple.
+     */
+    public string $chrome = 'full';
 
     /**
      * Whether to show the Classic/Stream mode toggle pill in the header.
@@ -491,6 +502,7 @@ class WebTerminal extends Component
         bool $startConnected = false,
         ?string $title = null,
         bool $showWindowControls = true,
+        string $chrome = 'full',
         bool $hasModePill = false,
         bool $autoConnect = false,
         ?bool $loggingEnabled = null,
@@ -577,7 +589,9 @@ class WebTerminal extends Component
 
         // Set UI configuration
         $this->startConnected = $startConnected;
-        $this->showWindowControls = $showWindowControls;
+        $this->chrome = in_array($chrome, ['full', 'minimal', 'none'], true) ? $chrome : 'full';
+        // Keep the derived boolean in sync for templates/partials that still read it.
+        $this->showWindowControls = ($this->chrome === 'full') ? $showWindowControls : false;
         $this->hasModePill = $hasModePill;
         $this->autoConnect = $autoConnect;
 

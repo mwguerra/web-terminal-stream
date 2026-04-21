@@ -16,6 +16,7 @@ class StreamTerminal extends Component
     public string $height = '400px';
     public string $title = 'Terminal';
     public bool $showWindowControls = true;
+    public string $chrome = 'full';
     public bool $hasModePill = false;
     public bool $autoConnect = false;
 
@@ -37,6 +38,7 @@ class StreamTerminal extends Component
         string $title = 'Terminal',
         array $streamTheme = [],
         bool $showWindowControls = true,
+        string $chrome = 'full',
         bool $hasModePill = false,
         bool $autoConnect = false,
         array $scripts = [],
@@ -45,7 +47,8 @@ class StreamTerminal extends Component
         $this->height = $height;
         $this->title = $title;
         $this->streamTheme = $streamTheme;
-        $this->showWindowControls = $showWindowControls;
+        $this->chrome = in_array($chrome, ['full', 'minimal', 'none'], true) ? $chrome : 'full';
+        $this->showWindowControls = ($this->chrome === 'full') ? $showWindowControls : false;
         $this->hasModePill = $hasModePill;
         $this->autoConnect = $autoConnect;
         $this->scripts = $scripts;
