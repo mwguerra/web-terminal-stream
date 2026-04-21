@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace MWGuerra\WebTerminal\Livewire;
 
+use Illuminate\Support\Str;
 use Livewire\Attributes\Locked;
 use Livewire\Component;
 
@@ -17,6 +18,13 @@ class TerminalContainer extends Component
 
     #[Locked]
     public string $defaultMode = 'classic';
+
+    /**
+     * Unique suffix so multiple TerminalContainer instances on one page
+     * don't collide on the inner @livewire wire:key values.
+     */
+    #[Locked]
+    public string $instanceId = '';
 
     public string $height = '400px';
     public string $title = 'Terminal';
@@ -36,6 +44,7 @@ class TerminalContainer extends Component
         $this->height = $height;
         $this->title = $title;
         $this->showWindowControls = $showWindowControls;
+        $this->instanceId = Str::random(8);
     }
 
     public function render()

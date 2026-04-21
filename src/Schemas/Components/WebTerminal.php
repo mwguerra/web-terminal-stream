@@ -60,7 +60,13 @@ class WebTerminal extends Livewire
             'data' => $data,
         ]);
         $static->configure();
-        $static->key('web-terminal');
+
+        // Unique default key per instance so two WebTerminal::make() calls on the
+        // same Filament page don't collide on Livewire's wire:key. Users who call
+        // ->key('custom-id') later override this default. The random segment is
+        // stable for the lifetime of a page render (make() only runs at schema
+        // build time, not on every re-render).
+        $static->key('web-terminal-' . \Illuminate\Support\Str::random(8));
 
         return $static;
     }
