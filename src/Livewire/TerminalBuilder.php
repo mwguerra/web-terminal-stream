@@ -7,6 +7,8 @@ namespace MWGuerra\WebTerminal\Livewire;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\HtmlString;
 use MWGuerra\WebTerminal\Concerns\ConfiguresCommandPresets;
+use MWGuerra\WebTerminal\Concerns\ConfiguresLogging;
+use MWGuerra\WebTerminal\Concerns\ConfiguresPermissions;
 use MWGuerra\WebTerminal\Concerns\ConfiguresScripts;
 use MWGuerra\WebTerminal\Concerns\ConfiguresSessionManagement;
 use MWGuerra\WebTerminal\Concerns\ConfiguresShellEnvironment;
@@ -17,7 +19,6 @@ use MWGuerra\WebTerminal\Concerns\EvaluatesOptions;
 use MWGuerra\WebTerminal\Data\ConnectionConfig;
 use MWGuerra\WebTerminal\Enums\ConnectionType;
 use MWGuerra\WebTerminal\Enums\TerminalMode;
-use MWGuerra\WebTerminal\Enums\TerminalPermission;
 
 /**
  * Fluent builder for WebTerminal component.
@@ -28,6 +29,8 @@ use MWGuerra\WebTerminal\Enums\TerminalPermission;
 class TerminalBuilder
 {
     use ConfiguresCommandPresets;
+    use ConfiguresLogging;
+    use ConfiguresPermissions;
     use ConfiguresScripts;
     use ConfiguresSessionManagement;
     use ConfiguresShellEnvironment;
@@ -44,34 +47,6 @@ class TerminalBuilder
 
     protected ?string $key = null;
 
-    // Permission flags
-    protected bool $allowAllCommands = false;
-
-    protected bool $allowPipes = false;
-
-    protected bool $allowRedirection = false;
-
-    protected bool $allowChaining = false;
-
-    protected bool $allowExpansion = false;
-
-    protected bool $allowAllShellOperators = false;
-
-    protected bool $allowInteractiveMode = false;
-
-    // Logging
-    protected ?bool $loggingEnabled = null;
-
-    protected ?bool $logConnections = null;
-
-    protected ?bool $logCommands = null;
-
-    protected ?bool $logOutput = null;
-
-    protected ?string $logIdentifier = null;
-
-    /** @var array<string, mixed> */
-    protected array $logMetadata = [];
 
     // ========================================
     // Connection Configuration
@@ -158,135 +133,12 @@ class TerminalBuilder
     }
 
     // ========================================
-    // Permissions (enum-based)
-    // ========================================
-
-    /**
-     * Set permissions using TerminalPermission enum values.
-     *
-     * @param  array<TerminalPermission>  $permissions
-     */
-    public function allow(array $permissions): static
-    {
-        $flags = TerminalPermission::resolveManyFlags($permissions);
-
-        if ($flags['allowAllCommands'] ?? false) {
-            $this->allowAllCommands = true;
-        }
-        if ($flags['allowPipes'] ?? false) {
-            $this->allowPipes = true;
-        }
-        if ($flags['allowRedirection'] ?? false) {
-            $this->allowRedirection = true;
-        }
-        if ($flags['allowChaining'] ?? false) {
-            $this->allowChaining = true;
-        }
-        if ($flags['allowExpansion'] ?? false) {
-            $this->allowExpansion = true;
-        }
-        if ($flags['allowAllShellOperators'] ?? false) {
-            $this->allowAllShellOperators = true;
-        }
-        if ($flags['allowInteractiveMode'] ?? false) {
-            $this->allowInteractiveMode = true;
-        }
-
-        return $this;
-    }
-
-    // ========================================
-    // Permissions (individual methods)
-    // ========================================
-
-    public function allowAllCommands(bool $allow = true): static
-    {
-        $this->allowAllCommands = $allow;
-
-        return $this;
-    }
-
-    public function allowPipes(bool $allow = true): static
-    {
-        $this->allowPipes = $allow;
-
-        return $this;
-    }
-
-    public function allowRedirection(bool $allow = true): static
-    {
-        $this->allowRedirection = $allow;
-
-        return $this;
-    }
-
-    public function allowChaining(bool $allow = true): static
-    {
-        $this->allowChaining = $allow;
-
-        return $this;
-    }
-
-    public function allowExpansion(bool $allow = true): static
-    {
-        $this->allowExpansion = $allow;
-
-        return $this;
-    }
-
-    public function allowAllShellOperators(bool $allow = true): static
-    {
-        $this->allowAllShellOperators = $allow;
-        $this->allowPipes = $allow;
-        $this->allowRedirection = $allow;
-        $this->allowChaining = $allow;
-        $this->allowExpansion = $allow;
-
-        return $this;
-    }
-
-    public function allowInteractiveMode(bool $allow = true): static
-    {
-        $this->allowInteractiveMode = $allow;
-
-        return $this;
-    }
-
-    // ========================================
     // UI Configuration
     // ========================================
 
     public function key(string $key): static
     {
         $this->key = $key;
-
-        return $this;
-    }
-
-    // ========================================
-    // Logging Configuration
-    // ========================================
-
-    public function log(
-        ?bool $enabled = true,
-        ?bool $connections = null,
-        ?bool $commands = null,
-        ?bool $output = null,
-        ?string $identifier = null,
-    ): static {
-        $this->loggingEnabled = $enabled;
-        $this->logConnections = $connections;
-        $this->logCommands = $commands;
-        $this->logOutput = $output;
-        $this->logIdentifier = $identifier;
-
-        return $this;
-    }
-
-    /** @param  array<string, mixed>  $metadata */
-    public function logMetadata(array $metadata): static
-    {
-        $this->logMetadata = $metadata;
 
         return $this;
     }
@@ -306,39 +158,39 @@ class TerminalBuilder
             'historyLimit' => $this->historyLimit,
             'maxOutputLines' => $this->maxOutputLines,
             'height' => $this->height,
-            'disconnectOnNavigate' => $this->disconnectOnNavigate,
-            'inactivityTimeout' => $this->inactivityTimeout,
-            'loggingEnabled' => $this->loggingEnabled,
-            'logConnections' => $this->logConnections,
-            'logCommands' => $this->logCommands,
-            'logOutput' => $this->logOutput,
-            'logIdentifier' => $this->logIdentifier,
+            'disconnectOnNavigate' => $this->getDisconnectOnNavigate(),
+            'inactivityTimeout' => $this->getInactivityTimeout(),
+            'loggingEnabled' => $this->getLoggingEnabled(),
+            'logConnections' => $this->getLogConnections(),
+            'logCommands' => $this->getLogCommands(),
+            'logOutput' => $this->getLogOutput(),
+            'logIdentifier' => $this->getLogIdentifier(),
             'title' => $this->title,
         ], fn ($value) => $value !== null);
 
         // Boolean flags — include when true
-        if ($this->allowAllCommands) {
+        if ($this->getAllowAll()) {
             $params['allowAllCommands'] = true;
         }
-        if ($this->allowPipes) {
+        if ($this->getAllowPipes()) {
             $params['allowPipes'] = true;
         }
-        if ($this->allowRedirection) {
+        if ($this->getAllowRedirection()) {
             $params['allowRedirection'] = true;
         }
-        if ($this->allowChaining) {
+        if ($this->getAllowChaining()) {
             $params['allowChaining'] = true;
         }
-        if ($this->allowExpansion) {
+        if ($this->getAllowExpansion()) {
             $params['allowExpansion'] = true;
         }
-        if ($this->allowAllShellOperators) {
+        if ($this->getAllowAllShellOperators()) {
             $params['allowAllShellOperators'] = true;
         }
-        if ($this->allowInteractiveMode) {
+        if ($this->getAllowInteractiveMode()) {
             $params['allowInteractiveMode'] = true;
         }
-        if ($this->startConnected) {
+        if ($this->getStartConnected()) {
             $params['startConnected'] = true;
         }
         if (! $this->getShowWindowControls()) {
@@ -354,8 +206,9 @@ class TerminalBuilder
         if (! empty($environment)) {
             $params['environment'] = $environment;
         }
-        if (! empty($this->logMetadata)) {
-            $params['logMetadata'] = $this->logMetadata;
+        $logMetadata = $this->getLogMetadata();
+        if (! empty($logMetadata)) {
+            $params['logMetadata'] = $logMetadata;
         }
         $scripts = $this->getScripts();
         if (! empty($scripts)) {
@@ -475,19 +328,19 @@ class TerminalBuilder
             $params['height'] = $this->height;
         }
 
-        if ($this->allowAllCommands) {
+        if ($this->getAllowAll()) {
             $params[':allow-all-commands'] = 'true';
         }
 
-        if ($this->allowAllShellOperators) {
+        if ($this->getAllowAllShellOperators()) {
             $params[':allow-all-shell-operators'] = 'true';
         }
 
-        if ($this->allowInteractiveMode) {
+        if ($this->getAllowInteractiveMode()) {
             $params[':allow-interactive-mode'] = 'true';
         }
 
-        if ($this->startConnected) {
+        if ($this->getStartConnected()) {
             $params[':start-connected'] = 'true';
         }
 
