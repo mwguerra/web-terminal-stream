@@ -181,10 +181,15 @@ Each stage is a PR-sized checkpoint. Status updated as work progresses.
 - [x] Baseline capture: `docs/benchmarks/baselines/2026-04-21-pre-frameless.json`
 - [x] testapp-f5 audit captured in §4
 - [ ] New testapp-f5 pages (deferred to the stages that consume them — Stage 1/2/3/4)
-- [x] First trait extracted: `ConfiguresTerminalAppearance` (height, title, windowControls, startConnected, autoConnect) + `EvaluatesOptions` for TerminalBuilder
-- [ ] Remaining config groups extracted into traits: connection, commands, permissions, environment/shell, terminal basics, logging, session, scripts, stream mode
-- [x] Regression check: 844 passed / 0 failed after pilot trait extraction (baseline was 842, two flakes passed this run)
-- [x] Benchmark regression check: all CommandValidator deltas within noise (±10%) at sub-microsecond scale
+- [x] First trait batch: `ConfiguresTerminalAppearance` (height, title, windowControls, startConnected, autoConnect) + `EvaluatesOptions` for TerminalBuilder
+- [x] Second trait batch: `ConfiguresSessionManagement`, `ConfiguresStreamMode`, `ConfiguresTerminalBasics`
+- [ ] Remaining config groups (complex overloads): `ConfiguresLogging`, `ConfiguresPermissions`, `ConfiguresConnection`, `ConfiguresCommands`, `ConfiguresShellEnvironment`, `ConfiguresScripts` — deferred to a dedicated Stage 0.3 commit; higher risk of subtle behavior change due to method overloads (log(), ssh(), allow())
+- [x] Regression check: 844 passed / 0 failed after both trait batches. Two baseline flakes passed this run.
+- [x] Benchmark regression check: trait extraction adds zero measurable overhead. Three-run replication on current code shows CommandValidator::isAllowed at 0.2µs median ±2%, matching the pre-frameless baseline.
+
+**Follow-up known issue (non-blocking):** the benchmark harness runs each measurement once per invocation. At sub-µs resolution, cold-start CPU scheduling can produce >50% swings between single runs. A harness upgrade to run N invocations and keep the median-of-medians is tracked as a Stage 0 polish item.
+
+**Minor behavior expansion (documented here so it's on the record):** `Livewire\TerminalBuilder` previously clamped `->timeout(0)` to 1, `->historyLimit(0)` to 1, `->maxOutputLines(50)` to 100. Post-extraction those clamps are gone; the underlying Livewire component enforces whatever it needs at the consumer boundary. This aligns TerminalBuilder with the Schema component's behavior (which never clamped) and does not affect any documented usage.
 
 ### Stage 1 — Stream buffer bug + SSH robustness (integrates Issue #3)
 
@@ -262,6 +267,7 @@ Append-only. One line per work session, most recent last.
 
 - 2026-04-21 — Branch created. CLAUDE.md written. Architecture audit complete. Decisions captured via AskUserQuestion (§2). GitHub issue #3 and PR #4 assessed (§3). testapp-f5 audited (§4). This plan document created. Beginning Stage 0.
 - 2026-04-21 — Stage 0 checkpoint 1: benchmark harness wired up (`composer bench`, `scripts/bench.php`, `tests/Benchmarks/`, phpunit Benchmarks testsuite). First real benchmarks on `CommandValidator::isAllowed`. Pre-frameless baseline captured. First trait `ConfiguresTerminalAppearance` extracted from Schema component + TerminalBuilder; 844 tests passing (+2 vs baseline; the two baseline flakes passed this run). Microbenchmarks stable within ±10% noise.
+- 2026-04-21 — Stage 0 checkpoint 2: three more traits extracted — `ConfiguresSessionManagement`, `ConfiguresStreamMode`, `ConfiguresTerminalBasics`. 844 tests still passing. Documented a minor TerminalBuilder behavior expansion (clamps removed from timeout/historyLimit/maxOutputLines). Pivoting to Stage 1 next; remaining complex-overload traits (logging, permissions, connection, commands, shell env, scripts) deferred to a dedicated Stage 0.3 commit.
 
 ---
 

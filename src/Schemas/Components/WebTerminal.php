@@ -4,7 +4,10 @@ namespace MWGuerra\WebTerminal\Schemas\Components;
 
 use Closure;
 use Filament\Schemas\Components\Livewire;
+use MWGuerra\WebTerminal\Concerns\ConfiguresSessionManagement;
+use MWGuerra\WebTerminal\Concerns\ConfiguresStreamMode;
 use MWGuerra\WebTerminal\Concerns\ConfiguresTerminalAppearance;
+use MWGuerra\WebTerminal\Concerns\ConfiguresTerminalBasics;
 use MWGuerra\WebTerminal\Data\ConnectionConfig;
 use MWGuerra\WebTerminal\Data\Script;
 use MWGuerra\WebTerminal\Enums\TerminalMode;
@@ -28,19 +31,14 @@ use MWGuerra\WebTerminal\Livewire\WebTerminal as WebTerminalComponent;
  */
 class WebTerminal extends Livewire
 {
+    use ConfiguresSessionManagement;
+    use ConfiguresStreamMode;
     use ConfiguresTerminalAppearance;
+    use ConfiguresTerminalBasics;
 
     protected array|Closure $connectionConfig = ['type' => 'local'];
 
     protected array|Closure $allowedCommands = [];
-
-    protected int|Closure $timeout = 10;
-
-    protected string|Closure $prompt = '$ ';
-
-    protected int|Closure $historyLimit = 50;
-
-    protected int|Closure $maxOutputLines = 1000;
 
     protected ?string $workingDirectory = null;
 
@@ -77,23 +75,9 @@ class WebTerminal extends Livewire
 
     protected array|Closure $logMetadata = [];
 
-    // Session management configuration
-    protected bool|Closure|null $disconnectOnNavigate = null;
-
-    protected int|Closure|null $inactivityTimeout = null;
-
     // Scripts configuration
     /** @var array<int, Script|array<string, mixed>>|Closure */
     protected array|Closure $scripts = [];
-
-    // Stream terminal mode
-    protected bool|Closure $streamEnabled = false;
-
-    protected bool|Closure $classicEnabled = true;
-
-    protected TerminalMode $defaultMode = TerminalMode::Classic;
-
-    protected array|Closure $streamTheme = [];
 
     public static function make(Closure|string|null $component = null, Closure|array $data = []): static
     {
@@ -627,78 +611,6 @@ class WebTerminal extends Livewire
     // ========================================
 
     /**
-     * Set the command timeout in seconds.
-     */
-    public function timeout(int|Closure $seconds): static
-    {
-        $this->timeout = $seconds;
-
-        return $this;
-    }
-
-    /**
-     * Get the timeout.
-     */
-    public function getTimeout(): int
-    {
-        return $this->evaluate($this->timeout);
-    }
-
-    /**
-     * Set the terminal prompt.
-     */
-    public function prompt(string|Closure $prompt): static
-    {
-        $this->prompt = $prompt;
-
-        return $this;
-    }
-
-    /**
-     * Get the prompt.
-     */
-    public function getPrompt(): string
-    {
-        return $this->evaluate($this->prompt);
-    }
-
-    /**
-     * Set the command history limit.
-     */
-    public function historyLimit(int|Closure $limit): static
-    {
-        $this->historyLimit = $limit;
-
-        return $this;
-    }
-
-    /**
-     * Get the history limit.
-     */
-    public function getHistoryLimit(): int
-    {
-        return $this->evaluate($this->historyLimit);
-    }
-
-    /**
-     * Set the maximum output lines to retain.
-     */
-    public function maxOutputLines(int|Closure $lines): static
-    {
-        $this->maxOutputLines = $lines;
-
-        return $this;
-    }
-
-    /**
-     * Get the max output lines.
-     */
-    public function getMaxOutputLines(): int
-    {
-        return $this->evaluate($this->maxOutputLines);
-    }
-
-    /**
      * Set the initial working directory.
      */
     public function workingDirectory(?string $directory): static
@@ -973,96 +885,6 @@ class WebTerminal extends Livewire
     }
 
     // ========================================
-    // Session Management Configuration
-    // ========================================
-
-    /**
-     * Set whether to disconnect when navigating away or refreshing the page.
-     *
-     * When enabled (default), the terminal will automatically disconnect
-     * when the user navigates to another page or refreshes. This prevents
-     * orphaned tmux sessions.
-     *
-     * @param  bool|Closure  $enabled  Whether to disconnect on navigation (default: true)
-     */
-    public function disconnectOnNavigate(bool|Closure $enabled = true): static
-    {
-        $this->disconnectOnNavigate = $enabled;
-
-        return $this;
-    }
-
-    /**
-     * Disable automatic disconnect on page navigation.
-     *
-     * Use this if you want the terminal session to persist across page
-     * navigations (e.g., in SPA-like applications).
-     */
-    public function keepConnectedOnNavigate(): static
-    {
-        $this->disconnectOnNavigate = false;
-
-        return $this;
-    }
-
-    /**
-     * Get whether to disconnect on navigation.
-     *
-     * Returns null if not explicitly set (uses config default).
-     */
-    public function getDisconnectOnNavigate(): ?bool
-    {
-        $value = $this->disconnectOnNavigate;
-
-        if ($value === null) {
-            return null;
-        }
-
-        return $this->evaluate($value);
-    }
-
-    /**
-     * Set the inactivity timeout in seconds.
-     *
-     * The terminal will automatically disconnect after this period of
-     * inactivity (no commands or keystrokes). Set to 0 to disable.
-     *
-     * @param  int|Closure  $seconds  Timeout in seconds (0 = disabled, default: 3600 = 60 minutes)
-     */
-    public function inactivityTimeout(int|Closure $seconds): static
-    {
-        $this->inactivityTimeout = $seconds;
-
-        return $this;
-    }
-
-    /**
-     * Disable inactivity timeout (never auto-disconnect due to inactivity).
-     */
-    public function noInactivityTimeout(): static
-    {
-        $this->inactivityTimeout = 0;
-
-        return $this;
-    }
-
-    /**
-     * Get the inactivity timeout.
-     *
-     * Returns null if not explicitly set (uses config default).
-     */
-    public function getInactivityTimeout(): ?int
-    {
-        $value = $this->inactivityTimeout;
-
-        if ($value === null) {
-            return null;
-        }
-
-        return $this->evaluate($value);
-    }
-
-    // ========================================
     // Scripts Configuration
     // ========================================
 
@@ -1160,57 +982,6 @@ class WebTerminal extends Livewire
             // Validate array has required keys by converting through Script
             return Script::fromArray($script)->toArray();
         }, $scripts));
-    }
-    // ========================================
-    // Stream Terminal Mode Configuration
-    // ========================================
-
-    public function streamTerminal(bool|Closure $enabled = true): static
-    {
-        $this->streamEnabled = $enabled;
-
-        return $this;
-    }
-
-    public function getStreamEnabled(): bool
-    {
-        return $this->evaluate($this->streamEnabled);
-    }
-
-    public function classicTerminal(bool|Closure $enabled = true): static
-    {
-        $this->classicEnabled = $enabled;
-
-        return $this;
-    }
-
-    public function getClassicEnabled(): bool
-    {
-        return $this->evaluate($this->classicEnabled);
-    }
-
-    public function defaultMode(TerminalMode $mode): static
-    {
-        $this->defaultMode = $mode;
-
-        return $this;
-    }
-
-    public function getDefaultMode(): TerminalMode
-    {
-        return $this->defaultMode;
-    }
-
-    public function streamTheme(array|Closure $theme): static
-    {
-        $this->streamTheme = $theme;
-
-        return $this;
-    }
-
-    public function getStreamTheme(): array
-    {
-        return $this->evaluate($this->streamTheme);
     }
 }
 

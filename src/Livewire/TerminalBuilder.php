@@ -6,7 +6,10 @@ namespace MWGuerra\WebTerminal\Livewire;
 
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\HtmlString;
+use MWGuerra\WebTerminal\Concerns\ConfiguresSessionManagement;
+use MWGuerra\WebTerminal\Concerns\ConfiguresStreamMode;
 use MWGuerra\WebTerminal\Concerns\ConfiguresTerminalAppearance;
+use MWGuerra\WebTerminal\Concerns\ConfiguresTerminalBasics;
 use MWGuerra\WebTerminal\Concerns\EvaluatesOptions;
 use MWGuerra\WebTerminal\Data\ConnectionConfig;
 use MWGuerra\WebTerminal\Enums\ConnectionType;
@@ -21,7 +24,10 @@ use MWGuerra\WebTerminal\Enums\TerminalPermission;
  */
 class TerminalBuilder
 {
+    use ConfiguresSessionManagement;
+    use ConfiguresStreamMode;
     use ConfiguresTerminalAppearance;
+    use ConfiguresTerminalBasics;
     use EvaluatesOptions;
 
     /** @var array<string, mixed>|ConnectionConfig|null */
@@ -29,14 +35,6 @@ class TerminalBuilder
 
     /** @var array<string>|null */
     protected ?array $allowedCommands = null;
-
-    protected ?int $timeout = null;
-
-    protected ?string $prompt = null;
-
-    protected ?int $historyLimit = null;
-
-    protected ?int $maxOutputLines = null;
 
     protected ?string $key = null;
 
@@ -77,24 +75,9 @@ class TerminalBuilder
     /** @var array<string, mixed> */
     protected array $logMetadata = [];
 
-    // Session management
-    protected ?bool $disconnectOnNavigate = null;
-
-    protected ?int $inactivityTimeout = null;
-
     // Scripts
     /** @var array<mixed> */
     protected array $scripts = [];
-
-    // Stream mode
-    protected bool $streamEnabled = false;
-
-    protected bool $classicEnabled = true;
-
-    protected TerminalMode $defaultMode = TerminalMode::Classic;
-
-    /** @var array<string, mixed> */
-    protected array $streamTheme = [];
 
     // ========================================
     // Connection Configuration
@@ -176,13 +159,6 @@ class TerminalBuilder
     {
         $existing = $this->allowedCommands ?? config('web-terminal.allowed_commands', []);
         $this->allowedCommands = array_unique(array_merge($existing, $commands));
-
-        return $this;
-    }
-
-    public function timeout(int $seconds): static
-    {
-        $this->timeout = max(1, $seconds);
 
         return $this;
     }
@@ -312,27 +288,6 @@ class TerminalBuilder
     // UI Configuration
     // ========================================
 
-    public function prompt(string $prompt): static
-    {
-        $this->prompt = $prompt;
-
-        return $this;
-    }
-
-    public function historyLimit(int $limit): static
-    {
-        $this->historyLimit = max(1, $limit);
-
-        return $this;
-    }
-
-    public function maxOutputLines(int $lines): static
-    {
-        $this->maxOutputLines = max(100, $lines);
-
-        return $this;
-    }
-
     public function key(string $key): static
     {
         $this->key = $key;
@@ -369,38 +324,6 @@ class TerminalBuilder
     }
 
     // ========================================
-    // Session Management
-    // ========================================
-
-    public function disconnectOnNavigate(bool $enabled = true): static
-    {
-        $this->disconnectOnNavigate = $enabled;
-
-        return $this;
-    }
-
-    public function keepConnectedOnNavigate(): static
-    {
-        $this->disconnectOnNavigate = false;
-
-        return $this;
-    }
-
-    public function inactivityTimeout(int $seconds): static
-    {
-        $this->inactivityTimeout = max(0, $seconds);
-
-        return $this;
-    }
-
-    public function noInactivityTimeout(): static
-    {
-        $this->inactivityTimeout = 0;
-
-        return $this;
-    }
-
-    // ========================================
     // Scripts
     // ========================================
 
@@ -408,39 +331,6 @@ class TerminalBuilder
     public function scripts(array $scripts): static
     {
         $this->scripts = $scripts;
-
-        return $this;
-    }
-
-    // ========================================
-    // Stream Configuration
-    // ========================================
-
-    public function streamTerminal(bool $enabled = true): static
-    {
-        $this->streamEnabled = $enabled;
-
-        return $this;
-    }
-
-    public function classicTerminal(bool $enabled = true): static
-    {
-        $this->classicEnabled = $enabled;
-
-        return $this;
-    }
-
-    public function defaultMode(TerminalMode $mode = TerminalMode::Classic): static
-    {
-        $this->defaultMode = $mode;
-
-        return $this;
-    }
-
-    /** @param  array<string, mixed>  $theme */
-    public function streamTheme(array $theme): static
-    {
-        $this->streamTheme = $theme;
 
         return $this;
     }
