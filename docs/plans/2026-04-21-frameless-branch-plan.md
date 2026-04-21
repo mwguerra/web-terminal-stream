@@ -191,15 +191,16 @@ Each stage is a PR-sized checkpoint. Status updated as work progresses.
 
 **Minor behavior expansion (documented here so it's on the record):** `Livewire\TerminalBuilder` previously clamped `->timeout(0)` to 1, `->historyLimit(0)` to 1, `->maxOutputLines(50)` to 100. Post-extraction those clamps are gone; the underlying Livewire component enforces whatever it needs at the consumer boundary. This aligns TerminalBuilder with the Schema component's behavior (which never clamped) and does not affect any documented usage.
 
-### Stage 1 — Stream buffer bug + SSH robustness (integrates Issue #3)
+### Stage 1 — Stream buffer bug + SSH robustness (integrates Issue #3) — **IN PROGRESS**
 
-- [ ] Add `MultiServerSamePage.php`, `MultiServerPageA.php`, `MultiServerPageB.php` to testapp-f5
-- [ ] Reproduce the screen-buffer bug via Playwright
-- [ ] Client teardown fixes (stream-terminal.blade.php): lifecycle events, container reset, defensive dispose
-- [ ] Backend: cache cleanup in handshake, idle heartbeat in `tick()`
-- [ ] SSH fixes (TerminalPtyBridge): CHANNEL_SHELL bootstrap, `setTimeout(0.01)`, try/catch in `read()` and `terminate()`, mark-dead on failure
-- [ ] Pest coverage for SSH failure modes
-- [ ] Playwright regression (50× navigate + leak-count assertion)
+- [x] Client teardown fixes (stream-terminal.blade.php): stable handler refs, `livewire:navigating` + `pagehide` + `beforeunload` bound, `$refs.streamContainer.replaceChildren()` reset on mount, defensive WebSocket + disposable cleanup on every `connect()` entry
+- [x] Backend: cache cleanup on handshake (already present via `Cache::pull` in ReactPhpWebSocketServer — noted for accuracy; my earlier analysis was wrong on this point)
+- [x] SSH fixes (TerminalPtyBridge): CHANNEL_SHELL bootstrap replaces fragile `enablePTY() + exec('')`, startup uses `max(5, timeout)` so shell opens cleanly, then `setTimeout(0.01)` for non-blocking loop; `read()` catches TimeoutException explicitly + Throwable with mark-dead; `isRunning()` + `terminate()` wrapped in try/catch with best-effort close
+- [x] New `$sshDead` flag on TerminalPtyBridge so a failed SSH session stops being polled by `tick()` and `handleClose` fires promptly — addresses the "server-wide loop stall" failure mode from Issue #3
+- [x] Pest coverage: 5 new tests in `tests/Unit/WebSocket/TerminalPtyBridgeSshFailureTest.php` covering TimeoutException, generic Throwable in read(), isConnected() throwing, disconnect() throwing, and registry cleanup under failure — all passing
+- [ ] Backend idle heartbeat in `tick()` — nice-to-have. The mark-dead flag solves the main failure mode (broken SSH no longer holds the loop hostage). Deferred unless we see symptoms the flag doesn't cover.
+- [ ] Add `MultiServerSamePage.php`, `MultiServerPageA.php`, `MultiServerPageB.php` to testapp-f5 — Stage 1 completion gate
+- [ ] Playwright regression: 50× navigate A→B→A cycle, asserting no stale DOM children in `$refs.streamContainer` + `PtySessionRegistry::all()` returns to empty between cycles — Stage 1 completion gate
 
 ### Stage 2 — Multi-terminal isolation
 
@@ -268,6 +269,7 @@ Append-only. One line per work session, most recent last.
 - 2026-04-21 — Branch created. CLAUDE.md written. Architecture audit complete. Decisions captured via AskUserQuestion (§2). GitHub issue #3 and PR #4 assessed (§3). testapp-f5 audited (§4). This plan document created. Beginning Stage 0.
 - 2026-04-21 — Stage 0 checkpoint 1: benchmark harness wired up (`composer bench`, `scripts/bench.php`, `tests/Benchmarks/`, phpunit Benchmarks testsuite). First real benchmarks on `CommandValidator::isAllowed`. Pre-frameless baseline captured. First trait `ConfiguresTerminalAppearance` extracted from Schema component + TerminalBuilder; 844 tests passing (+2 vs baseline; the two baseline flakes passed this run). Microbenchmarks stable within ±10% noise.
 - 2026-04-21 — Stage 0 checkpoint 2: three more traits extracted — `ConfiguresSessionManagement`, `ConfiguresStreamMode`, `ConfiguresTerminalBasics`. 844 tests still passing. Documented a minor TerminalBuilder behavior expansion (clamps removed from timeout/historyLimit/maxOutputLines). Pivoting to Stage 1 next; remaining complex-overload traits (logging, permissions, connection, commands, shell env, scripts) deferred to a dedicated Stage 0.3 commit.
+- 2026-04-21 — Stage 1 core code fixes landed. Client teardown bound to `livewire:navigating` + `pagehide` + `beforeunload` with stable handler refs (was only `beforeunload` — missing Filament SPA nav entirely). Container reset on mount kills stale DOM inside `wire:ignore`. Defensive dispose at every `connect()` entry. SSH bootstrap switched to CHANNEL_SHELL with proper timeout sequencing; `read()` / `isRunning()` / `terminate()` now catch exceptions and mark the bridge dead so one failed SSH session can't crash the shared event loop. 5 new Pest tests cover the SSH failure paths; 849 tests passing overall. GitHub Issue #3 integrated and credit queued in CHANGELOG. Playwright regression + testapp-f5 multi-server pages still outstanding — those are the completion gate for Stage 1.
 
 ---
 

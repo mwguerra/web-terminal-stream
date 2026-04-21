@@ -10,6 +10,8 @@
         fitAddon: null,
         dataDisposable: null,
         resizeDisposable: null,
+        // Stable handler references so add/removeEventListener match.
+        _teardownHandler: null,
 
         async initStream() {
             try {
@@ -19,6 +21,15 @@
                 }
 
                 await StreamWeb.init();
+
+                // Clear any residual DOM from a previous mount. Livewire's wire:ignore
+                // preserves this container across morphs; if we don't reset it, an
+                // orphaned canvas/textarea from a previous session can stay visible
+                // until the new Terminal paints over it — producing the "old session
+                // still on screen after navigating to a different server" bug.
+                if (this.$refs.streamContainer) {
+                    this.$refs.streamContainer.replaceChildren();
+                }
 
                 this.terminal = new StreamWeb.Terminal({
                     cursorBlink: true,
@@ -58,6 +69,17 @@
 
         async connect() {
             try {
+                // Defensive: if a stale WebSocket survived a previous teardown
+                // (old handlers weren't bound correctly, etc.), close it before
+                // opening a new one so we don't get two parallel streams writing
+                // to the same Terminal.
+                if (this.ws) {
+                    try { this.ws.close(); } catch (e) { /* ignore */ }
+                    this.ws = null;
+                }
+                if (this.dataDisposable) { this.dataDisposable.dispose(); this.dataDisposable = null; }
+                if (this.resizeDisposable) { this.resizeDisposable.dispose(); this.resizeDisposable = null; }
+
                 const result = await $wire.getWebSocketUrl();
 
                 if (result.error) {
@@ -162,17 +184,41 @@
         },
 
         destroy() {
-            window.removeEventListener('beforeunload', this.destroy.bind(this));
-            if (this.ws) {
-                this.ws.close();
+            // Remove all teardown listeners — the bound handler is stored once
+            // so these removeEventListener calls actually match.
+            if (this._teardownHandler) {
+                window.removeEventListener('beforeunload', this._teardownHandler);
+                window.removeEventListener('pagehide', this._teardownHandler);
+                document.removeEventListener('livewire:navigating', this._teardownHandler);
+                this._teardownHandler = null;
             }
+
+            if (this.dataDisposable) { this.dataDisposable.dispose(); this.dataDisposable = null; }
+            if (this.resizeDisposable) { this.resizeDisposable.dispose(); this.resizeDisposable = null; }
+
+            if (this.ws) {
+                try { this.ws.close(); } catch (e) { /* ignore */ }
+                this.ws = null;
+            }
+
             if (this.terminal) {
-                this.terminal.dispose();
+                try { this.terminal.dispose(); } catch (e) { /* ignore */ }
+                this.terminal = null;
+                this.fitAddon = null;
             }
         },
 
         init() {
-            window.addEventListener('beforeunload', this.destroy.bind(this));
+            // Bind teardown once so add/remove match. We listen to three events:
+            //   - beforeunload: full browser navigation (tab close, URL bar nav)
+            //   - pagehide: bfcache + reliable mobile-safari teardown signal
+            //   - livewire:navigating: Filament/Livewire SPA navigation — THIS is
+            //     the one that the old code missed, causing WebSocket + PTY +
+            //     ghostty Terminal scrollback to leak between page visits.
+            this._teardownHandler = this.destroy.bind(this);
+            window.addEventListener('beforeunload', this._teardownHandler);
+            window.addEventListener('pagehide', this._teardownHandler);
+            document.addEventListener('livewire:navigating', this._teardownHandler);
 
             const observer = new IntersectionObserver((entries) => {
                 if (entries[0].isIntersecting && !this.terminal) {
