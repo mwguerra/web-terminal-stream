@@ -5,6 +5,10 @@
         isConnected: $wire.entangle('isConnected'),
         showInfoPanel: false,
         copyFeedback: false,
+        // Key of a script awaiting user confirmation before running.
+        // Empty string = nothing pending. Stream-side is client-only because
+        // Stream already grants raw PTY access — this is UX, not security.
+        pendingScriptKey: '',
         ws: null,
         terminal: null,
         fitAddon: null,
@@ -172,7 +176,18 @@
             }
         },
 
-        async runScript(key) {
+        async runScript(key, requiresConfirmation = false) {
+            // Confirmation gate — matches the Classic-mode state machine.
+            // First click arms; a second call with pendingScriptKey already
+            // set to this key passes through (triggered by the Confirm button).
+            if (requiresConfirmation && this.pendingScriptKey !== key) {
+                this.pendingScriptKey = key;
+
+                return;
+            }
+
+            this.pendingScriptKey = '';
+
             const commands = await $wire.getScriptsForExecution(key);
             if (!commands || !commands.length) return;
 
@@ -181,6 +196,10 @@
                     this.ws.send(cmd + '\n');
                 }
             }
+        },
+
+        cancelPendingScript() {
+            this.pendingScriptKey = '';
         },
 
         destroy() {
@@ -286,23 +305,48 @@
                     </div>
                     <div class="py-1">
                         @foreach($scripts as $script)
-                        <button
-                            type="button"
-                            @click="runScript('{{ $script['key'] ?? '' }}'); showScriptsDropdown = false"
-                            class="w-full px-3 py-2.5 text-left hover:bg-slate-100 dark:hover:bg-white/10 transition-colors"
-                        >
-                            <div class="flex items-center gap-3">
-                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5 text-purple-500 dark:text-purple-400 shrink-0">
-                                    <path fill-rule="evenodd" d="M6.28 5.22a.75.75 0 0 1 0 1.06L2.56 10l3.72 3.72a.75.75 0 0 1-1.06 1.06L.97 10.53a.75.75 0 0 1 0-1.06l4.25-4.25a.75.75 0 0 1 1.06 0Z" clip-rule="evenodd" />
-                                </svg>
-                                <div class="flex-1 min-w-0">
-                                    <p class="text-sm font-medium text-slate-800 dark:text-gray-100 truncate">{{ $script['label'] ?? $script['key'] ?? 'Script' }}</p>
+                            @php $needsConfirm = ! empty($script['confirmBeforeRun']); @endphp
+                            <template x-if="pendingScriptKey === '{{ $script['key'] ?? '' }}'">
+                                {{-- Confirmation prompt rendered when this script is armed. --}}
+                                <div class="px-3 py-3 bg-amber-50 dark:bg-amber-900/20 border-b border-amber-200 dark:border-amber-700/30">
+                                    <p class="text-sm font-medium text-amber-800 dark:text-amber-300 mb-1">Run "{{ $script['label'] ?? $script['key'] ?? 'Script' }}"?</p>
                                     @if(!empty($script['description']))
-                                    <p class="text-xs text-slate-500 dark:text-gray-400 truncate">{{ $script['description'] }}</p>
+                                    <p class="text-xs text-amber-700 dark:text-amber-400 mb-2">{{ $script['description'] }}</p>
                                     @endif
+                                    <p class="text-xs text-amber-600 dark:text-amber-400 mb-3">This script requires confirmation.</p>
+                                    <div class="flex items-center gap-2">
+                                        <button
+                                            type="button"
+                                            @click="runScript('{{ $script['key'] ?? '' }}', true); showScriptsDropdown = false"
+                                            class="px-3 py-1.5 text-xs font-medium rounded-md bg-amber-600 text-white hover:bg-amber-700 transition-colors"
+                                        >Confirm</button>
+                                        <button
+                                            type="button"
+                                            @click="cancelPendingScript()"
+                                            class="px-3 py-1.5 text-xs font-medium rounded-md bg-slate-200 text-slate-700 hover:bg-slate-300 dark:bg-white/10 dark:text-gray-300 dark:hover:bg-white/20 transition-colors"
+                                        >Cancel</button>
+                                    </div>
                                 </div>
-                            </div>
-                        </button>
+                            </template>
+                            <template x-if="pendingScriptKey !== '{{ $script['key'] ?? '' }}'">
+                                <button
+                                    type="button"
+                                    @click="runScript('{{ $script['key'] ?? '' }}', {{ $needsConfirm ? 'true' : 'false' }}); @if(!$needsConfirm) showScriptsDropdown = false @endif"
+                                    class="w-full px-3 py-2.5 text-left hover:bg-slate-100 dark:hover:bg-white/10 transition-colors"
+                                >
+                                    <div class="flex items-center gap-3">
+                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5 text-purple-500 dark:text-purple-400 shrink-0">
+                                            <path fill-rule="evenodd" d="M6.28 5.22a.75.75 0 0 1 0 1.06L2.56 10l3.72 3.72a.75.75 0 0 1-1.06 1.06L.97 10.53a.75.75 0 0 1 0-1.06l4.25-4.25a.75.75 0 0 1 1.06 0Z" clip-rule="evenodd" />
+                                        </svg>
+                                        <div class="flex-1 min-w-0">
+                                            <p class="text-sm font-medium text-slate-800 dark:text-gray-100 truncate">{{ $script['label'] ?? $script['key'] ?? 'Script' }}</p>
+                                            @if(!empty($script['description']))
+                                            <p class="text-xs text-slate-500 dark:text-gray-400 truncate">{{ $script['description'] }}</p>
+                                            @endif
+                                        </div>
+                                    </div>
+                                </button>
+                            </template>
                         @endforeach
                     </div>
                 </div>
