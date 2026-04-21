@@ -4,6 +4,7 @@ namespace MWGuerra\WebTerminal\Schemas\Components;
 
 use Closure;
 use Filament\Schemas\Components\Livewire;
+use MWGuerra\WebTerminal\Concerns\ConfiguresTerminalAppearance;
 use MWGuerra\WebTerminal\Data\ConnectionConfig;
 use MWGuerra\WebTerminal\Data\Script;
 use MWGuerra\WebTerminal\Enums\TerminalMode;
@@ -27,7 +28,7 @@ use MWGuerra\WebTerminal\Livewire\WebTerminal as WebTerminalComponent;
  */
 class WebTerminal extends Livewire
 {
-    protected string|Closure $height = '350px';
+    use ConfiguresTerminalAppearance;
 
     protected array|Closure $connectionConfig = ['type' => 'local'];
 
@@ -62,14 +63,6 @@ class WebTerminal extends Livewire
     protected bool|Closure $useLoginShell = false;
 
     protected string|Closure $shell = '/bin/bash';
-
-    protected bool|Closure $startConnected = false;
-
-    protected bool|Closure $autoConnect = false;
-
-    protected string|Closure $title = 'Terminal';
-
-    protected bool|Closure $showWindowControls = true;
 
     // Logging configuration
     protected bool|Closure|null $loggingEnabled = null;
@@ -224,28 +217,6 @@ class WebTerminal extends Livewire
 
         // Classic-only (default)
         return $classicParams;
-    }
-
-    // ========================================
-    // Height Configuration
-    // ========================================
-
-    /**
-     * Set the height of the terminal.
-     */
-    public function height(string|Closure $height): static
-    {
-        $this->height = $height;
-
-        return $this;
-    }
-
-    /**
-     * Get the height of the terminal.
-     */
-    public function getHeight(): string
-    {
-        return $this->evaluate($this->height);
     }
 
     // ========================================
@@ -795,92 +766,6 @@ class WebTerminal extends Livewire
     public function artisanTerminal(): static
     {
         return $this->allowedCommands(['php', 'composer', 'ls', 'pwd', 'cd', 'cat']);
-    }
-
-    // ========================================
-    // UI Configuration
-    // ========================================
-
-    /**
-     * Start the terminal already connected.
-     *
-     * When enabled, the terminal will automatically connect on load
-     * instead of requiring the user to click the Connect button.
-     */
-    public function startConnected(bool|Closure $startConnected = true): static
-    {
-        $this->startConnected = $startConnected;
-
-        return $this;
-    }
-
-    /**
-     * Get whether to start connected.
-     */
-    public function getStartConnected(): bool
-    {
-        return $this->evaluate($this->startConnected);
-    }
-
-    /**
-     * Enable auto-connect mode.
-     *
-     * When enabled, the terminal connects automatically on load and hides
-     * the connect/disconnect button. The connection persists for the session.
-     */
-    public function autoConnect(bool|Closure $autoConnect = true): static
-    {
-        $this->autoConnect = $autoConnect;
-
-        return $this;
-    }
-
-    /**
-     * Get whether auto-connect is enabled.
-     */
-    public function getAutoConnect(): bool
-    {
-        return $this->evaluate($this->autoConnect);
-    }
-
-    /**
-     * Set the terminal title shown in the header bar.
-     *
-     * @param  string|Closure  $title  The title to display (default: "Terminal")
-     */
-    public function title(string|Closure $title): static
-    {
-        $this->title = $title;
-
-        return $this;
-    }
-
-    /**
-     * Get the terminal title.
-     */
-    public function getTitle(): string
-    {
-        return $this->evaluate($this->title);
-    }
-
-    /**
-     * Show or hide the window control buttons (the three colored dots).
-     *
-     * @param  bool|Closure  $show  Whether to show the window controls (default: true)
-     */
-    public function windowControls(bool|Closure $show = true): static
-    {
-        $this->showWindowControls = $show;
-
-        return $this;
-    }
-
-    /**
-     * Get whether to show window controls.
-     */
-    public function getShowWindowControls(): bool
-    {
-        return $this->evaluate($this->showWindowControls);
     }
 
     // ========================================

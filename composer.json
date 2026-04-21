@@ -57,14 +57,15 @@
     "scripts": {
         "post-autoload-dump": "@php ./vendor/bin/testbench package:discover --ansi",
         "analyse": "vendor/bin/phpstan analyse",
-        "test": "vendor/bin/pest",
-        "test:parallel": "vendor/bin/pest --parallel",
-        "test:coverage": "XDEBUG_MODE=coverage vendor/bin/pest --coverage",
-        "test:coverage:html": "XDEBUG_MODE=coverage vendor/bin/pest --coverage-html tests/coverage",
-        "test:parallel:coverage": "XDEBUG_MODE=coverage vendor/bin/pest --parallel --coverage",
+        "test": "vendor/bin/pest --testsuite=Unit",
+        "test:parallel": "vendor/bin/pest --testsuite=Unit --parallel",
+        "test:coverage": "XDEBUG_MODE=coverage vendor/bin/pest --testsuite=Unit --coverage",
+        "test:coverage:html": "XDEBUG_MODE=coverage vendor/bin/pest --testsuite=Unit --coverage-html tests/coverage",
+        "test:parallel:coverage": "XDEBUG_MODE=coverage vendor/bin/pest --testsuite=Unit --parallel --coverage",
         "format": "vendor/bin/pint",
         "build": "npm run build",
-        "release": "bash scripts/release.sh"
+        "release": "bash scripts/release.sh",
+        "bench": "@php scripts/bench.php"
     },
     "config": {
         "sort-packages": true,

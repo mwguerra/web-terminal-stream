@@ -6,6 +6,8 @@ namespace MWGuerra\WebTerminal\Livewire;
 
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\HtmlString;
+use MWGuerra\WebTerminal\Concerns\ConfiguresTerminalAppearance;
+use MWGuerra\WebTerminal\Concerns\EvaluatesOptions;
 use MWGuerra\WebTerminal\Data\ConnectionConfig;
 use MWGuerra\WebTerminal\Enums\ConnectionType;
 use MWGuerra\WebTerminal\Enums\TerminalMode;
@@ -19,6 +21,9 @@ use MWGuerra\WebTerminal\Enums\TerminalPermission;
  */
 class TerminalBuilder
 {
+    use ConfiguresTerminalAppearance;
+    use EvaluatesOptions;
+
     /** @var array<string, mixed>|ConnectionConfig|null */
     protected array|ConnectionConfig|null $connection = null;
 
@@ -32,8 +37,6 @@ class TerminalBuilder
     protected ?int $historyLimit = null;
 
     protected ?int $maxOutputLines = null;
-
-    protected ?string $height = null;
 
     protected ?string $key = null;
 
@@ -59,13 +62,6 @@ class TerminalBuilder
     protected bool $useLoginShell = false;
 
     protected string $shell = '/bin/bash';
-
-    // UI options
-    protected bool $startConnected = false;
-
-    protected ?string $title = null;
-
-    protected bool $showWindowControls = true;
 
     // Logging
     protected ?bool $loggingEnabled = null;
@@ -333,34 +329,6 @@ class TerminalBuilder
     public function maxOutputLines(int $lines): static
     {
         $this->maxOutputLines = max(100, $lines);
-
-        return $this;
-    }
-
-    public function height(string $height): static
-    {
-        $this->height = $height;
-
-        return $this;
-    }
-
-    public function startConnected(bool $connected = true): static
-    {
-        $this->startConnected = $connected;
-
-        return $this;
-    }
-
-    public function title(string $title): static
-    {
-        $this->title = $title;
-
-        return $this;
-    }
-
-    public function windowControls(bool $show = true): static
-    {
-        $this->showWindowControls = $show;
 
         return $this;
     }
