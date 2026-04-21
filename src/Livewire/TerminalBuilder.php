@@ -6,7 +6,10 @@ namespace MWGuerra\WebTerminal\Livewire;
 
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\HtmlString;
+use MWGuerra\WebTerminal\Concerns\ConfiguresCommandPresets;
+use MWGuerra\WebTerminal\Concerns\ConfiguresScripts;
 use MWGuerra\WebTerminal\Concerns\ConfiguresSessionManagement;
+use MWGuerra\WebTerminal\Concerns\ConfiguresShellEnvironment;
 use MWGuerra\WebTerminal\Concerns\ConfiguresStreamMode;
 use MWGuerra\WebTerminal\Concerns\ConfiguresTerminalAppearance;
 use MWGuerra\WebTerminal\Concerns\ConfiguresTerminalBasics;
@@ -24,7 +27,10 @@ use MWGuerra\WebTerminal\Enums\TerminalPermission;
  */
 class TerminalBuilder
 {
+    use ConfiguresCommandPresets;
+    use ConfiguresScripts;
     use ConfiguresSessionManagement;
+    use ConfiguresShellEnvironment;
     use ConfiguresStreamMode;
     use ConfiguresTerminalAppearance;
     use ConfiguresTerminalBasics;
@@ -53,14 +59,6 @@ class TerminalBuilder
 
     protected bool $allowInteractiveMode = false;
 
-    // Environment & shell
-    /** @var array<string, string> */
-    protected array $environment = [];
-
-    protected bool $useLoginShell = false;
-
-    protected string $shell = '/bin/bash';
-
     // Logging
     protected ?bool $loggingEnabled = null;
 
@@ -74,10 +72,6 @@ class TerminalBuilder
 
     /** @var array<string, mixed> */
     protected array $logMetadata = [];
-
-    // Scripts
-    /** @var array<mixed> */
-    protected array $scripts = [];
 
     // ========================================
     // Connection Configuration
@@ -259,32 +253,6 @@ class TerminalBuilder
     }
 
     // ========================================
-    // Environment & Shell
-    // ========================================
-
-    /** @param  array<string, string>  $environment */
-    public function environment(array $environment): static
-    {
-        $this->environment = $environment;
-
-        return $this;
-    }
-
-    public function loginShell(bool $useLoginShell = true): static
-    {
-        $this->useLoginShell = $useLoginShell;
-
-        return $this;
-    }
-
-    public function shell(string $shell): static
-    {
-        $this->shell = $shell;
-
-        return $this;
-    }
-
-    // ========================================
     // UI Configuration
     // ========================================
 
@@ -319,18 +287,6 @@ class TerminalBuilder
     public function logMetadata(array $metadata): static
     {
         $this->logMetadata = $metadata;
-
-        return $this;
-    }
-
-    // ========================================
-    // Scripts
-    // ========================================
-
-    /** @param  array<mixed>  $scripts */
-    public function scripts(array $scripts): static
-    {
-        $this->scripts = $scripts;
 
         return $this;
     }
@@ -385,31 +341,33 @@ class TerminalBuilder
         if ($this->startConnected) {
             $params['startConnected'] = true;
         }
-        if (! $this->showWindowControls) {
+        if (! $this->getShowWindowControls()) {
             $params['showWindowControls'] = false;
         }
-        if ($this->useLoginShell) {
+        if ($this->getUseLoginShell()) {
             $params['useLoginShell'] = true;
         }
-        if ($this->shell !== '/bin/bash') {
-            $params['shell'] = $this->shell;
+        if ($this->getShell() !== '/bin/bash') {
+            $params['shell'] = $this->getShell();
         }
-        if (! empty($this->environment)) {
-            $params['environment'] = $this->environment;
+        $environment = $this->getEnvironment();
+        if (! empty($environment)) {
+            $params['environment'] = $environment;
         }
         if (! empty($this->logMetadata)) {
             $params['logMetadata'] = $this->logMetadata;
         }
-        if (! empty($this->scripts)) {
-            $params['scripts'] = $this->scripts;
+        $scripts = $this->getScripts();
+        if (! empty($scripts)) {
+            $params['scripts'] = $scripts;
         }
 
         // Stream mode params — only include non-default values
-        if ($this->streamEnabled) {
+        if ($this->getStreamEnabled()) {
             $params['streamEnabled'] = true;
-            $params['streamTheme'] = $this->streamTheme;
+            $params['streamTheme'] = $this->getStreamTheme();
         }
-        if (! $this->classicEnabled) {
+        if (! $this->getClassicEnabled()) {
             $params['classicEnabled'] = false;
         }
         $params['defaultMode'] = $this->defaultMode->value;
@@ -441,29 +399,29 @@ class TerminalBuilder
             default => [],
         };
 
-        if ($this->streamEnabled && $this->classicEnabled) {
+        if ($this->getStreamEnabled() && $this->getClassicEnabled()) {
             $component = 'terminal-container';
             $mountParams = [
                 'classicParams' => $params,
                 'streamParams' => [
                     'connectionConfig' => $connectionArray,
-                    'streamTheme' => $this->streamTheme,
-                    'scripts' => $this->scripts ?? [],
+                    'streamTheme' => $this->getStreamTheme(),
+                    'scripts' => $this->getScripts(),
                 ],
                 'defaultMode' => $this->defaultMode->value,
-                'height' => $this->height ?? '350px',
-                'title' => $this->title ?? 'Terminal',
-                'showWindowControls' => $this->showWindowControls ?? true,
+                'height' => $this->getHeight(),
+                'title' => $this->getTitle(),
+                'showWindowControls' => $this->getShowWindowControls(),
             ];
-        } elseif ($this->streamEnabled) {
+        } elseif ($this->getStreamEnabled()) {
             $component = 'stream-terminal';
             $mountParams = [
                 'connectionConfig' => $connectionArray,
-                'height' => $this->height ?? '350px',
-                'title' => $this->title ?? 'Terminal',
-                'streamTheme' => $this->streamTheme,
-                'showWindowControls' => $this->showWindowControls ?? true,
-                'scripts' => $this->scripts ?? [],
+                'height' => $this->getHeight(),
+                'title' => $this->getTitle(),
+                'streamTheme' => $this->getStreamTheme(),
+                'showWindowControls' => $this->getShowWindowControls(),
+                'scripts' => $this->getScripts(),
             ];
         } else {
             $component = 'web-terminal';

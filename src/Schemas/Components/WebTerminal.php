@@ -4,7 +4,10 @@ namespace MWGuerra\WebTerminal\Schemas\Components;
 
 use Closure;
 use Filament\Schemas\Components\Livewire;
+use MWGuerra\WebTerminal\Concerns\ConfiguresCommandPresets;
+use MWGuerra\WebTerminal\Concerns\ConfiguresScripts;
 use MWGuerra\WebTerminal\Concerns\ConfiguresSessionManagement;
+use MWGuerra\WebTerminal\Concerns\ConfiguresShellEnvironment;
 use MWGuerra\WebTerminal\Concerns\ConfiguresStreamMode;
 use MWGuerra\WebTerminal\Concerns\ConfiguresTerminalAppearance;
 use MWGuerra\WebTerminal\Concerns\ConfiguresTerminalBasics;
@@ -31,7 +34,10 @@ use MWGuerra\WebTerminal\Livewire\WebTerminal as WebTerminalComponent;
  */
 class WebTerminal extends Livewire
 {
+    use ConfiguresCommandPresets;
+    use ConfiguresScripts;
     use ConfiguresSessionManagement;
+    use ConfiguresShellEnvironment;
     use ConfiguresStreamMode;
     use ConfiguresTerminalAppearance;
     use ConfiguresTerminalBasics;
@@ -56,12 +62,6 @@ class WebTerminal extends Livewire
 
     protected bool|Closure $allowAllShellOperators = false;
 
-    protected array|Closure $environment = [];
-
-    protected bool|Closure $useLoginShell = false;
-
-    protected string|Closure $shell = '/bin/bash';
-
     // Logging configuration
     protected bool|Closure|null $loggingEnabled = null;
 
@@ -75,9 +75,6 @@ class WebTerminal extends Livewire
 
     protected array|Closure $logMetadata = [];
 
-    // Scripts configuration
-    /** @var array<int, Script|array<string, mixed>>|Closure */
-    protected array|Closure $scripts = [];
 
     public static function make(Closure|string|null $component = null, Closure|array $data = []): static
     {
@@ -505,107 +502,6 @@ class WebTerminal extends Livewire
     // Environment Configuration
     // ========================================
 
-    /**
-     * Set environment variables for command execution.
-     *
-     * @param  array<string, string>|Closure  $environment  Environment variables
-     */
-    public function environment(array|Closure $environment): static
-    {
-        $this->environment = $environment;
-
-        return $this;
-    }
-
-    /**
-     * Get the environment variables.
-     *
-     * @return array<string, string>
-     */
-    public function getEnvironment(): array
-    {
-        return $this->evaluate($this->environment);
-    }
-
-    /**
-     * Set the PATH environment variable.
-     *
-     * This is useful for making commands like node, composer, etc. available
-     * when they are installed in non-standard locations (NVM, homebrew, etc.).
-     */
-    public function path(string|Closure $path): static
-    {
-        $currentEnv = $this->evaluate($this->environment);
-        $currentEnv['PATH'] = $this->evaluate($path);
-        $this->environment = $currentEnv;
-
-        return $this;
-    }
-
-    /**
-     * Inherit PATH from the current shell environment.
-     *
-     * This reads the PATH from the server's environment and uses it.
-     * Note: This may not include user-specific paths from .bashrc/.zshrc.
-     */
-    public function inheritPath(): static
-    {
-        $currentEnv = $this->evaluate($this->environment);
-        $currentEnv['PATH'] = getenv('PATH') ?: '/usr/local/bin:/usr/bin:/bin';
-        $this->environment = $currentEnv;
-
-        return $this;
-    }
-
-    // ========================================
-    // Shell Configuration
-    // ========================================
-
-    /**
-     * Enable login shell mode.
-     *
-     * When enabled, commands are wrapped with `bash -l -i -c` which loads
-     * .bashrc/.bash_profile and initializes the full user environment
-     * (including NVM, rbenv, pyenv, homebrew, etc.).
-     *
-     * This is the recommended way to get a "real terminal" experience
-     * where all your shell customizations are available.
-     */
-    public function loginShell(bool|Closure $useLoginShell = true): static
-    {
-        $this->useLoginShell = $useLoginShell;
-
-        return $this;
-    }
-
-    /**
-     * Get whether login shell mode is enabled.
-     */
-    public function getUseLoginShell(): bool
-    {
-        return $this->evaluate($this->useLoginShell);
-    }
-
-    /**
-     * Set the shell to use for command execution.
-     *
-     * @param  string|Closure  $shell  Path to shell (e.g., /bin/bash, /bin/zsh)
-     */
-    public function shell(string|Closure $shell): static
-    {
-        $this->shell = $shell;
-
-        return $this;
-    }
-
-    /**
-     * Get the shell path.
-     */
-    public function getShell(): string
-    {
-        return $this->evaluate($this->shell);
-    }
-
     // ========================================
     // Terminal Settings
     // ========================================
@@ -626,58 +522,6 @@ class WebTerminal extends Livewire
     public function getWorkingDirectory(): ?string
     {
         return $this->workingDirectory;
-    }
-
-    // ========================================
-    // Preset Configurations
-    // ========================================
-
-    /**
-     * Configure as a read-only terminal (only allows ls, pwd, cat, head, tail).
-     */
-    public function readOnly(): static
-    {
-        return $this->allowedCommands(['ls', 'pwd', 'cat', 'head', 'tail', 'find', 'grep']);
-    }
-
-    /**
-     * Configure for file browsing (ls, pwd, cd, cat).
-     */
-    public function fileBrowser(): static
-    {
-        return $this->allowedCommands(['ls', 'pwd', 'cd', 'cat', 'head', 'tail', 'find']);
-    }
-
-    /**
-     * Configure for git operations.
-     */
-    public function gitTerminal(): static
-    {
-        return $this->allowedCommands(['git', 'ls', 'pwd', 'cd', 'cat']);
-    }
-
-    /**
-     * Configure for Docker operations.
-     */
-    public function dockerTerminal(): static
-    {
-        return $this->allowedCommands(['docker', 'docker-compose', 'ls', 'pwd', 'cd']);
-    }
-
-    /**
-     * Configure for npm/node operations.
-     */
-    public function nodeTerminal(): static
-    {
-        return $this->allowedCommands(['npm', 'npx', 'node', 'yarn', 'ls', 'pwd', 'cd', 'cat']);
-    }
-
-    /**
-     * Configure for artisan commands.
-     */
-    public function artisanTerminal(): static
-    {
-        return $this->allowedCommands(['php', 'composer', 'ls', 'pwd', 'cd', 'cat']);
     }
 
     // ========================================
@@ -884,105 +728,6 @@ class WebTerminal extends Livewire
         return $this->evaluate($this->logMetadata);
     }
 
-    // ========================================
-    // Scripts Configuration
-    // ========================================
-
-    /**
-     * Configure scripts that can be executed in the terminal.
-     *
-     * Scripts are predefined command sequences that can be run from a dropdown menu.
-     * Accepts an array of Script objects or array configurations, or a Closure
-     * for dynamic script generation.
-     *
-     * @example Fluent API (recommended):
-     * ->scripts([
-     *     Script::make('deploy')
-     *         ->label('Deploy Application')
-     *         ->description('Pull latest code and restart services')
-     *         ->icon('heroicon-o-rocket-launch')
-     *         ->commands([
-     *             'git pull origin main',
-     *             'composer install --no-dev',
-     *             'php artisan migrate --force',
-     *         ])
-     *         ->stopOnError(),
-     *
-     *     Script::make('logs')
-     *         ->label('View Recent Logs')
-     *         ->icon('heroicon-o-document-text')
-     *         ->commands(['tail -100 storage/logs/laravel.log'])
-     *         ->continueOnError(),
-     * ])
-     * @example Array syntax (also supported):
-     * ->scripts([
-     *     [
-     *         'key' => 'backup',
-     *         'label' => 'Backup Database',
-     *         'commands' => ['php artisan backup:run'],
-     *     ],
-     * ])
-     * @example Dynamic from database with closure:
-     * ->scripts(fn () => auth()->user()->scripts->map(
-     *     fn ($s) => Script::make($s->slug)
-     *         ->label($s->name)
-     *         ->commands($s->commands)
-     * )->toArray())
-     * @example Elevated script (bypasses allowedCommands validation):
-     * ->scripts([
-     *     Script::make('full-deploy')
-     *         ->label('Full Deploy')
-     *         ->elevated()
-     *         ->commands([
-     *             'git pull origin main',
-     *             'sudo systemctl restart php-fpm',
-     *         ]),
-     * ])
-     * @example Script that causes disconnection:
-     * ->scripts([
-     *     Script::make('reboot')
-     *         ->label('Reboot Server')
-     *         ->elevated()
-     *         ->willDisconnect()
-     *         ->beforeMessage('This will reboot the server.')
-     *         ->disconnectMessage('Server is rebooting...')
-     *         ->confirmBeforeRun()
-     *         ->commands(['sudo reboot']),
-     * ])
-     *
-     * @param  array<int, Script|array<string, mixed>>|Closure  $scripts
-     */
-    public function scripts(array|Closure $scripts): static
-    {
-        $this->scripts = $scripts;
-
-        return $this;
-    }
-
-    /**
-     * Get the configured scripts.
-     *
-     * Normalizes all scripts to array format for the Livewire component.
-     *
-     * @return array<int, array<string, mixed>>
-     */
-    public function getScripts(): array
-    {
-        $scripts = $this->evaluate($this->scripts);
-
-        if (! is_array($scripts)) {
-            return [];
-        }
-
-        return array_values(array_map(function ($script) {
-            if ($script instanceof Script) {
-                return $script->toArray();
-            }
-
-            // Validate array has required keys by converting through Script
-            return Script::fromArray($script)->toArray();
-        }, $scripts));
-    }
 }
 
 // Backward compatibility alias

@@ -215,13 +215,21 @@ describe('TerminalBuilder', function () {
                 ->and($params['logIdentifier'])->toBe('test-terminal');
         });
 
-        it('sets scripts', function () {
+        it('sets scripts and normalizes them to array form', function () {
             $builder = new TerminalBuilder;
-            $builder->local()->scripts(['echo hello', 'echo world']);
+            $builder->local()->scripts([
+                [
+                    'key' => 'greet',
+                    'label' => 'Greet',
+                    'commands' => ['echo hello', 'echo world'],
+                ],
+            ]);
 
             $params = $builder->getParameters();
 
-            expect($params['scripts'])->toBe(['echo hello', 'echo world']);
+            expect($params['scripts'])->toBeArray()
+                ->and($params['scripts'][0]['key'])->toBe('greet')
+                ->and($params['scripts'][0]['commands'])->toBe(['echo hello', 'echo world']);
         });
     });
 
