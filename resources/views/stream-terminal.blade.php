@@ -26,11 +26,10 @@
 
                 await StreamWeb.init();
 
-                // Clear any residual DOM from a previous mount. Livewire's wire:ignore
-                // preserves this container across morphs; if we don't reset it, an
+                // Clear any residual DOM from a previous mount. Livewire wire:ignore
+                // preserves this container across morphs; if we don`t reset it, an
                 // orphaned canvas/textarea from a previous session can stay visible
-                // until the new Terminal paints over it — producing the "old session
-                // still on screen after navigating to a different server" bug.
+                // until the new Terminal paints over it — the stale-buffer bug.
                 if (this.$refs.streamContainer) {
                     this.$refs.streamContainer.replaceChildren();
                 }
