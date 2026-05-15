@@ -280,6 +280,16 @@ class WebTerminal extends Component
     public string $componentId = '';
 
     /**
+     * The connection type the terminal was originally mounted with.
+     *
+     * Used as a security invariant: connect() refuses to establish a connection
+     * whose type does not match what was configured at mount time, so an SSH
+     * terminal can never silently downgrade to a local shell on the app host.
+     */
+    #[Locked]
+    public string $designedConnectionType = 'local';
+
+    /**
      * Connection configuration - stored server-side only, never sent to frontend.
      * Contains sensitive data (password, private_key, passphrase) that must not be serialized.
      * This is a cached version restored from session; the session is the source of truth.
@@ -539,6 +549,11 @@ class WebTerminal extends Component
             $this->connectionConfig = ['type' => 'local'];
         }
 
+        // Record the type the terminal was designed for. This is checked on every
+        // connect() so a terminal mounted for SSH can never silently fall back to
+        // local — even if the session-stored config is lost for any reason.
+        $this->designedConnectionType = (string) ($this->connectionConfig['type'] ?? 'local');
+
         // Store connection config in session (server-side only, persists across Livewire requests)
         $this->storeConnectionConfig($this->connectionConfig);
 
@@ -776,6 +791,19 @@ class WebTerminal extends Component
             // Actually establish and test the connection
             $factory = new ConnectionHandlerFactory;
             $config = ConnectionConfig::fromArray($this->getConnectionConfig());
+
+            // Security invariant: a terminal mounted for one connection type
+            // must never connect via a different one. Without this guard,
+            // losing the session-stored config (e.g. session GC) would let
+            // an SSH terminal silently fall through to a local shell on the
+            // app host. Refuse instead.
+            if ($config->type->value !== $this->designedConnectionType) {
+                throw ConnectionException::invalidConfig(
+                    "terminal was configured for '{$this->designedConnectionType}' but resolved configuration is '{$config->type->value}'. The connection configuration was lost between requests; reload the terminal to retry.",
+                    $config->type,
+                );
+            }
+
             $this->handler = $factory->createAndConnect($config);
 
             // Configure connection handler with environment
@@ -883,8 +911,14 @@ class WebTerminal extends Component
             ]);
         }
 
-        // Clear connection config from session
-        $this->clearConnectionConfig();
+        // NOTE: Do NOT clear the session-stored connection config here. The
+        // session is the only place the (sensitive) config lives across
+        // Livewire requests — Livewire does not persist the protected
+        // $connectionConfig cache. Wiping it on disconnect caused the next
+        // connect() call to silently fall back to ['type' => 'local'],
+        // which on an SSH-configured terminal exposes the app host.
+        // The session entry is naturally evicted when the user's HTTP
+        // session ends; that is the correct lifecycle for these credentials.
 
         $connectionDesc = $this->getConnectionDescription();
         $this->isConnected = false;

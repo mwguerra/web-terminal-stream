@@ -559,6 +559,65 @@ describe('session-based connection config', function () {
         expect($component->instance()->getDisplayPort())->toBe(2222);
         expect($component->instance()->getDisplayUsername())->toBe('testuser');
     });
+
+    it('preserves SSH connection config after disconnect so reconnect does not fall back to local', function () {
+        $component = Livewire::test(WebTerminal::class, [
+            'connection' => [
+                'type' => 'ssh',
+                'host' => 'ssh.example.com',
+                'port' => 2200,
+                'username' => 'deploy',
+                'password' => 'secret',
+            ],
+        ]);
+
+        expect($component->instance()->getConnectionType())->toBe('Ssh');
+
+        // Simulate the "was connected" state without needing a real SSH server,
+        // then exercise the disconnect path that runs in production.
+        $component->set('isConnected', true)
+            ->call('disconnect');
+
+        expect($component->get('isConnected'))->toBeFalse();
+
+        // The bug: disconnect() used to wipe the session config, so the next
+        // connect() silently fell back to ['type' => 'local'] and exposed the
+        // host running the app. After the fix, the SSH config must remain
+        // available for the next connect() call.
+        expect($component->instance()->getConnectionType())->toBe('Ssh');
+        expect($component->instance()->getDisplayHost())->toBe('ssh.example.com');
+        expect($component->instance()->getDisplayPort())->toBe(2200);
+        expect($component->instance()->getDisplayUsername())->toBe('deploy');
+    });
+
+    it('refuses to silently downgrade an SSH-configured terminal to local if session config is lost', function () {
+        $component = Livewire::test(WebTerminal::class, [
+            'connection' => [
+                'type' => 'ssh',
+                'host' => 'ssh.example.com',
+                'username' => 'deploy',
+                'password' => 'secret',
+            ],
+        ]);
+
+        // Simulate the worst case: both the session entry AND the per-request
+        // protected cache are gone. (Session GC, manual eviction, future
+        // refactor — any reason the persisted config could vanish.)
+        session()->forget('web-terminal.connection.'.$component->get('componentId'));
+        $instance = $component->instance();
+        $cache = (new \ReflectionClass($instance))->getProperty('connectionConfig');
+        $cache->setValue($instance, []);
+
+        // connect() must refuse rather than silently open a local shell on the
+        // app host. The terminal stays disconnected and an error appears.
+        $component->call('connect');
+
+        expect($component->get('isConnected'))->toBeFalse();
+
+        $messages = collect($component->get('output'))->pluck('content')->implode("\n");
+        expect($messages)->not->toContain('Connected to Local')
+            ->and($messages)->toContain('Connection');
+    });
 });
 
 describe('display getter methods', function () {
