@@ -198,6 +198,9 @@ class TerminalBuilder
         if (! $this->getShowWindowControls()) {
             $params['showWindowControls'] = false;
         }
+        if ($this->getSquareCorners()) {
+            $params['squareCorners'] = true;
+        }
         if ($this->getUseLoginShell()) {
             $params['useLoginShell'] = true;
         }
@@ -267,6 +270,7 @@ class TerminalBuilder
                 'height' => $this->getHeight(),
                 'title' => $this->getTitle(),
                 'showWindowControls' => $this->getShowWindowControls(),
+                'squareCorners' => $this->getSquareCorners(),
             ];
         } elseif ($this->getStreamEnabled()) {
             $component = 'stream-terminal';
@@ -276,6 +280,7 @@ class TerminalBuilder
                 'title' => $this->getTitle(),
                 'streamTheme' => $this->getStreamTheme(),
                 'showWindowControls' => $this->getShowWindowControls(),
+                'squareCorners' => $this->getSquareCorners(),
                 'scripts' => $this->getScripts(),
             ];
         } else {

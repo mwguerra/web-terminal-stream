@@ -155,6 +155,12 @@ class WebTerminal extends Component
     public string $chrome = 'full';
 
     /**
+     * When true, the outer terminal card drops its border-radius so it
+     * can sit flush against neighbouring tiles in a grid.
+     */
+    public bool $squareCorners = false;
+
+    /**
      * Whether to show the Classic/Stream mode toggle pill in the header.
      */
     public bool $hasModePill = false;
@@ -513,6 +519,7 @@ class WebTerminal extends Component
         ?string $title = null,
         bool $showWindowControls = true,
         string $chrome = 'full',
+        bool $squareCorners = false,
         bool $hasModePill = false,
         bool $autoConnect = false,
         ?bool $loggingEnabled = null,
@@ -607,6 +614,7 @@ class WebTerminal extends Component
         $this->chrome = in_array($chrome, ['full', 'minimal', 'none'], true) ? $chrome : 'full';
         // Keep the derived boolean in sync for templates/partials that still read it.
         $this->showWindowControls = ($this->chrome === 'full') ? $showWindowControls : false;
+        $this->squareCorners = $squareCorners;
         $this->hasModePill = $hasModePill;
         $this->autoConnect = $autoConnect;
 

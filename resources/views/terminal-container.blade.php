@@ -5,7 +5,11 @@
 >
     {{-- Classic Terminal --}}
     <div x-show="activeMode === 'classic'" x-cloak class="h-full">
-        @livewire('web-terminal', array_merge($classicParams, ['hasModePill' => true, 'chrome' => $chrome]), key('classic-terminal-' . $instanceId))
+        @livewire('web-terminal', array_merge($classicParams, [
+            'hasModePill' => true,
+            'chrome' => $chrome,
+            'squareCorners' => $squareCorners,
+        ]), key('classic-terminal-' . $instanceId))
     </div>
 
     {{-- Stream Terminal --}}
@@ -15,6 +19,7 @@
             'title' => $title,
             'showWindowControls' => $showWindowControls,
             'chrome' => $chrome,
+            'squareCorners' => $squareCorners,
             'hasModePill' => true,
         ]), key('stream-terminal-' . $instanceId))
     </div>

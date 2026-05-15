@@ -30,6 +30,8 @@ trait ConfiguresTerminalAppearance
 
     protected TerminalChrome|Closure $chrome = TerminalChrome::Full;
 
+    protected bool|Closure $squareCorners = false;
+
     protected ?ConnectionBehavior $connectionBehavior = null;
 
     protected bool|Closure $startConnected = false;
@@ -87,6 +89,23 @@ trait ConfiguresTerminalAppearance
     public function frameless(): static
     {
         return $this->chrome(TerminalChrome::None);
+    }
+
+    /**
+     * Drop the terminal's outer border-radius so it can sit flush against
+     * neighbouring tiles in a grid. Off by default; the standard rounded
+     * card look is preserved unless you opt in.
+     */
+    public function squareCorners(bool|Closure $enabled = true): static
+    {
+        $this->squareCorners = $enabled;
+
+        return $this;
+    }
+
+    public function getSquareCorners(): bool
+    {
+        return (bool) $this->evaluate($this->squareCorners);
     }
 
     /**

@@ -1,5 +1,8 @@
 <div
-    class="stream-web-terminal relative font-mono text-[13px] leading-tight text-zinc-800 dark:text-zinc-200 rounded-xl overflow-hidden flex flex-col shadow-2xl ring-1 ring-slate-200 dark:ring-white/5 text-left"
+    @class([
+        'stream-web-terminal relative font-mono text-[13px] leading-tight text-zinc-800 dark:text-zinc-200 overflow-hidden flex flex-col text-left',
+        'rounded-xl shadow-2xl ring-1 ring-slate-200 dark:ring-white/5' => ! ($squareCorners ?? false),
+    ])
     style="height: {{ $height }}; min-height: 200px; background: {{ $streamTheme['background'] ?? '#1a1a2e' }};"
     x-data="{
         isConnected: $wire.entangle('isConnected'),

@@ -136,6 +136,7 @@ class WebTerminal extends Livewire
             'title' => $this->getTitle(),
             'showWindowControls' => $this->getShowWindowControls(),
             'chrome' => $this->getChrome()->value,
+            'squareCorners' => $this->getSquareCorners(),
             'loggingEnabled' => $this->getLoggingEnabled(),
             'logConnections' => $this->getLogConnections(),
             'logCommands' => $this->getLogCommands(),
@@ -162,6 +163,7 @@ class WebTerminal extends Livewire
                 'title' => $this->getTitle(),
                 'showWindowControls' => $this->getShowWindowControls(),
             'chrome' => $this->getChrome()->value,
+            'squareCorners' => $this->getSquareCorners(),
             ];
         }
 
@@ -174,6 +176,7 @@ class WebTerminal extends Livewire
                 'streamTheme' => $this->getStreamTheme(),
                 'showWindowControls' => $this->getShowWindowControls(),
             'chrome' => $this->getChrome()->value,
+            'squareCorners' => $this->getSquareCorners(),
                 'scripts' => $this->getScripts(),
                 'autoConnect' => $this->getAutoConnect(),
             ];
