@@ -15,15 +15,15 @@ return [
     */
     'logging' => [
         // Global toggle - can be overridden per-terminal
-        'enabled' => env('WEB_TERMINAL_LOGGING', true),
+        'enabled' => env('WEB_TERMINAL_STREAM_LOGGING', true),
 
         // What to log
-        'log_connections' => env('WEB_TERMINAL_LOG_CONNECTIONS', true),
-        'log_disconnections' => env('WEB_TERMINAL_LOG_DISCONNECTIONS', true),
-        'log_errors' => env('WEB_TERMINAL_LOG_ERRORS', true),
+        'log_connections' => env('WEB_TERMINAL_STREAM_LOG_CONNECTIONS', true),
+        'log_disconnections' => env('WEB_TERMINAL_STREAM_LOG_DISCONNECTIONS', true),
+        'log_errors' => env('WEB_TERMINAL_STREAM_LOG_ERRORS', true),
 
         // Output handling (stored in same table, truncated if needed)
-        'max_output_length' => env('WEB_TERMINAL_MAX_OUTPUT_LOG', 10000),
+        'max_output_length' => env('WEB_TERMINAL_STREAM_MAX_OUTPUT_LOG', 10000),
         'truncate_output' => true,
 
         // User configuration
@@ -31,7 +31,7 @@ return [
         'user_foreign_key' => 'user_id',
 
         // Retention (cleanup via manual `terminal-stream:logs:cleanup` command)
-        'retention_days' => env('WEB_TERMINAL_LOG_RETENTION', 90),
+        'retention_days' => env('WEB_TERMINAL_STREAM_LOG_RETENTION', 90),
 
         // Specific terminals to log (empty array = all terminals)
         'terminals' => [],
@@ -58,11 +58,11 @@ return [
     */
     'stream' => [
         'websocket_provider' => 'ratchet',
-        'ratchet_host' => env('WEB_TERMINAL_RATCHET_HOST', '127.0.0.1'),
-        'ratchet_port' => env('WEB_TERMINAL_RATCHET_PORT', 8090),
-        'websocket_url' => env('WEB_TERMINAL_WEBSOCKET_URL'),
-        'ssl_cert' => env('WEB_TERMINAL_SSL_CERT'),
-        'ssl_key' => env('WEB_TERMINAL_SSL_KEY'),
+        'ratchet_host' => env('WEB_TERMINAL_STREAM_RATCHET_HOST', '127.0.0.1'),
+        'ratchet_port' => env('WEB_TERMINAL_STREAM_RATCHET_PORT', 8090),
+        'websocket_url' => env('WEB_TERMINAL_STREAM_WEBSOCKET_URL'),
+        'ssl_cert' => env('WEB_TERMINAL_STREAM_SSL_CERT'),
+        'ssl_key' => env('WEB_TERMINAL_STREAM_SSL_KEY'),
         'shell' => env('WEB_TERMINAL_STREAM_SHELL', '/bin/bash'),
         'working_directory' => env('WEB_TERMINAL_STREAM_CWD'),
         'pty_grace_period' => 30,
@@ -88,6 +88,6 @@ return [
     |
     */
     'deprecations' => [
-        'emit_notices' => env('WEB_TERMINAL_DEPRECATIONS_EMIT_NOTICES', false),
+        'emit_notices' => env('WEB_TERMINAL_STREAM_DEPRECATIONS_EMIT_NOTICES', false),
     ],
 ];
