@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Str;
 use Livewire\Attributes\Locked;
 use Livewire\Component;
+use MWGuerra\WebTerminalStream\Enums\ConnectionBehavior;
 use MWGuerra\WebTerminalStream\Enums\ConnectionType;
 use MWGuerra\WebTerminalStream\Events\TerminalConnectedEvent;
 use MWGuerra\WebTerminalStream\Events\TerminalDisconnectedEvent;
@@ -29,6 +30,8 @@ class StreamTerminal extends Component
     public bool $squareCorners = false;
 
     public bool $autoConnect = false;
+
+    public string $connectionBehavior = 'auto_hidden';
 
     #[Locked]
     public array $streamTheme = [];
@@ -66,6 +69,7 @@ class StreamTerminal extends Component
         string $chrome = 'full',
         bool $squareCorners = false,
         bool $autoConnect = false,
+        string $connectionBehavior = 'auto_hidden',
         array $scripts = [],
         ?bool $loggingEnabled = null,
         ?bool $logConnections = null,
@@ -80,6 +84,7 @@ class StreamTerminal extends Component
         $this->showWindowControls = ($this->chrome === 'full') ? $showWindowControls : false;
         $this->squareCorners = $squareCorners;
         $this->autoConnect = $autoConnect;
+        $this->connectionBehavior = (ConnectionBehavior::tryFrom($connectionBehavior) ?? ConnectionBehavior::AutoHidden)->value;
         $this->scripts = $scripts;
         $this->loggingEnabled = $loggingEnabled;
         $this->logConnections = $logConnections;

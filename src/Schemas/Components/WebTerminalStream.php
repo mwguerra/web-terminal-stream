@@ -86,6 +86,7 @@ class WebTerminalStream extends Livewire
             'squareCorners' => $this->getSquareCorners(),
             'scripts' => $this->getScripts(),
             'autoConnect' => $this->getAutoConnect(),
+            'connectionBehavior' => $this->getEffectiveConnectionBehavior()->value,
             'loggingEnabled' => $this->getLoggingEnabled(),
             'logConnections' => $this->getLogConnections(),
             'logIdentifier' => $this->getLogIdentifier(),

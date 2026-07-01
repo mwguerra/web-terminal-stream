@@ -365,11 +365,27 @@ WebTerminalStream::make()->connection(
 | `scripts(array\|Closure)` | Script definitions for the header dropdown | `[]` |
 | `log(...)` | Per-terminal logging overrides (see Logging) | config defaults |
 | `logMetadata(array\|Closure)` | Metadata attached to every log entry | `[]` |
-| `connectionBehavior(ConnectionBehavior)` | Declarative connect behavior — see note below | `null` |
+| `connectionBehavior(ConnectionBehavior)` | `Manual`, `AutoWithButton`, or `AutoHidden` — see Connection behavior | `AutoHidden` |
 
 Deprecated aliases kept for source compatibility with the parent package: `windowControls(bool)` (use `chrome()`), `startConnected()` and `autoConnect()` (use `connectionBehavior()`). Opt into runtime deprecation notices with `WEB_TERMINAL_STREAM_DEPRECATIONS_EMIT_NOTICES=true`.
 
-> **Note on connection behavior:** the Stream terminal currently always auto-connects when it scrolls into view, and the header has no connect/disconnect button. `connectionBehavior()` (and the deprecated `startConnected()`/`autoConnect()`) are accepted and forwarded, but only `ConnectionBehavior::AutoHidden` matches what actually renders today; a manual-connect UI is a planned addition.
+### Connection behavior
+
+`connectionBehavior()` controls when the WebSocket (and therefore the PTY) opens and what connection UI the user sees:
+
+```php
+use MWGuerra\WebTerminalStream\Enums\ConnectionBehavior;
+
+WebTerminalStream::make()
+    ->local()
+    ->connectionBehavior(ConnectionBehavior::Manual)
+```
+
+- **`AutoHidden`** (default) — auto-connects when the terminal scrolls into view; no connection controls. This matches the package's original always-auto-connect behavior, so existing code is unaffected.
+- **`AutoWithButton`** — auto-connects on visibility and shows a connect/disconnect toggle. After a disconnect, a centered Reconnect affordance appears over the canvas.
+- **`Manual`** — nothing happens on mount: no canvas boot, no WebSocket, no PTY, and no connection log rows. A centered, theme-colored Connect affordance sits in the terminal body; clicking it fetches a token, opens the socket, and swaps in the live canvas. A dashboard full of `Manual` panes costs zero server processes until someone actually opens one.
+
+The connect/disconnect toggle follows `TerminalChrome`: it renders as a header action when a header exists (`Full`/`Minimal`) and joins the floating overlay controls when `frameless()`. Disconnecting closes the WebSocket cleanly from the client (close code 1000); the server terminates the PTY on the socket close, exactly as it does for navigation teardown.
 
 ### Chrome levels and tiled layouts
 

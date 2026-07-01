@@ -110,6 +110,44 @@ describe('StreamTerminal', function () {
         });
     });
 
+    describe('connection behavior', function () {
+        it('defaults to auto_hidden', function () {
+            $component = Livewire::test(StreamTerminal::class, [
+                'connectionConfig' => ['type' => 'local'],
+            ]);
+
+            expect($component->get('connectionBehavior'))->toBe('auto_hidden');
+        });
+
+        it('accepts each ConnectionBehavior value and renders it for the Alpine component', function (string $behavior) {
+            Livewire::test(StreamTerminal::class, [
+                'connectionConfig' => ['type' => 'local'],
+                'connectionBehavior' => $behavior,
+            ])
+                ->assertSet('connectionBehavior', $behavior)
+                ->assertSeeHtml('data-connection-behavior="'.$behavior.'"');
+        })->with(['manual', 'auto_with_button', 'auto_hidden']);
+
+        it('falls back to auto_hidden for an unknown behavior value', function () {
+            Livewire::test(StreamTerminal::class, [
+                'connectionConfig' => ['type' => 'local'],
+                'connectionBehavior' => 'not-a-behavior',
+            ])->assertSet('connectionBehavior', 'auto_hidden');
+        });
+
+        it('renders the connect affordance overlay for manual panes only', function () {
+            Livewire::test(StreamTerminal::class, [
+                'connectionConfig' => ['type' => 'local'],
+                'connectionBehavior' => 'manual',
+            ])->assertSeeHtml('data-connect-overlay');
+
+            Livewire::test(StreamTerminal::class, [
+                'connectionConfig' => ['type' => 'local'],
+                'connectionBehavior' => 'auto_hidden',
+            ])->assertDontSeeHtml('data-connect-overlay');
+        });
+    });
+
     describe('scripts', function () {
         it('returns the commands for a known script key', function () {
             $component = Livewire::test(StreamTerminal::class, [

@@ -39,6 +39,50 @@ describe('chrome()', function () {
     });
 });
 
+describe('getEffectiveConnectionBehavior()', function () {
+    it('defaults to AutoHidden when nothing was configured (extraction-era behavior)', function () {
+        expect((new TerminalBuilder)->getEffectiveConnectionBehavior())
+            ->toBe(ConnectionBehavior::AutoHidden);
+    });
+
+    it('returns the explicitly declared behavior', function () {
+        expect((new TerminalBuilder)->connectionBehavior(ConnectionBehavior::Manual)->getEffectiveConnectionBehavior())
+            ->toBe(ConnectionBehavior::Manual);
+
+        expect((new TerminalBuilder)->connectionBehavior(ConnectionBehavior::AutoWithButton)->getEffectiveConnectionBehavior())
+            ->toBe(ConnectionBehavior::AutoWithButton);
+    });
+
+    it('maps the deprecated flags when they were explicitly set', function () {
+        expect((new TerminalBuilder)->autoConnect(true)->getEffectiveConnectionBehavior())
+            ->toBe(ConnectionBehavior::AutoHidden);
+
+        expect((new TerminalBuilder)->startConnected(true)->getEffectiveConnectionBehavior())
+            ->toBe(ConnectionBehavior::AutoWithButton);
+
+        expect((new TerminalBuilder)->autoConnect(false)->getEffectiveConnectionBehavior())
+            ->toBe(ConnectionBehavior::Manual);
+    });
+
+    it('reports whether a behavior was explicitly chosen', function () {
+        expect((new TerminalBuilder)->hasExplicitConnectionBehavior())->toBeFalse();
+
+        expect((new TerminalBuilder)->connectionBehavior(ConnectionBehavior::Manual)->hasExplicitConnectionBehavior())->toBeTrue();
+        expect((new TerminalBuilder)->autoConnect(false)->hasExplicitConnectionBehavior())->toBeTrue();
+    });
+
+    it('is forwarded as the connectionBehavior Livewire parameter', function () {
+        expect((new TerminalBuilder)->local()->getParameters()['connectionBehavior'])
+            ->toBe('auto_hidden');
+
+        expect((new TerminalBuilder)->local()->connectionBehavior(ConnectionBehavior::Manual)->getParameters()['connectionBehavior'])
+            ->toBe('manual');
+
+        expect((new TerminalBuilder)->local()->connectionBehavior(ConnectionBehavior::AutoWithButton)->getParameters()['connectionBehavior'])
+            ->toBe('auto_with_button');
+    });
+});
+
 describe('connectionBehavior()', function () {
     it('Manual clears both start and auto-connect flags', function () {
         $b = (new TerminalBuilder)->connectionBehavior(ConnectionBehavior::Manual);

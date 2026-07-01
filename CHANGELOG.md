@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- `connectionBehavior()` is now fully implemented instead of merely accepted. `ConnectionBehavior::Manual` renders a themed, centered Connect affordance and opens the WebSocket (and PTY) only on click — never-opened panes cost no server process and write no connection log rows. `AutoWithButton` auto-connects and adds a connect/disconnect toggle (header action, or floating overlay control when `frameless()`), with a Reconnect affordance after disconnect. The schema component default remains `AutoHidden` (auto-connect, no controls), so existing code is unaffected. Disconnect closes the WebSocket with a clean client close (code 1000).
 - Initial extraction of the Stream terminal from [`mwguerra/web-terminal`](https://github.com/mwguerra/web-terminal) (its `feature/frameless` branch) as a standalone, Stream-mode-only package.
 - Full interactive PTY over WebSocket (ReactPHP server + ghostty-web WASM terminal emulator), for local shells and SSH (password or key auth).
 - Filament integration: `WebTerminalStream::make()` schema component, `WebTerminalStreamPlugin` with a Terminal page and a Terminal Logs resource.

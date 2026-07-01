@@ -67,7 +67,9 @@ Everything that only configured Classic mode is gone. What to do instead:
 | `TerminalBuilder::toHtml()` / `__toString()` | Use `TerminalBuilder::render()` |
 | `WebTerminalEmbed` class alias | Use `WebTerminalStream` |
 
-Still available (unchanged semantics): `local()`, `ssh()`, `connection()`, `workingDirectory()`, `height()`, `title()`, `chrome()`/`frameless()`, `squareCorners()`, `streamTheme()`, `scripts()`, `log()`, `logMetadata()`, `connectionBehavior()`, `key()`, and the deprecated `windowControls()`/`startConnected()`/`autoConnect()` aliases.
+Still available (unchanged semantics): `local()`, `ssh()`, `connection()`, `workingDirectory()`, `height()`, `title()`, `chrome()`/`frameless()`, `squareCorners()`, `streamTheme()`, `scripts()`, `log()`, `logMetadata()`, `key()`, and the deprecated `windowControls()`/`startConnected()`/`autoConnect()` aliases.
+
+`connectionBehavior()` is not just accepted anymore — it is now fully implemented (`Manual` connect affordance, `AutoWithButton` disconnect/reconnect toggle, `AutoHidden` chromeless auto-connect). The default stays `AutoHidden`, which matches the old package's always-auto-connect Stream behavior, so nothing changes unless you opt in.
 
 ## 5. Artisan commands
 

@@ -2,7 +2,9 @@
 
 use Filament\Schemas\Components\Component;
 use Filament\Schemas\Components\Livewire;
+use MWGuerra\WebTerminalStream\Enums\ConnectionBehavior;
 use MWGuerra\WebTerminalStream\Livewire\StreamTerminal as StreamTerminalComponent;
+use MWGuerra\WebTerminalStream\Schemas\Components\WebTerminalStream as WebTerminal;
 
 // Skip all tests if Filament is not installed
 beforeEach(function () {
@@ -256,7 +258,23 @@ describe('component properties', function () {
             ->and($props['logConnections'])->toBeTrue()
             ->and($props['logIdentifier'])->toBe('console')
             ->and($props['chrome'])->toBe('full')
-            ->and($props['autoConnect'])->toBeFalse();
+            ->and($props['autoConnect'])->toBeFalse()
+            ->and($props['connectionBehavior'])->toBe('auto_hidden');
+    });
+
+    it('forwards an explicit connection behavior to the Livewire component', function () {
+        $props = WebTerminal::make()
+            ->local()
+            ->connectionBehavior(ConnectionBehavior::Manual)
+            ->getComponentProperties();
+
+        expect($props['connectionBehavior'])->toBe('manual');
+    });
+
+    it('defaults the connection behavior prop to auto_hidden (no breaking change)', function () {
+        $props = WebTerminal::make()->local()->getComponentProperties();
+
+        expect($props['connectionBehavior'])->toBe('auto_hidden');
     });
 });
 

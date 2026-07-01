@@ -4,8 +4,14 @@
         'rounded-xl shadow-2xl ring-1 ring-slate-200 dark:ring-white/5' => ! ($squareCorners ?? false),
     ])
     style="height: {{ $height }}; min-height: 200px; background: {{ $streamTheme['background'] ?? '#1a1a2e' }};"
+    data-connection-behavior="{{ $connectionBehavior }}"
     x-data="{
         isConnected: $wire.entangle('isConnected'),
+        // 'manual' | 'auto_with_button' | 'auto_hidden' — see ConnectionBehavior.
+        behavior: '{{ $connectionBehavior }}',
+        // Client-side connection state machine:
+        // idle → connecting → connected → disconnected (→ connecting → …)
+        state: 'idle',
         showInfoPanel: false,
         copyFeedback: false,
         // Key of a script awaiting user confirmation before running.
@@ -73,7 +79,40 @@
             }
         },
 
+        // The centered Connect/Reconnect affordance over the canvas. Manual
+        // panes show it whenever no session is live; AutoWithButton only
+        // offers it after a disconnect (it auto-connected to begin with);
+        // AutoHidden never shows any connection UI.
+        get overlayVisible() {
+            if (this.behavior === 'manual') {
+                return this.state !== 'connected';
+            }
+
+            if (this.behavior === 'auto_with_button') {
+                return this.state === 'disconnected';
+            }
+
+            return false;
+        },
+
+        // User-initiated connect (overlay button / header toggle). Boots the
+        // ghostty terminal lazily — a Manual pane that was never opened costs
+        // no canvas, no WebSocket, and no PTY.
+        async startSession() {
+            if (this.state === 'connecting' || this.state === 'connected') {
+                return;
+            }
+
+            if (!this.terminal) {
+                await this.initStream();
+            }
+
+            await this.connect();
+        },
+
         async connect() {
+            this.state = 'connecting';
+
             try {
                 // Defensive: if a stale WebSocket survived a previous teardown
                 // (old handlers weren't bound correctly, etc.), close it before
@@ -88,14 +127,22 @@
 
                 const result = await $wire.getWebSocketUrl();
 
+                // The user hit disconnect while the token round trip was in
+                // flight — don't open a socket nobody wants anymore.
+                if (this.state !== 'connecting') {
+                    return;
+                }
+
                 if (result.error) {
                     console.error('[StreamTerminal] Auth error:', result.error);
+                    this.state = 'disconnected';
                     return;
                 }
 
                 this.ws = new WebSocket(result.url);
 
                 this.ws.onopen = () => {
+                    this.state = 'connected';
                     $wire.connect();
                     if (this.terminal) {
                         this.ws.send(JSON.stringify({
@@ -117,6 +164,7 @@
                 };
 
                 this.ws.onclose = () => {
+                    this.state = 'disconnected';
                     $wire.disconnect();
                     this.ws = null;
                 };
@@ -139,22 +187,26 @@
                 }
             } catch (e) {
                 console.error('[StreamTerminal] Connect error:', e);
+                this.state = 'disconnected';
             }
         },
 
         disconnect() {
             if (this.ws) {
-                this.ws.close();
+                // Client-initiated clean close (1000): the server terminates
+                // the PTY on the socket close event, per the registry rules.
+                try { this.ws.close(1000, 'client disconnect'); } catch (e) { /* ignore */ }
                 this.ws = null;
             }
+            this.state = 'disconnected';
             $wire.disconnect();
         },
 
         handleToggle() {
-            if (this.isConnected) {
+            if (this.state === 'connected' || this.state === 'connecting') {
                 this.disconnect();
             } else {
-                this.connect();
+                this.startSession();
             }
         },
 
@@ -242,6 +294,13 @@
 
             const observer = new IntersectionObserver((entries) => {
                 if (entries[0].isIntersecting && !this.terminal) {
+                    // Manual panes wait for the user's Connect click — no
+                    // canvas, no WebSocket, no PTY until then. The observer
+                    // stays alive to handle refits after they do connect.
+                    if (this.behavior === 'manual') {
+                        return;
+                    }
+
                     this.initStream();
                     this.$nextTick(() => this.connect());
                     observer.disconnect();
@@ -363,6 +422,27 @@
             </div>
             @endif
 
+            {{-- Connect / Disconnect Toggle.
+                 Hidden for AutoHidden (today's chromeless auto-connect look).
+                 Placement follows TerminalChrome automatically: header action
+                 when a header exists, floating overlay button when frameless. --}}
+            @if($connectionBehavior !== 'auto_hidden')
+            <button
+                type="button"
+                @click="handleToggle()"
+                class="flex items-center justify-center w-7 h-7 rounded-full transition-all duration-200"
+                :class="{
+                    'bg-emerald-500/20 text-emerald-600 ring-1 ring-emerald-500/40 dark:bg-emerald-500/30 dark:text-emerald-400 dark:ring-emerald-500/50': state === 'connected',
+                    'bg-slate-300/50 text-slate-500 hover:bg-slate-300 hover:text-slate-700 dark:bg-white/5 dark:text-white/40 dark:hover:bg-white/10 dark:hover:text-white/60': state !== 'connected'
+                }"
+                :title="state === 'connected' ? '{{ __('web-terminal-stream::terminal.stream.disconnect') }}' : '{{ __('web-terminal-stream::terminal.stream.connect') }}'"
+            >
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4">
+                    <path fill-rule="evenodd" d="M10 2a.75.75 0 0 1 .75.75v7.5a.75.75 0 0 1-1.5 0v-7.5A.75.75 0 0 1 10 2ZM5.404 4.343a.75.75 0 0 1 0 1.06 6.5 6.5 0 1 0 9.192 0 .75.75 0 1 1 1.06-1.06 8 8 0 1 1-11.313 0 .75.75 0 0 1 1.061 0Z" clip-rule="evenodd" />
+                </svg>
+            </button>
+            @endif
+
             {{-- Copy All Button --}}
             <button
                 type="button"
@@ -432,11 +512,57 @@
         </div>
     </div>
 
-    {{-- Stream Terminal Container --}}
-    <div
-        x-ref="streamContainer"
-        wire:ignore
-        class="relative flex-1 overflow-hidden p-2"
-        style="background: {{ $streamTheme['background'] ?? '#1a1a2e' }};"
-    ></div>
+    {{-- Stream Terminal Body --}}
+    <div class="relative flex-1 overflow-hidden">
+        <div
+            x-ref="streamContainer"
+            wire:ignore
+            class="absolute inset-0 overflow-hidden p-2"
+            style="background: {{ $streamTheme['background'] ?? '#1a1a2e' }};"
+        ></div>
+
+        {{-- Connect Affordance Overlay.
+
+             Sits over the canvas (outside the wire:ignore container so
+             initStream()'s replaceChildren() can never wipe it). Manual panes
+             show it until a session is live; AutoWithButton shows it after a
+             disconnect; AutoHidden never renders it at all. --}}
+        @if($connectionBehavior !== 'auto_hidden')
+        <div
+            x-show="overlayVisible"
+            x-cloak
+            data-connect-overlay
+            class="absolute inset-0 z-10 flex items-center justify-center"
+            style="background: {{ $streamTheme['background'] ?? '#1a1a2e' }}; color: {{ $streamTheme['foreground'] ?? '#e2e8f0' }};"
+        >
+            <button
+                type="button"
+                x-show="state !== 'connecting'"
+                @click="startSession()"
+                class="group flex flex-col items-center gap-3 focus:outline-none"
+            >
+                <span class="flex items-center justify-center w-14 h-14 rounded-full border border-current opacity-60 group-hover:opacity-100 group-focus-visible:opacity-100 group-focus-visible:ring-2 group-focus-visible:ring-current transition-opacity">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-6 h-6">
+                        <path fill-rule="evenodd" d="M10 2a.75.75 0 0 1 .75.75v7.5a.75.75 0 0 1-1.5 0v-7.5A.75.75 0 0 1 10 2ZM5.404 4.343a.75.75 0 0 1 0 1.06 6.5 6.5 0 1 0 9.192 0 .75.75 0 1 1 1.06-1.06 8 8 0 1 1-11.313 0 .75.75 0 0 1 1.061 0Z" clip-rule="evenodd" />
+                    </svg>
+                </span>
+                <span
+                    class="text-xs font-medium tracking-widest uppercase opacity-60 group-hover:opacity-100 transition-opacity"
+                    x-text="state === 'disconnected' ? '{{ __('web-terminal-stream::terminal.stream.reconnect') }}' : '{{ __('web-terminal-stream::terminal.stream.connect') }}'"
+                ></span>
+            </button>
+
+            <div
+                x-show="state === 'connecting'"
+                x-cloak
+                class="flex items-center gap-2 text-xs font-medium tracking-widest uppercase opacity-60"
+            >
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-4 h-4 animate-spin">
+                    <path stroke-linecap="round" d="M12 3a9 9 0 1 0 9 9" />
+                </svg>
+                <span>{{ __('web-terminal-stream::terminal.stream.connecting') }}</span>
+            </div>
+        </div>
+        @endif
+    </div>
 </div>

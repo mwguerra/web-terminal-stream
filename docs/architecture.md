@@ -30,9 +30,15 @@ This is why `terminal-stream:serve` must run inside the same application (same `
 On `init()` the Alpine component:
 
 - binds a single teardown handler to `beforeunload`, `pagehide`, and `livewire:navigating` (the last one is what makes SPA navigation clean up — see §6);
-- registers an `IntersectionObserver`. When the terminal first scrolls into view it calls `initStream()` (loads the ghostty-web WASM module, creates the `Terminal` + `FitAddon`, mounts the canvas into the `wire:ignore` container) and then `connect()`.
+- registers an `IntersectionObserver`. For the auto behaviors, when the terminal first scrolls into view it calls `initStream()` (loads the ghostty-web WASM module, creates the `Terminal` + `FitAddon`, mounts the canvas into the `wire:ignore` container) and then `connect()`.
 
-The terminal therefore always auto-connects when visible; there is no manual connect button in the current UI.
+Connection timing is governed by the `connectionBehavior` prop (`Enums\ConnectionBehavior`, default `AutoHidden`) and a client-side state machine (`idle → connecting → connected → disconnected`):
+
+- `AutoHidden` — auto-connect on visibility, no connection UI (the original behavior).
+- `AutoWithButton` — auto-connect on visibility, plus a connect/disconnect toggle (header action, or floating overlay control when frameless) and a centered Reconnect affordance after a disconnect.
+- `Manual` — the IntersectionObserver deliberately does **not** boot anything; a centered Connect affordance triggers `initStream()` + `connect()` on click. A never-opened Manual pane costs no canvas, no WebSocket, no PTY, and writes no log rows (server-side `connect()` only fires from `ws.onopen`).
+
+A user-initiated disconnect closes the WebSocket with a clean client close (code 1000); the server-side close event terminates the PTY as usual (§6).
 
 ## 2. Token auth flow
 
