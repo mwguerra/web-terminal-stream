@@ -8,6 +8,7 @@ use GuzzleHttp\Psr7\HttpFactory;
 use GuzzleHttp\Psr7\Message;
 use Illuminate\Contracts\Encryption\Encrypter;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Log;
 use MWGuerra\WebTerminalStream\Data\ConnectionConfig;
 use Ratchet\RFC6455\Handshake\RequestVerifier;
 use Ratchet\RFC6455\Handshake\ServerNegotiator;
@@ -35,6 +36,8 @@ class ReactPhpWebSocketServer
 
     private ServerNegotiator $negotiator;
 
+    private OriginValidator $originValidator;
+
     public function __construct(
         PtySessionRegistry $registry,
         Encrypter $encrypter,
@@ -47,6 +50,7 @@ class ReactPhpWebSocketServer
             new RequestVerifier,
             new HttpFactory,
         );
+        $this->originValidator = new OriginValidator($config['allowed_origins'] ?? []);
     }
 
     public function handleConnection(ConnectionInterface $conn): void
@@ -97,6 +101,23 @@ class ReactPhpWebSocketServer
 
         if ($response->getStatusCode() !== 101) {
             $conn->write(Message::toString($response));
+            $conn->close();
+
+            return;
+        }
+
+        // Enforce the Origin allow-list before the single-use token is
+        // consumed — a rejected page must not burn the token it stole.
+        // Browsers always send Origin on WebSocket upgrades; requests
+        // without one (non-browser clients) pass through to token auth.
+        $origin = $request->getHeaderLine('Origin');
+
+        if (! $this->originValidator->allows($origin !== '' ? $origin : null)) {
+            Log::warning('[web-terminal-stream] Rejected WebSocket handshake: Origin is not in stream.allowed_origins', [
+                'origin' => $origin,
+            ]);
+
+            $conn->write("HTTP/1.1 403 Forbidden\r\nConnection: close\r\nContent-Length: 0\r\n\r\n");
             $conn->close();
 
             return;

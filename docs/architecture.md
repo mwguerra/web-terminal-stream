@@ -48,9 +48,10 @@ The terminal therefore always auto-connects when visible; there is no manual con
 On the server side, `ReactPhpWebSocketServer::handleHandshake()`:
 
 1. Buffers raw socket data until a full HTTP request arrives, then negotiates the RFC6455 upgrade (`ratchet/rfc6455` `ServerNegotiator`).
-2. Decrypts the `token` query param; rejects on decryption failure or expired `exp`.
-3. `Cache::pull`s the connection config — **pull, not get**: the token is single-use; replaying it finds an empty cache slot and the connection is closed.
-4. Builds a `Data\ConnectionConfig` from the cached array and starts a `TerminalPtyBridge`.
+2. Validates the `Origin` header against `stream.allowed_origins` (`WebSocket\OriginValidator`: normalized scheme + case-insensitive host + port, exact match). No match → HTTP 403 + warning log, **before** the token is consumed, so a rejected page cannot burn a stolen token. A missing `Origin` (non-browser client) passes through — browsers always send it on WebSocket upgrades. A literal `'*'` entry, or an empty list, disables the check.
+3. Decrypts the `token` query param; rejects on decryption failure or expired `exp`.
+4. `Cache::pull`s the connection config — **pull, not get**: the token is single-use; replaying it finds an empty cache slot and the connection is closed.
+5. Builds a `Data\ConnectionConfig` from the cached array and starts a `TerminalPtyBridge`.
 
 ## 3. TerminalPtyBridge — one bridge per connection
 
@@ -101,4 +102,4 @@ There is deliberately **no command-level logging**: the stream is a raw byte pip
 
 ## 8. Security model in one paragraph
 
-There is no command whitelist — a PTY cannot be meaningfully whitelisted, so the package does not pretend to. The boundaries are: (1) who can render a page containing the component (your authz), (2) the optional `useStreamTerminal` Gate checked at token issuance, (3) the encrypted, expiring, single-use token required to open a WebSocket, and (4) network reachability of the WebSocket port (bind to `127.0.0.1` and proxy, or firewall it). Anyone past those boundaries has a real shell with the privileges of the PHP/SSH user.
+There is no command whitelist — a PTY cannot be meaningfully whitelisted, so the package does not pretend to. The boundaries are: (1) who can render a page containing the component (your authz), (2) the optional `useStreamTerminal` Gate checked at token issuance, (3) the encrypted, expiring, single-use token required to open a WebSocket, (4) the `stream.allowed_origins` Origin allow-list enforced on the handshake (rejects cross-origin browser pages before they can consume a token — CSRF-shaped defense in depth), and (5) network reachability of the WebSocket port (bind to `127.0.0.1` and proxy, or firewall it). Anyone past those boundaries has a real shell with the privileges of the PHP/SSH user.

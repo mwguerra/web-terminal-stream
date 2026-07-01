@@ -33,6 +33,7 @@ This package was extracted from [`mwguerra/web-terminal`](https://github.com/mwg
 > - Restrict the pages that embed a terminal to trusted technical personnel (Filament panel auth, policies).
 > - Define a `useStreamTerminal` Gate — it is checked before every WebSocket token is issued.
 > - Keep the WebSocket server bound to `127.0.0.1` behind a reverse proxy, or firewall its port.
+> - Keep `stream.allowed_origins` accurate — browser WebSocket handshakes from other origins are rejected with 403 before the auth token is consumed.
 > - Keep connection logging enabled for an audit trail.
 >
 > **Use at your own risk.** The authors are not responsible for any damage, data loss, or security incidents resulting from the use of this package.
@@ -167,6 +168,26 @@ When your app is served over HTTPS, browsers require the terminal WebSocket to b
    WEB_TERMINAL_STREAM_WEBSOCKET_URL=wss://your-domain.test:8090
    ```
 
+#### Origin allow-list
+
+The server validates the `Origin` header of every browser WebSocket handshake against `stream.allowed_origins` (default: `[env('APP_URL', 'http://localhost')]`). A handshake from an origin not on the list is rejected with HTTP 403 — and logged at warning level — *before* the single-use auth token is consumed, so a malicious page in a logged-in user's browser cannot open a socket even if it managed to obtain a token.
+
+Matching is exact on the normalized origin (scheme + case-insensitive host + port, with default ports filled in per scheme — `https://app.test` and `https://app.test:443` are the same origin). Requests without an `Origin` header (non-browser clients, CLI tooling) are allowed through — browsers always send `Origin` on WebSocket upgrades, so this does not weaken browser-facing CSRF protection; the encrypted single-use token remains the auth gate.
+
+```php
+// config/web-terminal-stream.php
+'stream' => [
+    'allowed_origins' => [
+        env('APP_URL', 'http://localhost'),
+        'https://admin.example.com',
+    ],
+],
+```
+
+A literal `'*'` entry disables the check entirely — an escape hatch for reverse-proxy setups that strip or rewrite the `Origin` header. An empty (or missing) list also disables the check, so a published config predating this key keeps working; republish the config to get the secure default.
+
+Because this is an array, it is **config-file-only** — there is no `WEB_TERMINAL_STREAM_*` env var for it (env vars carry scalars). Reference `env('APP_URL')` or your own env-driven values inside the published config file instead.
+
 ### Environment variables
 
 | Variable | Config key | Default |
@@ -186,7 +207,7 @@ When your app is served over HTTPS, browsers require the terminal WebSocket to b
 | `WEB_TERMINAL_STREAM_LOG_RETENTION` | `logging.retention_days` | `90` |
 | `WEB_TERMINAL_STREAM_DEPRECATIONS_EMIT_NOTICES` | `deprecations.emit_notices` | `false` |
 
-Non-env config keys: `stream.max_session_lifetime` (default `3600` — stale PTYs older than this are killed by the server's cleanup pass) and `stream.signed_url_ttl` (default `300` — lifetime of a WebSocket auth token).
+Non-env config keys: `stream.max_session_lifetime` (default `3600` — stale PTYs older than this are killed by the server's cleanup pass), `stream.signed_url_ttl` (default `300` — lifetime of a WebSocket auth token), and `stream.allowed_origins` (default `[env('APP_URL', 'http://localhost')]` — see the Origin allow-list section; it's an array, so config-file-only).
 
 ## Usage
 

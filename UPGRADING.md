@@ -82,7 +82,8 @@ Update supervisor/systemd units and scheduled tasks accordingly. If both package
 
 ## 6. Config file and env vars
 
-- Config file: `config/web-terminal.php` → `config/web-terminal-stream.php` (publish tag `web-terminal-stream-config`). Only `logging`, `stream`, and `deprecations` sections exist — all Classic keys (`allowed_commands`, `blocked_characters`, `rate_limit`, `session`, `ssh`, `ui`, `auditing`, `timeout`, `default_connection`) are gone, as are `stream.enabled` (always on) and the unconsumed `stream.websocket_provider`/`pty_grace_period`/`allowed_origins`/`theme` keys.
+- Config file: `config/web-terminal.php` → `config/web-terminal-stream.php` (publish tag `web-terminal-stream-config`). Only `logging`, `stream`, and `deprecations` sections exist — all Classic keys (`allowed_commands`, `blocked_characters`, `rate_limit`, `session`, `ssh`, `ui`, `auditing`, `timeout`, `default_connection`) are gone, as are `stream.enabled` (always on) and the unconsumed `stream.websocket_provider`/`pty_grace_period`/`theme` keys.
+- `stream.allowed_origins` exists again — and unlike in the old package it is now actually **enforced** on the WebSocket handshake (default `[env('APP_URL', 'http://localhost')]`; a literal `'*'` or an empty list disables the check). If your app serves terminals from more than one origin, list them all; see the README's "Origin allow-list" section.
 - Env prefix: `WEB_TERMINAL_*` → `WEB_TERMINAL_STREAM_*`. Full mapping of the survivors:
 
 | Old | New |

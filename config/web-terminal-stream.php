@@ -66,6 +66,16 @@ return [
         'working_directory' => env('WEB_TERMINAL_STREAM_CWD'),
         'max_session_lifetime' => 3600,
         'signed_url_ttl' => 300,
+
+        // Origins allowed to open a WebSocket handshake (CSRF-shaped defense
+        // in depth on top of the single-use token). Matched on normalized
+        // scheme + host + port; requests without an Origin header (non-browser
+        // clients) are always allowed. A literal '*' entry disables the check
+        // (escape hatch for proxies that strip or rewrite Origin). This is an
+        // array, so it is config-file-only — there is no env var for it.
+        'allowed_origins' => [
+            env('APP_URL', 'http://localhost'),
+        ],
     ],
 
     /*
