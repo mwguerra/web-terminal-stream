@@ -153,7 +153,7 @@ class WebTerminalStream extends Livewire
      *     'private_key' => Storage::get('ssh/key'),
      * ])
      *
-     * @param  array|Closure|string  $config  Array/Closure config, or SSH host when using named params
+     * @param  array|Closure|string  $host  SSH host (when using named params), or a full array/Closure config
      * @param  string|null  $username  SSH username (when using named params)
      * @param  string|null  $password  Password for password-based auth
      * @param  string|null  $key  Private key content for key-based auth
@@ -161,15 +161,16 @@ class WebTerminalStream extends Livewire
      * @param  int  $port  SSH port (default: 22)
      */
     public function ssh(
-        array|Closure|string $config,
+        array|Closure|string $host,
         ?string $username = null,
         ?string $password = null,
         ?string $key = null,
         ?string $passphrase = null,
         int $port = 22
     ): static {
-        // If config is array or Closure, use it directly
-        if (is_array($config) || $config instanceof Closure) {
+        // If the first argument is an array or Closure, it is the full config
+        if (is_array($host) || $host instanceof Closure) {
+            $config = $host;
             $this->connectionConfig = $config instanceof Closure
                 ? fn () => array_merge(['type' => 'ssh'], $this->evaluate($config))
                 : array_merge(['type' => 'ssh'], $config);
@@ -177,10 +178,10 @@ class WebTerminalStream extends Livewire
             return $this;
         }
 
-        // Named parameters style (config is the host string)
+        // Named parameters style
         $this->connectionConfig = [
             'type' => 'ssh',
-            'host' => $config,
+            'host' => $host,
             'username' => $username,
             'password' => $password,
             'private_key' => $key,

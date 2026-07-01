@@ -29,3 +29,33 @@
 .stream-web-terminal textarea {
     caret-color: transparent !important;
 }
+
+/* Terminal Grid (tiling)
+   The TerminalGrid schema component sets the custom properties on the outer
+   container; the actual CSS grid is the Filament child schema div (.fi-sc). */
+.wts-terminal-grid > .fi-sc {
+    gap: var(--wts-grid-gap, 0px);
+    grid-auto-rows: minmax(0, 1fr);
+    height: var(--wts-grid-height, auto);
+    /* With a positive gap, the container background shows through as
+       pane dividers. */
+    background-color: var(--wts-grid-divider, transparent);
+}
+
+.wts-terminal-grid > .fi-sc > * {
+    min-height: 0;
+}
+
+/* Let panes fill their grid row when the grid owns the height. */
+.wts-terminal-grid .fi-sc-component {
+    height: 100%;
+}
+
+/* Focused-pane ring: the pane whose hidden textarea owns keyboard focus.
+   Pure CSS — no JS focus tracking. An inward outline (not box-shadow, which
+   the canvas container's opaque background would cover) so it stays visible
+   over the pane content. Override the color per app via --wts-grid-focus-ring. */
+.wts-terminal-grid .stream-web-terminal:focus-within {
+    outline: 2px solid var(--wts-grid-focus-ring, rgba(96, 165, 250, 0.7));
+    outline-offset: -2px;
+}

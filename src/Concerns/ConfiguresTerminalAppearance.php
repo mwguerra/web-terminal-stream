@@ -46,11 +46,28 @@ trait ConfiguresTerminalAppearance
      */
     protected bool $connectionFlagsTouched = false;
 
+    /*
+     * Explicit-setting markers. Containers that apply defaults to child
+     * terminals (e.g. TerminalGrid auto-applying frameless/squareCorners)
+     * use these to leave explicitly configured children alone.
+     */
+    protected bool $heightExplicitlySet = false;
+
+    protected bool $chromeExplicitlySet = false;
+
+    protected bool $squareCornersExplicitlySet = false;
+
     public function height(string|Closure $height): static
     {
         $this->height = $height;
+        $this->heightExplicitlySet = true;
 
         return $this;
+    }
+
+    public function hasExplicitHeight(): bool
+    {
+        return $this->heightExplicitlySet;
     }
 
     public function getHeight(): string
@@ -80,8 +97,14 @@ trait ConfiguresTerminalAppearance
     public function chrome(TerminalChrome|Closure $chrome): static
     {
         $this->chrome = $chrome;
+        $this->chromeExplicitlySet = true;
 
         return $this;
+    }
+
+    public function hasExplicitChrome(): bool
+    {
+        return $this->chromeExplicitlySet;
     }
 
     public function getChrome(): TerminalChrome
@@ -107,8 +130,14 @@ trait ConfiguresTerminalAppearance
     public function squareCorners(bool|Closure $enabled = true): static
     {
         $this->squareCorners = $enabled;
+        $this->squareCornersExplicitlySet = true;
 
         return $this;
+    }
+
+    public function hasExplicitSquareCorners(): bool
+    {
+        return $this->squareCornersExplicitlySet;
     }
 
     public function getSquareCorners(): bool
@@ -132,6 +161,7 @@ trait ConfiguresTerminalAppearance
                 : TerminalChrome::Minimal;
         };
         $this->chrome = $resolver;
+        $this->chromeExplicitlySet = true;
 
         return $this;
     }

@@ -25,7 +25,7 @@ This is why `terminal-stream:serve` must run inside the same application (same `
 
 ## 1. Mount and boot
 
-`Schemas\Components\WebTerminalStream` (or `Livewire\TerminalBuilder`) mounts the `Livewire\StreamTerminal` component with `#[Locked]` props: `connectionConfig`, appearance settings, `scripts`, and the logging overrides. The Blade view (`resources/views/stream-terminal.blade.php`) is one large Alpine component.
+`Schemas\Components\WebTerminalStream` (or `Livewire\TerminalBuilder`) mounts the `Livewire\StreamTerminal` component with `#[Locked]` props: `connectionConfig`, appearance settings, `scripts`, and the logging overrides. The Blade view (`resources/views/stream-terminal.blade.php`) is one large Alpine component. For multi-pane layouts, `Schemas\Components\TerminalGrid` (a Filament Grid subclass) composes N `WebTerminalStream` panes into a flush CSS grid — it only configures the panes (frameless/square corners/behavior/height) and container CSS variables; each pane still follows the exact data path described here.
 
 On `init()` the Alpine component:
 

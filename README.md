@@ -387,30 +387,50 @@ WebTerminalStream::make()
 
 The connect/disconnect toggle follows `TerminalChrome`: it renders as a header action when a header exists (`Full`/`Minimal`) and joins the floating overlay controls when `frameless()`. Disconnecting closes the WebSocket cleanly from the client (close code 1000); the server terminates the PTY on the socket close, exactly as it does for navigation teardown.
 
-### Chrome levels and tiled layouts
+### Chrome levels
 
 `TerminalChrome` controls how much UI surrounds the canvas:
 
 - `Full` — header with macOS-style window dots, title, and action buttons.
 - `Minimal` — header without the dots.
-- `None` — no header at all; the actions (scripts, copy, info) float over the canvas top-right.
+- `None` — no header at all; the actions (scripts, copy, info, connect toggle) float over the canvas top-right.
 
-Combined with `squareCorners()`, frameless terminals tile edge-to-edge — the building block for tmux-like multi-pane layouts:
+Combined with `squareCorners()`, frameless terminals tile edge-to-edge — the building block for tmux-like multi-pane layouts.
+
+### Tiled layouts — `TerminalGrid`
+
+`TerminalGrid` lays out multiple terminals in a flush CSS grid — the tmux look, without manual plumbing:
 
 ```php
-use Filament\Schemas\Components\Grid;
+use MWGuerra\WebTerminalStream\Enums\ConnectionBehavior;
+use MWGuerra\WebTerminalStream\Schemas\Components\TerminalGrid;
 use MWGuerra\WebTerminalStream\Schemas\Components\WebTerminalStream;
 
-Grid::make(2)->schema([
-    WebTerminalStream::make()->key('pane-1')->local()->frameless()->squareCorners()->height('300px'),
-    WebTerminalStream::make()->key('pane-2')->local()->frameless()->squareCorners()->height('300px'),
-    WebTerminalStream::make()->key('pane-3')->ssh(host: 'staging', username: 'deploy', key: $key)
-        ->frameless()->squareCorners()->height('300px'),
-    WebTerminalStream::make()->key('pane-4')->local()->frameless()->squareCorners()->height('300px'),
-])
+TerminalGrid::make()
+    ->columns(2)                                        // Filament-style, responsive arrays work too
+    ->height('600px')                                   // rows share it equally
+    ->connectionBehavior(ConnectionBehavior::Manual)    // panes connect on click, not on load
+    ->terminals([
+        WebTerminalStream::make()->key('pane-1')->local(),
+        WebTerminalStream::make()->key('pane-2')->local(),
+        WebTerminalStream::make()->key('pane-3')->ssh(host: 'staging', username: 'deploy', key: $key),
+        WebTerminalStream::make()->key('pane-4')->local(),
+    ])
 ```
 
-Every `WebTerminalStream::make()` gets a unique wire:key automatically, so multiple terminals on one page stay isolated. Give each pane an explicit `->key()` when you need stable identities.
+What the grid does for you:
+
+- **Flush panes by default** — every pane gets `frameless()` + `squareCorners()` automatically. A pane that explicitly set its own `chrome()`/`squareCorners()` keeps its setting.
+- **`columns(int|array)`** — Filament-style responsive columns (default `2`), e.g. `->columns(['md' => 2, 'xl' => 3])`.
+- **`gap(int $px = 0)`** — pixel gap between panes. `0` (default) is the flush tmux look; `->gap(1)` renders 1px dividers via the grid container background (override the color with the `--wts-grid-divider` CSS variable).
+- **`height(string)`** — grid height; rows share it equally and panes without an explicit `height()` stretch to fill their row.
+- **`connectionBehavior(...)`** — forwarded to every pane that didn't set its own, so a dashboard of `Manual` panes doesn't spawn N PTYs on page load.
+- **Focused-pane ring** — the pane owning keyboard focus gets a subtle ring (pure CSS `:focus-within`; color via `--wts-grid-focus-ring`).
+- **Key isolation** — every pane keeps its unique auto-generated wire:key. Give panes explicit `->key()`s when you need stable identities.
+
+Manual composition still works — `TerminalGrid` is sugar; arranging `frameless()->squareCorners()` terminals inside your own `Filament\Schemas\Components\Grid` (or any layout) remains fully supported.
+
+Planned next tiling increments (not in this release): drag-to-resize dividers, tmux-style keyboard pane navigation, dynamic split/close, and layout presets.
 
 ### Theming
 

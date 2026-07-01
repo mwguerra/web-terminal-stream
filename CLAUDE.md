@@ -65,6 +65,7 @@ One rendering path. Configuration flows Schema component → Livewire props → 
 ### 1. Public API → Livewire component
 
 - `Schemas\Components\WebTerminalStream` — the public fluent API (`WebTerminalStream::make()->local()/->ssh()/->frameless()/...`), a `Filament\Schemas\Components\Livewire` subclass. It always mounts `Livewire\StreamTerminal` and translates the fluent config into its props. Every `make()` gets a unique auto wire:key (`web-terminal-stream-XXXXXXXX`) so multiple terminals per page stay isolated.
+- `Schemas\Components\TerminalGrid` — the tiling layout (`TerminalGrid::make()->terminals([...])`), a `Filament\Schemas\Components\Grid` subclass rendering panes in a flush CSS grid (see Roadmap Direction).
 - `Livewire\StreamTerminal` — thin Livewire wrapper. Issues WebSocket auth tokens (`getWebSocketUrl()`, gated by an optional `useStreamTerminal` Gate), tracks `isConnected`, dispatches `TerminalConnectedEvent`/`TerminalDisconnectedEvent` and direct-logs connections via `TerminalLogger`. Keystrokes never round-trip through Livewire.
 - `Livewire\TerminalBuilder` — server-side fluent builder for non-Filament Blade usage (`->render()` mounts the `web-terminal-stream` Livewire component).
 - `resources/views/stream-terminal.blade.php` — one large Alpine component: boots ghostty-web (`resources/js/stream-terminal.js`, bundled as global `StreamWeb`), opens the WebSocket, wires data/resize/teardown. The canvas container is `wire:ignore`.
@@ -111,7 +112,14 @@ There is **no command whitelist** — Stream is a raw PTY byte-pipe and cannot b
 
 ## Roadmap Direction
 
-The next feature area is **terminal tiling** — tmux-like multi-pane layouts composed of many terminals on one page. `frameless()` (chrome `None` with floating controls) and `squareCorners()` were built as its foundation, together with per-instance wire:key isolation. Layout composition itself stays external to the package for now (host apps arrange frameless terminals in grids); expect future work to move toward first-class pane/grid components.
+The feature area is **terminal tiling** — tmux-like multi-pane layouts composed of many terminals on one page. The composition layer has landed: `Schemas\Components\TerminalGrid` (extends Filament's Grid) lays out N `WebTerminalStream` panes in a flush CSS grid — auto-applied `frameless()` + `squareCorners()` (overridable per pane), `columns()`/`gap()`/`height()`, grid-level `connectionBehavior()` forwarding, and a CSS `:focus-within` focused-pane ring (styling lives in `resources/css/index.css` via `--wts-grid-*` custom properties).
+
+Deferred increments, in likely order:
+
+1. Drag-to-resize dividers between panes.
+2. Keyboard pane navigation (tmux-style prefix keys) + active-pane state in Livewire.
+3. Dynamic split/close (add/remove panes at runtime without full re-render).
+4. Layout presets (even-horizontal, even-vertical, main-vertical…).
 
 ## Key Reference Docs in This Repo
 
