@@ -1,3 +1,5 @@
+> **Historical document.** Written for `mwguerra/web-terminal` before the Stream terminal was extracted into `mwguerra/web-terminal-stream`; class names, namespaces, config keys, and command names reflect the parent package's API at the time. Kept as the design record this codebase was built from.
+
 # Ghostty Terminal Integration Design
 
 **Date:** 2026-03-30

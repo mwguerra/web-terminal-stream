@@ -4,15 +4,18 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-`mwguerra/web-terminal-stream` is a **Composer package** (not an application) that provides a secure, embeddable web terminal for Laravel + Filament applications. It ships Livewire components, a Filament Schema component, a Filament Plugin with a Terminal page and Terminal Logs resource, Artisan commands, and a WebSocket server for full PTY streaming.
+`mwguerra/web-terminal-stream` is a **Composer package** (not an application) that provides a Stream-mode web terminal for Laravel + Filament: a full interactive PTY (local shell or SSH) streamed over WebSocket into a ghostty-web WASM canvas in the browser. It ships a Livewire component, a Filament Schema component, a Filament Plugin with a Terminal page and Terminal Logs resource, Artisan commands, and the ReactPHP WebSocket server.
+
+It was extracted from `mwguerra/web-terminal` (its `feature/frameless` branch) with Classic command-by-command mode removed. It is fully renamed so both packages can be installed side-by-side in one app.
 
 - Root namespace: `MWGuerra\WebTerminalStream\` → `src/`
 - Tests namespace: `MWGuerra\WebTerminalStream\Tests\` → `tests/`
-- Current major version branch (`main`): **v2.x** — requires **PHP 8.3+, Laravel 12–13, Filament 5.x, Livewire 4.x**. (v1.x targeted Laravel 11 / Filament 4 / Livewire 3; do not mix the namespaces/patterns of those stacks here.)
+- Repo: https://github.com/mwguerra/web-terminal-stream
+- Requires **PHP 8.3+, Laravel 12–13, Filament 5.x, Livewire 4.x**. (Do not mix in Filament 4 / Livewire 3 patterns.)
 
 ## Common Commands
 
-Development runs through Composer and NPM scripts (no `artisan` — this is a package, it uses Orchestra Testbench for tests):
+Development runs through Composer and NPM scripts (no `artisan` here — it's a package; tests use Orchestra Testbench):
 
 ```bash
 # Run the full test suite (Pest on Testbench)
@@ -22,27 +25,26 @@ composer test:parallel
 # Coverage (XDEBUG_MODE is set automatically)
 composer test:coverage
 composer test:coverage:html   # writes to tests/coverage/
-composer test:parallel:coverage
 
 # Run a single test file or filter
-vendor/bin/pest tests/Unit/Security/CommandValidatorTest.php
-vendor/bin/pest --filter=CommandValidator
-vendor/bin/pest --filter="allows whitelisted command"
+vendor/bin/pest tests/Unit/Livewire/StreamTerminalTest.php
+vendor/bin/pest --filter="dispatches TerminalConnectedEvent"
 
 # Static analysis and formatting
-composer analyse        # PHPStan (see phpstan config if present)
+composer analyse        # PHPStan
 composer format         # Laravel Pint
 
 # Asset builds (required after touching resources/css or resources/js)
 npm run build           # Tailwind → resources/dist/web-terminal-stream.css
-npm run build:js        # esbuild → resources/dist/stream-terminal.js (Stream mode)
+npm run build:js        # esbuild → resources/dist/stream-terminal.js
 npm run build:all
 
-# Release script
+# Release script / benchmark harness
 composer release        # bash scripts/release.sh
+composer bench          # advisory; currently no registered benchmarks (see docs/benchmarks/README.md)
 ```
 
-PHPUnit is configured with `failOnRisky=true` and `failOnWarning=true` — risky/warning tests break the build. Tests live only under `tests/Unit/` (no `Feature` dir, even though `Pest.php` references one).
+PHPUnit is configured with `failOnRisky=true` and `failOnWarning=true` — risky/warning tests break the build. Tests live only under `tests/Unit/` (no `Feature` dir, even though `Pest.php` references one). Filament is not in require-dev, so the Filament-gated tests (Schemas, Plugin) self-skip locally.
 
 ## How to Test Changes Against a Real Filament App
 
@@ -50,98 +52,73 @@ This package is typically developed symlinked into a host Laravel app via a Comp
 
 - Host app: `/home/guerra/projects/test_projects/testapp_f5/` → `https://testapp-f5.test`
 - Login: `admin@example.com` / `password`
-- The host's `composer.json` points `mwguerra/web-terminal-stream` at `../../web-terminal`. When working on a non-`main` branch, update it to `"mwguerra/web-terminal-stream": "dev-<branch>"` and run `composer update mwguerra/web-terminal-stream` in the host app.
+- Point the host's `composer.json` path repository at `../../web-terminal-stream` and require `"mwguerra/web-terminal-stream": "dev-<branch>"`, then `composer update mwguerra/web-terminal-stream` in the host app. (The host may also have `mwguerra/web-terminal` installed — the packages are namespaced to coexist.)
 - After editing Blade views or CSS here, run `npm run build` in this repo — the host app loads `resources/dist/web-terminal-stream.css` directly from the package.
-- If running Stream mode end-to-end, start the WebSocket server from the host app: `php artisan terminal-stream:serve` (defaults `127.0.0.1:8090`).
+- The terminal only works with the WebSocket server running. Start it from the host app: `php artisan terminal-stream:serve` (defaults `127.0.0.1:8090`; use `--port` if the original package's server already holds 8090).
 
 When exercising a real terminal during tests, only use **readonly commands** (`echo`, `ls`, `pwd`, `date`, `whoami`, `hostname`, `cat` on safe files). Never run destructive shell operations from a test page on this workstation.
 
 ## Architecture (Big Picture)
 
-The package has **three front-end rendering paths** that share configuration but execute very differently. Most bugs live in the seams between them, so keep the boundary clear.
+One rendering path. Configuration flows Schema component → Livewire props → WebSocket server; bytes flow browser ⇄ WebSocket ⇄ PTY. `docs/architecture.md` is the detailed contributor walkthrough of the data path — read it before touching the WebSocket or teardown code.
 
-### 1. Schema Component → Livewire Components
+### 1. Public API → Livewire component
 
-`Schemas\Components\WebTerminalStream` (a `Filament\Schemas\Components\Livewire` subclass) is the public fluent API (`->local()`, `->ssh()`, `->allowedCommands()`, `->streamTerminal()`, etc.). It does not render the terminal itself — it mounts one of the Livewire components based on mode:
+- `Schemas\Components\WebTerminalStream` — the public fluent API (`WebTerminalStream::make()->local()/->ssh()/->frameless()/...`), a `Filament\Schemas\Components\Livewire` subclass. It always mounts `Livewire\StreamTerminal` and translates the fluent config into its props. Every `make()` gets a unique auto wire:key (`web-terminal-stream-XXXXXXXX`) so multiple terminals per page stay isolated.
+- `Livewire\StreamTerminal` — thin Livewire wrapper. Issues WebSocket auth tokens (`getWebSocketUrl()`, gated by an optional `useStreamTerminal` Gate), tracks `isConnected`, dispatches `TerminalConnectedEvent`/`TerminalDisconnectedEvent` and direct-logs connections via `TerminalLogger`. Keystrokes never round-trip through Livewire.
+- `Livewire\TerminalBuilder` — server-side fluent builder for non-Filament Blade usage (`->render()` mounts the `web-terminal-stream` Livewire component).
+- `resources/views/stream-terminal.blade.php` — one large Alpine component: boots ghostty-web (`resources/js/stream-terminal.js`, bundled as global `StreamWeb`), opens the WebSocket, wires data/resize/teardown. The canvas container is `wire:ignore`.
 
-- `Livewire\WebTerminal` — **Classic mode.** Command-by-command execution over Livewire round trips. Handles history, output buffering, interactive sessions via PTY, TUI detection, ANSI→HTML.
-- `Livewire\StreamTerminal` — **Stream mode.** Thin Livewire wrapper whose Blade view boots the `ghostty-web` canvas and connects via WebSocket directly to the PHP PTY bridge. There is no Livewire round trip for keystrokes.
-- `Livewire\TerminalContainer` — **Dual mode.** Wraps both of the above and renders the Classic/Stream toggle pill.
+### 2. WebSocket / PTY server (`src/WebSocket/`)
 
-`Livewire\TerminalBuilder` is a server-side helper that translates the Schema component's configuration into the props each Livewire component expects.
+- `ReactPhpWebSocketServer` — RFC6455 over a `react/socket` loop (started by `Console\Commands\TerminalServeCommand`, `php artisan terminal-stream:serve`). Validates the encrypted single-use token, `Cache::pull`s the connection config (`terminal-stream-pty:{sessionId}`), streams PTY output on a 10ms tick.
+- `TerminalPtyBridge` — one per connection; local `proc_open` PTY or phpseclib3 SSH `CHANNEL_SHELL`. Handles write/read/resize/terminate.
+- `PtySessionRegistry` — JSON pid registry at `storage/web-terminal-stream/`, used to kill orphaned PTYs after crashes (`stream.max_session_lifetime`).
+- `Http\Controllers\TerminalWebSocketController` — `POST terminal-stream/ws-token` (route name `web-terminal-stream.ws-token`, web+auth) for custom frontends.
 
-### 2. Connection Handlers (command execution)
+### 3. Fluent config lives in `src/Concerns/`
 
-- `Contracts\ConnectionHandlerInterface` + `Connections\AbstractConnectionHandler`
-- `Connections\LocalConnectionHandler` (symfony/process)
-- `Connections\SSHConnectionHandler` (phpseclib)
-- `Connections\ConnectionHandlerFactory` — registered as a singleton in the service provider and used by `WebTerminal` to pick the handler from `Data\ConnectionConfig`.
+`Schemas\Components\WebTerminalStream` and `Livewire\TerminalBuilder` share their fluent API by composing traits: `ConfiguresTerminalAppearance` (height/title/chrome/squareCorners/connectionBehavior), `ConfiguresStreamMode` (streamTheme), `ConfiguresScripts`, `ConfiguresLogging`. New fluent knobs belong in the matching trait — never duplicated across the two classes. `EvaluatesOptions` gives the Builder a Closure-aware `evaluate()` matching the one the Schema component inherits from Filament. `EmitsDeprecationNotices` backs the deprecated aliases (`windowControls()`, `startConnected()`, `autoConnect()`).
 
-`ConnectionConfig` (in `src/Data/`) is the value object that encapsulates connection details; it has static factories `local()`, `sshWithPassword()`, `sshWithKey()`.
+### 4. Security model
 
-### 3. Interactive Sessions & Stream/PTY
+There is **no command whitelist** — Stream is a raw PTY byte-pipe and cannot be meaningfully whitelisted. Do not add validation layers that pretend otherwise. The boundaries are: page-level authz, the optional `useStreamTerminal` Gate at token issuance, the encrypted expiring single-use token, and network reachability of the WS port. Keep those seams intact when changing auth-adjacent code.
 
-Classic mode's "interactive" commands (artisan tinker, queue:work, etc.) and Stream mode both need long-lived PTY processes. They are managed under `src/Sessions/`:
+### 5. Logging / Filament surface
 
-- `SessionManagerInterface` — the contract.
-- `ProcessSessionManager` / `ProcessSession` — symfony/process-based sessions.
-- `TmuxSessionManager` — tmux-backed implementation used when available.
-- `FileSessionManager` / `SharedSessionData` — cross-request shared state (Livewire is stateless across requests, so session state is written to disk).
-- `session-worker.php` — worker script spawned for a session.
-
-`src/WebSocket/` implements Stream mode's server side:
-
-- `ReactPhpWebSocketServer` (started by `TerminalServeCommand` / `php artisan terminal-stream:serve`) speaks RFC6455 via `ratchet/rfc6455` on a `react/socket` loop.
-- `TerminalPtyBridge` pairs a WebSocket client with a PTY process and pipes bytes in both directions.
-- `PtySessionRegistry` tracks live bridges.
-- `Http\Controllers\TerminalWebSocketController` issues short-lived auth tokens (POST `terminal/ws-token`, web+auth middleware) that the browser presents when opening the WS connection.
-
-### 4. Security Layer
-
-All user input passes through `src/Security/` **before** touching a connection handler:
-
-- `CommandValidator` — whitelist match (supports `*` wildcards). Config-driven via `web-terminal.allowed_commands`.
-- `CommandSanitizer` — blocks shell metacharacters listed in `web-terminal.security.blocked_characters` unless the per-terminal shell-operator permissions are granted.
-- `RateLimiter` — per-user command rate limit (`web-terminal.rate_limit`).
-- `CredentialManager` / `SensitiveValue` — wraps SSH passwords / keys so they don't appear in logs or serialized Livewire state.
-- `Enums\TerminalPermission` — the enum used by the Schema component's `allow()` method (`InteractiveMode`, `Pipes`, `Redirection`, `Chaining`, `Expansion`, `ShellOperators`, `AllCommands`).
-
-When a new feature touches command input or execution, treat this layer as the single source of truth — don't add parallel validation in Livewire components or handlers.
-
-### 5. Filament Plugin Surface
-
-- `WebTerminalStreamPlugin` — the plugin instance passed to `->plugins([...])`. It owns navigation config and `withoutTerminalPage()` / `withoutTerminalLogs()` / `only()` toggles. Use `WebTerminalStreamPlugin::current()` inside pages/resources to read runtime config.
-- `Filament\Pages\Terminal` — the default demo page. Users who want custom allowed commands are expected to extend it and override `schema()`, then disable the default via `->withoutTerminalPage()`.
-- `Filament\Resources\TerminalLogResource` (+ Pages, Schemas, Tables, Widgets) — audit UI over the `TerminalLog` model.
-- `Models\TerminalLog` — the log record. `Services\TerminalLogger` writes it, `Listeners\TerminalLogListener` subscribes to the events under `src/Events/` (`CommandExecutedEvent`, `TerminalConnectedEvent`, `TerminalDisconnectedEvent`).
+- `Services\TerminalLogger` writes `Models\TerminalLog` rows (table `terminal_stream_logs`); config `web-terminal-stream.logging.*`, per-terminal overrides via `->log()`. Connection lifecycle only — command-level logging does not exist here.
+- `Events\TerminalConnectedEvent` / `TerminalDisconnectedEvent` are dispatched by `StreamTerminal`; `Listeners\TerminalLogListener` is an opt-in subscriber (would duplicate the built-in direct logging if registered).
+- `WebTerminalStreamPlugin` — Filament plugin: Terminal page + `TerminalLogResource` (+ Pages/Schemas/Tables/Widgets), navigation config, `withoutTerminalPage()`/`withoutTerminalLogs()`/`only()`. Use `WebTerminalStreamPlugin::current()` to read runtime config.
+- `Filament\Pages\Terminal` — the default demo page; users extend it and override `schema()`, disabling the default via `->withoutTerminalPage()`.
 
 ### 6. Artisan Commands (`src/Console/Commands/`)
 
-- `terminal-stream:install` — interactive installer (config, migration, views, page/resource scaffolding, panel selection).
-- `terminal-stream:make-page` — scaffolds a customizable Terminal page in the host app.
-- `terminal-stream:logs:cleanup` — prunes the `terminal_stream_logs` table per retention config.
-- `terminal-stream:serve` — starts the ReactPHP WebSocket server for Stream mode.
-
-Installer/scaffolder stubs live in `stubs/`.
+- `terminal-stream:install` — installer (config, `terminal_stream_logs` migration incl. `--with-tenant`, views, page/resource scaffolding, panel selection). Stubs in `stubs/`.
+- `terminal-stream:make-page` — scaffolds a custom Terminal page in the host app.
+- `terminal-stream:logs:cleanup` — prunes `terminal_stream_logs` per retention config (`--days`, `--dry-run`).
+- `terminal-stream:serve` — starts the ReactPHP WebSocket server (`--host`, `--port`).
 
 ## Conventions Specific to This Repo
 
-- **Filament 5 namespaces must be exact** (`Filament\Schemas\*` for layout + `form()`/`schema()`, `Filament\Forms\Components\*` for fields, `Filament\Actions\*` for all actions, `Filament\Tables\*` unchanged). When editing resources/pages here, follow the v5 rules in the user's global `project-v5.md` — several classes exist with identical names across v4 and v5 namespaces, and the wrong import silently breaks the page.
-- **Fluent config lives in `src/Concerns/`.** `Schemas\Components\WebTerminalStream` and `Livewire\TerminalBuilder` share their fluent API by composing traits (`ConfiguresPermissions`, `ConfiguresLogging`, `ConfiguresShellEnvironment`, etc.). When adding a new fluent knob, it belongs in the matching trait — not duplicated across the two classes. `EvaluatesOptions` gives the Builder a Closure-aware `evaluate()` method matching the one the Schema component inherits from Filament.
-- **Deprecations.** Use the `EmitsDeprecationNotices` trait + the `@deprecated` PHPDoc tag. The opt-in `web-terminal.deprecations.emit_notices` config flag is off by default; do not turn it on globally. Every deprecation must have a replacement available the same release it's marked — don't deprecate APIs whose replacements don't exist yet.
-- **`declare(strict_types=1);`** is used across `src/` — keep it on new files.
-- **PHP Attributes for features** — e.g. `#[ValidCommand]`, `#[ValidPath]`, `#[ValidHost]` in `src/Attributes/` and `#[Locked]` on Livewire state that must not round-trip from the client. Prefer these over custom request validation layers.
-- **Enums everywhere** — `ConnectionType`, `TerminalMode`, `TerminalPermission`, `OutputType`, `ScriptCommandStatus`. Never use raw strings for these concepts in new code (config keys, tests, Blade, migrations).
+- **Filament 5 namespaces must be exact** (`Filament\Schemas\*` for layout + `form()`/`schema()`, `Filament\Forms\Components\*` for fields, `Filament\Actions\*` for all actions, `Filament\Tables\*` unchanged). Several classes exist with identical names across v4 and v5 namespaces; the wrong import silently breaks the page.
+- **`declare(strict_types=1);`** across `src/` — keep it on new files.
+- **Enums everywhere** — `ConnectionType`, `TerminalChrome`, `ConnectionBehavior`. Never raw strings for these concepts in new code.
+- **Deprecations** — `EmitsDeprecationNotices` trait + `@deprecated` PHPDoc. The opt-in `web-terminal-stream.deprecations.emit_notices` flag stays off by default. Every deprecation must have its replacement available in the same release.
 - **No `Feature` test directory** despite the `Pest.php` `uses(...)->in('Feature', 'Unit')` line. Add new tests under `tests/Unit/<AreaMirroringSrc>/`.
-- **Keep the Livewire component / Schema component / Connection handler seams clean.** Configuration flows Schema → Livewire props → handler; output flows handler → Livewire public arrays → Blade. Don't shortcut across layers.
-- **Assets are committed built files.** `resources/dist/web-terminal-stream.css` and `resources/dist/stream-terminal.js` are consumed by host apps — remember to rebuild and commit them alongside source changes, otherwise the host app sees stale styles/JS.
-- **Commits use conventional commit messages** (see `git log`: `feat:`, `fix:`, `docs:`, `style:`, `refactor:`, `test:`). Do not add Claude as co-author.
+- **Assets are committed built files.** `resources/dist/web-terminal-stream.css` and `resources/dist/stream-terminal.js` are consumed by host apps — rebuild and commit them alongside source changes, or the host sees stale styles/JS.
+- **Side-by-side isolation is a feature.** Everything host-visible is namespaced `web-terminal-stream`/`terminal-stream` (config file, view/translation namespaces, Livewire alias, artisan commands, route, cache key prefix `terminal-stream-pty:`, storage dir, `terminal_stream_logs` table, `WEB_TERMINAL_STREAM_*` env vars). Never introduce a host-visible identifier that collides with `mwguerra/web-terminal`.
+- **Commits use conventional commit messages** (`feat:`, `fix:`, `docs:`, `refactor:`, `test:`, `chore:`). Do not add Claude as co-author.
+
+## Roadmap Direction
+
+The next feature area is **terminal tiling** — tmux-like multi-pane layouts composed of many terminals on one page. `frameless()` (chrome `None` with floating controls) and `squareCorners()` were built as its foundation, together with per-instance wire:key isolation. Layout composition itself stays external to the package for now (host apps arrange frameless terminals in grids); expect future work to move toward first-class pane/grid components.
 
 ## Key Reference Docs in This Repo
 
-- `README.md` — full public API reference (every fluent method, config option, and installation flag is documented here).
-- `UPGRADING.md` — migration guide for major versions, currently tracking the v2.x → v3.0 deprecation runway.
-- `CHANGELOG.md` — version history; `v2.0.0` is the Filament 5 upgrade boundary.
-- `CONTRIBUTING.md` — contribution workflow.
-- `docs/plans/` — historical design docs per feature (shell operators, interactive mode, copy/paste, file session manager, TUI detection, and the active `feature/frameless` branch plan). Read the matching `-design.md` before modifying the corresponding subsystem.
-- `docs/benchmarks/` — advisory performance baselines + `composer bench` harness. See `docs/benchmarks/README.md`.
+- `README.md` — full public API reference (every fluent method, config option, env var, and installation flag).
+- `docs/architecture.md` — contributor walkthrough of the stream data path (token auth, PTY bridge, registry lifecycle, teardown rules).
+- `UPGRADING.md` — migration guide from `mwguerra/web-terminal` Stream mode to this package.
+- `CHANGELOG.md` — version history; starts at the extraction from `mwguerra/web-terminal`.
+- `docs/design/` — the original ghostty/stream design doc and implementation plan.
+- `docs/plans/2026-04-21-frameless-branch-plan.md` — the frameless/multi-terminal/benchmarks plan this codebase was extracted from (historical, written pre-extraction against the parent package's API).
+- `docs/benchmarks/` — advisory benchmark harness docs (`composer bench`); no benchmarks currently registered.

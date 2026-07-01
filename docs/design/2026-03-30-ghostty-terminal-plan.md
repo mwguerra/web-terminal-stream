@@ -1,3 +1,5 @@
+> **Historical document.** Written for `mwguerra/web-terminal` before the Stream terminal was extracted into `mwguerra/web-terminal-stream`; class names, namespaces, config keys, and command names reflect the parent package's API at the time. Kept as the design record this codebase was built from.
+
 # Ghostty Terminal Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.

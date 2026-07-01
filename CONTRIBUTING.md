@@ -1,6 +1,6 @@
-# Contributing to Web Terminal
+# Contributing to Web Terminal Stream
 
-Thank you for considering contributing to Web Terminal! We welcome contributions from the community.
+Thank you for considering contributing to Web Terminal Stream! We welcome contributions from the community.
 
 ## How to Contribute
 
@@ -44,12 +44,17 @@ Feature requests are welcome! Please open an issue describing:
 ```bash
 # Clone your fork
 git clone https://github.com/your-username/web-terminal-stream.git
+cd web-terminal-stream
 
 # Install dependencies
 composer install
+npm install
 
 # Run tests
 composer test
+
+# Rebuild committed dist assets after touching resources/css or resources/js
+npm run build:all
 ```
 
 ## Code of Conduct
@@ -60,4 +65,4 @@ Please be respectful and constructive in all interactions. We are committed to p
 
 If you have questions, feel free to open a discussion on GitHub or reach out through the issue tracker.
 
-Thank you for helping make Web Terminal better!
+Thank you for helping make Web Terminal Stream better!

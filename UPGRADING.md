@@ -1,199 +1,129 @@
-# Upgrading
+# Migrating from `mwguerra/web-terminal`
 
-This file tracks the upgrade path from one major version to the next. Each
-section documents changes users need to adopt, grouped by version.
+This guide is for host applications that used **Stream mode** in `mwguerra/web-terminal` and want to move to this standalone, Stream-only package. The two packages are fully namespaced and can be installed side-by-side during the transition.
 
----
+If you relied on **Classic mode** (command-by-command execution, command whitelisting, interactive tmux sessions), stay on `mwguerra/web-terminal` — those features intentionally do not exist here.
 
-## v2.x → v3.0 (in preparation)
-
-Target: within ~12 months. No confirmed date yet — this document lists
-deprecations as they land so you can migrate incrementally.
-
-### See what's deprecated in your code
-
-Every deprecated method is tagged with a `@deprecated` PHPDoc annotation,
-so your IDE (PhpStorm, VS Code + Intelephense) will surface them with a
-strikethrough. No runtime notices are emitted by default.
-
-For an audit-style sweep — e.g., before upgrading a large project — flip
-the opt-in notices on in your `.env`:
-
-```dotenv
-WEB_TERMINAL_DEPRECATIONS_EMIT_NOTICES=true
-```
-
-The package then calls `trigger_error(..., E_USER_DEPRECATED)` every time a
-deprecated fluent-API method is invoked. Each notice starts with
-`web-terminal-stream:` so grepping staging logs is easy:
+## 1. Composer
 
 ```bash
-tail -f storage/logs/laravel.log | grep 'web-terminal-stream:'
+composer require mwguerra/web-terminal-stream
+# once fully migrated:
+composer remove mwguerra/web-terminal
 ```
 
-Turn it back off before deploying to production.
+(While the repo is private, add it as a VCS repository first — see the README's Installation section.)
 
-### Deprecated today (2.x maintenance — removed in 3.0)
-
-Each entry lists the old call and its direct replacement. Old calls keep
-working through every 2.x release; the removal only happens in 3.0.
-
-#### Individual shell-operator permissions → `allow([...])`
-
-The individual `allowPipes`, `allowRedirection`, `allowChaining`, and
-`allowExpansion` methods are deprecated in favor of the enum-based
-`allow()` dispatcher that already exists in 2.x.
+## 2. Plugin registration
 
 ```php
 // Before
+use MWGuerra\WebTerminal\WebTerminalPlugin;
+$panel->plugins([WebTerminalPlugin::make()]);
+
+// After
+use MWGuerra\WebTerminalStream\WebTerminalStreamPlugin;
+$panel->plugins([WebTerminalStreamPlugin::make()]);
+```
+
+Plugin id changes from `web-terminal` to `web-terminal-stream`. The fluent toggles are unchanged: `terminalNavigation()`, `terminalLogsNavigation()`, `withoutTerminalPage()`, `withoutTerminalLogs()`, `only()`, `WebTerminalStreamPlugin::current()`.
+
+## 3. The schema component
+
+```php
+// Before (stream mode in the old package)
+use MWGuerra\WebTerminal\Schemas\Components\WebTerminal;
+use MWGuerra\WebTerminal\Enums\TerminalMode;
+
 WebTerminal::make()
-    ->allowPipes()
-    ->allowRedirection()
-    ->allowChaining()
-    ->allowExpansion();
+    ->local()
+    ->mode(TerminalMode::Stream)        // or ->streamTerminal()->classicTerminal(false)
+    ->streamTheme([...])
 
-// After
-use MWGuerra\WebTerminalStream\Enums\TerminalPermission;
-
-WebTerminal::make()
-    ->allow([
-        TerminalPermission::Pipes,
-        TerminalPermission::Redirection,
-        TerminalPermission::Chaining,
-        TerminalPermission::Expansion,
-    ]);
-
-// Or, if you want all four at once:
-WebTerminal::make()->allow([TerminalPermission::ShellOperators]);
-```
-
-`allowAllCommands()`, `allowAllShellOperators()`, and
-`allowInteractiveMode()` remain fully supported — they have no shorter
-equivalent and users rely on them.
-
-#### `TerminalBuilder::toHtml()` / `__toString()` → `render()`
-
-`TerminalBuilder` has two output paths: `render()` (canonical — uses
-`Livewire::mount`) and `toHtml()` (emits a raw
-`<livewire:web-terminal …/>` string). `toHtml()` silently supports only a
-subset of options — Stream-mode props, logging config, scripts, session
-management are not serialized into the HTML string.
-
-```php
-// Before
-{!! (string) (new TerminalBuilder)->local()->allowedCommands(['ls']) !!}
-
-// After
-{{ (new TerminalBuilder)->local()->allowedCommands(['ls'])->render() }}
-```
-
-#### `MWGuerra\WebTerminalStream\Schemas\Components\WebTerminalEmbed` alias
-
-Use the canonical class directly:
-
-```php
-// Before
-use MWGuerra\WebTerminalStream\Schemas\Components\WebTerminalEmbed;
-
-// After
+// After — stream is implicit
 use MWGuerra\WebTerminalStream\Schemas\Components\WebTerminalStream;
+
+WebTerminalStream::make()
+    ->local()
+    ->streamTheme([...])
 ```
 
-The old alias continues to resolve through every 2.x release.
+Custom pages extending `MWGuerra\WebTerminal\Filament\Pages\Terminal` should extend `MWGuerra\WebTerminalStream\Filament\Pages\Terminal` instead (or be regenerated with `php artisan terminal-stream:make-page`).
 
-#### `startConnected()` + `autoConnect()` → `connectionBehavior()`
+## 4. Removed fluent methods
 
-The pair has always been confusing: `autoConnect(true)` implies
-`startConnected(true)` but users setting them independently couldn't
-predict which combination they were getting. Replaced with a single
-enum-based method:
+Everything that only configured Classic mode is gone. What to do instead:
 
-```php
-use MWGuerra\WebTerminalStream\Enums\ConnectionBehavior;
+| Removed method | What to do instead |
+|---|---|
+| `mode()`, `dual()`, `defaultMode()`, `streamTerminal()`, `classicTerminal()` | Nothing — stream is the only mode |
+| `allowedCommands()`, `addAllowedCommands()`, `allowAllCommands()` | Nothing — a raw PTY has no whitelist; control access instead (Gate `useStreamTerminal`, page authz) |
+| `allow()`, `deny()`, `allowPipes()`, `allowRedirection()`, `allowChaining()`, `allowExpansion()`, `allowAllShellOperators()`, `allowInteractiveMode()` (and the `TerminalPermission` enum) | Nothing — shell operators and interactivity are inherent to a PTY |
+| Presets: `readOnly()`, `fileBrowser()`, `gitTerminal()`, `dockerTerminal()`, `nodeTerminal()`, `artisanTerminal()` | Nothing — they were whitelist shortcuts |
+| `timeout()`, `prompt()`, `historyLimit()`, `maxOutputLines()` | The real shell owns prompt/history; SSH timeout can be passed in the connection array (`'timeout' => 10`) |
+| `environment()`, `shell()`, `loginShell()`, `path()`, `inheritPath()` | Pass `'environment' => [...]` inside the connection config array; set the server-wide shell via `WEB_TERMINAL_STREAM_SHELL` |
+| `disconnectOnNavigate()`, `keepConnectedOnNavigate()`, `inactivityTimeout()`, `noInactivityTimeout()` | Stream always tears down on navigation; stale server-side sessions are reaped via `stream.max_session_lifetime` |
+| `log(commands: ..., output: ...)` parameters | Removed — only connection lifecycle is logged; `log(enabled:, connections:, identifier:, metadata:)` remains |
+| `TerminalBuilder::toHtml()` / `__toString()` | Use `TerminalBuilder::render()` |
+| `WebTerminalEmbed` class alias | Use `WebTerminalStream` |
 
-// Before
-WebTerminal::make()->startConnected();         // auto-connect, button visible
-WebTerminal::make()->autoConnect();            // auto-connect, button hidden
+Still available (unchanged semantics): `local()`, `ssh()`, `connection()`, `workingDirectory()`, `height()`, `title()`, `chrome()`/`frameless()`, `squareCorners()`, `streamTheme()`, `scripts()`, `log()`, `logMetadata()`, `connectionBehavior()`, `key()`, and the deprecated `windowControls()`/`startConnected()`/`autoConnect()` aliases.
 
-// After
-WebTerminal::make()->connectionBehavior(ConnectionBehavior::AutoWithButton);
-WebTerminal::make()->connectionBehavior(ConnectionBehavior::AutoHidden);
-WebTerminal::make()->connectionBehavior(ConnectionBehavior::Manual); // default
+## 5. Artisan commands
+
+| Old | New |
+|---|---|
+| `terminal:install` | `terminal-stream:install` (the `--allow-*-commands` flags are gone) |
+| `terminal:serve` | `terminal-stream:serve` |
+| `terminal:make-page` | `terminal-stream:make-page` (no `--allow-*` flags) |
+| `terminal:cleanup` | `terminal-stream:logs:cleanup` |
+
+Update supervisor/systemd units and scheduled tasks accordingly. If both packages run WebSocket servers on one host, give this one its own port (`--port=8091` + `WEB_TERMINAL_STREAM_RATCHET_PORT=8091`).
+
+## 6. Config file and env vars
+
+- Config file: `config/web-terminal.php` → `config/web-terminal-stream.php` (publish tag `web-terminal-stream-config`). Only `logging`, `stream`, and `deprecations` sections exist — all Classic keys (`allowed_commands`, `blocked_characters`, `rate_limit`, `session`, `ssh`, `ui`, `auditing`, `timeout`, `default_connection`) are gone, as are `stream.enabled` (always on) and the unconsumed `stream.websocket_provider`/`pty_grace_period`/`allowed_origins`/`theme` keys.
+- Env prefix: `WEB_TERMINAL_*` → `WEB_TERMINAL_STREAM_*`. Full mapping of the survivors:
+
+| Old | New |
+|---|---|
+| `WEB_TERMINAL_STREAM_ENABLED` | (removed — always enabled) |
+| `WEB_TERMINAL_RATCHET_HOST` / `_RATCHET_PORT` | `WEB_TERMINAL_STREAM_RATCHET_HOST` / `_RATCHET_PORT` |
+| `WEB_TERMINAL_WEBSOCKET_URL` | `WEB_TERMINAL_STREAM_WEBSOCKET_URL` |
+| `WEB_TERMINAL_SSL_CERT` / `_SSL_KEY` | `WEB_TERMINAL_STREAM_SSL_CERT` / `_SSL_KEY` |
+| `WEB_TERMINAL_STREAM_CWD` | unchanged |
+| `WEB_TERMINAL_LOGGING`, `_LOG_CONNECTIONS`, `_LOG_DISCONNECTIONS`, `_LOG_ERRORS`, `_MAX_OUTPUT_LOG`, `_LOG_RETENTION` | same names with `WEB_TERMINAL_STREAM_` prefix |
+| `WEB_TERMINAL_DEPRECATIONS_EMIT_NOTICES` | `WEB_TERMINAL_STREAM_DEPRECATIONS_EMIT_NOTICES` |
+
+## 7. Database
+
+Logs live in a new table, `terminal_stream_logs` (old: `terminal_logs`). Run the new migration:
+
+```bash
+php artisan terminal-stream:install --migration --migrate --no-interaction
 ```
 
-#### `streamTerminal()` + `classicTerminal()` → `mode()` / `dual()`
+The model class name is still `TerminalLog` (namespace `MWGuerra\WebTerminalStream\Models`) — update imports in any custom resources/queries. Old `terminal_logs` data stays with the old package; migrate rows manually if you need continuity (columns are identical).
 
-The old pair had a real footgun: calling `->streamTerminal()` alone
-silently produced dual-mode because `classicEnabled` defaulted to
-`true`. To get actual stream-only you needed both
-`->streamTerminal()->classicTerminal(false)`. Fixed with an explicit
-selector:
+Note: only connection/disconnection events are written by this package. Command/output/error rows exist in the schema for compatibility and host-app use, but nothing in the package produces them.
 
-```php
-use MWGuerra\WebTerminalStream\Enums\TerminalMode;
+## 8. Routes, tokens, and other host-visible identifiers
 
-// Before
-WebTerminal::make()->streamTerminal()->classicTerminal(false); // stream-only
-WebTerminal::make()->streamTerminal();                         // dual (surprising)
+| Surface | Old | New |
+|---|---|---|
+| ws-token endpoint | `POST terminal/ws-token` | `POST terminal-stream/ws-token` |
+| Route name | `terminal.ws-token` | `web-terminal-stream.ws-token` |
+| Livewire component alias | `stream-terminal` | `web-terminal-stream` |
+| View/translation namespace | `web-terminal::` | `web-terminal-stream::` |
+| Published views dir | `resources/views/vendor/web-terminal` | `resources/views/vendor/web-terminal-stream` |
+| Cache key prefix (internal) | `terminal-pty:` | `terminal-stream-pty:` |
+| PTY registry storage | `storage/web-terminal` | `storage/web-terminal-stream` |
+| Dist stylesheet | `resources/dist/web-terminal.css` | `resources/dist/web-terminal-stream.css` |
 
-// After
-WebTerminal::make()->mode(TerminalMode::Stream);   // stream-only, unambiguous
-WebTerminal::make()->mode(TerminalMode::Classic);  // classic-only
-WebTerminal::make()->dual();                       // classic + stream with toggle
-WebTerminal::make()->dual(TerminalMode::Stream);   // dual, default to stream tab
-```
+If you published Blade views from the old package, re-publish from this one — the old overrides will not be picked up.
 
-#### `windowControls(bool)` → `chrome(TerminalChrome)`
+## 9. Events and logging code
 
-The boolean only toggled the three colored dots. The new enum covers
-the whole spectrum of surrounding UI:
-
-```php
-use MWGuerra\WebTerminalStream\Enums\TerminalChrome;
-
-// Before
-WebTerminal::make()->windowControls(true);   // dots visible
-WebTerminal::make()->windowControls(false);  // no dots, header otherwise full
-
-// After
-WebTerminal::make()->chrome(TerminalChrome::Full);      // dots + header + actions
-WebTerminal::make()->chrome(TerminalChrome::Minimal);   // header + actions, no dots
-WebTerminal::make()->chrome(TerminalChrome::None);      // no header at all (frameless)
-WebTerminal::make()->frameless();                       // shorthand for chrome(None)
-```
-
-#### New: `deny()` for permission subtraction
-
-The existing `allow()` enum-based setter is now paired with `deny()`,
-so "all shell operators except expansion" patterns stop requiring
-the individual methods:
-
-```php
-use MWGuerra\WebTerminalStream\Enums\TerminalPermission;
-
-WebTerminal::make()
-    ->allow([TerminalPermission::ShellOperators])
-    ->deny([TerminalPermission::Expansion]);
-```
-
-### Breaking changes in 3.0 (inventory-only, not yet implemented)
-
-- All methods marked `@deprecated` in 2.x are removed.
-- The `WebTerminalEmbed` class_alias is removed.
-- The `toHtml()` / `__toString()` path on `TerminalBuilder` is removed.
-
-Nothing else is planned for 3.0 at this time. If something else ends up
-on the breaking list, it lands in this document first as a deprecation
-with at least one 2.x release of runway before removal.
-
----
-
-## v1.x → v2.0 (shipped)
-
-- Requires Laravel 12.x or 13.x, Filament 5.x, Livewire 4.x (v1 was on
-  Laravel 11 / Filament 4 / Livewire 3).
-- If you published Blade views: update any `@entangle('prop')` to
-  `$wire.entangle('prop')` in your custom views.
-- Composer: `composer require mwguerra/web-terminal-stream:"^2.0"`.
-
-See the CHANGELOG for the full list of changes.
+- `CommandExecutedEvent` no longer exists. `TerminalConnectedEvent` / `TerminalDisconnectedEvent` keep their shape (namespace changed) and are now actually dispatched by the component on connect/disconnect.
+- `TerminalLogListener` no longer has a `handleCommand` method.
+- If you type-hinted `MWGuerra\WebTerminal\...` anywhere (listeners, policies, custom pages), switch the imports to `MWGuerra\WebTerminalStream\...`.
