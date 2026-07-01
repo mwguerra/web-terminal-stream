@@ -7,5 +7,5 @@ it('can run a basic test', function () {
 });
 
 it('can load the package configuration', function () {
-    expect(config('web-terminal.timeout'))->toBe(10);
+    expect(config('web-terminal.stream.signed_url_ttl'))->toBe(300);
 });

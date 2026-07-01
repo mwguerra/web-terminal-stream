@@ -39,20 +39,12 @@ class {{ class_name }} extends BaseTerminal
                         WebTerminal::make()
                             ->key('{{ terminal_key }}')
                             ->local()
-{{ commands_config }}
                             ->workingDirectory(base_path())
-                            ->timeout(30)
-                            ->prompt('$ ')
-                            ->historyLimit(50)
                             ->height('400px')
                             ->title(__('web-terminal::terminal.pages.terminal.local_terminal'))
-                            ->windowControls(true)
-                            ->startConnected(false)
                             ->log(
                                 enabled: true,
                                 connections: true,
-                                commands: true,
-                                output: true,
                                 identifier: '{{ terminal_key }}',
                             ),
                     ]),

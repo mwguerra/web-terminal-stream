@@ -26,9 +26,6 @@ class TerminalMakePageCommand extends Command
                             {name? : The name of the terminal page class}
                             {--panel= : The Filament panel to create the page for}
                             {--key= : The terminal identifier key}
-                            {--allow-all-commands : Allow all commands (DANGEROUS)}
-                            {--allow-secure-commands : Allow only safe readonly commands (default)}
-                            {--allow-no-commands : Allow no commands (configure manually)}
                             {--force : Overwrite existing file}';
 
     /**
@@ -60,19 +57,6 @@ class TerminalMakePageCommand extends Command
      */
     public function handle(): int
     {
-        // Validate command permission options
-        $commandOptions = array_filter([
-            $this->option('allow-all-commands'),
-            $this->option('allow-secure-commands'),
-            $this->option('allow-no-commands'),
-        ]);
-
-        if (count($commandOptions) > 1) {
-            $this->error('Cannot use multiple --allow-* options together.');
-
-            return self::FAILURE;
-        }
-
         // Configure panel
         if (! $this->configurePanel()) {
             return self::FAILURE;
@@ -84,11 +68,8 @@ class TerminalMakePageCommand extends Command
         // Get terminal key
         $key = $this->getTerminalKey($name);
 
-        // Get command permissions
-        $commandPermission = $this->getCommandPermission();
-
         // Generate the page
-        if (! $this->generatePage($name, $key, $commandPermission)) {
+        if (! $this->generatePage($name, $key)) {
             return self::FAILURE;
         }
 
@@ -216,40 +197,6 @@ class TerminalMakePageCommand extends Command
     }
 
     /**
-     * Get the command permission setting.
-     */
-    protected function getCommandPermission(): string
-    {
-        if ($this->option('allow-all-commands')) {
-            return 'all';
-        }
-
-        if ($this->option('allow-no-commands')) {
-            return 'none';
-        }
-
-        if ($this->option('allow-secure-commands')) {
-            return 'secure';
-        }
-
-        if ($this->option('no-interaction')) {
-            return 'secure';
-        }
-
-        $choice = select(
-            label: 'Which commands should this terminal allow?',
-            options: [
-                'secure' => 'Safe readonly commands (ls, pwd, cat, grep, etc.) - Recommended',
-                'none' => 'No commands (configure manually in the generated file)',
-                'all' => 'All commands (DANGEROUS - use with caution)',
-            ],
-            default: 'secure',
-        );
-
-        return $choice;
-    }
-
-    /**
      * Get the page directory and namespace from the panel.
      *
      * @return array{0: string, 1: string} [directory, namespace]
@@ -282,7 +229,7 @@ class TerminalMakePageCommand extends Command
     /**
      * Generate the terminal page.
      */
-    protected function generatePage(string $name, string $key, string $commandPermission): bool
+    protected function generatePage(string $name, string $key): bool
     {
         [$directory, $namespace] = $this->getPageDirectoryAndNamespace();
 
@@ -302,9 +249,6 @@ class TerminalMakePageCommand extends Command
             }
         }
 
-        // Generate commands configuration
-        $commandsConfig = $this->getCommandsConfig($commandPermission);
-
         // Generate navigation label and slug from class name
         $navigationLabel = str($name)->headline()->toString();
         $slug = str($name)->kebab()->toString();
@@ -316,7 +260,6 @@ class TerminalMakePageCommand extends Command
             'navigation_label' => $navigationLabel,
             'slug' => $slug,
             'terminal_key' => $key,
-            'commands_config' => $commandsConfig,
         ]);
 
         $this->files->ensureDirectoryExists($directory);
@@ -325,21 +268,6 @@ class TerminalMakePageCommand extends Command
         info("Terminal page created: {$path}");
 
         return true;
-    }
-
-    /**
-     * Get the commands configuration based on permission level.
-     */
-    protected function getCommandsConfig(string $permission): string
-    {
-        return match ($permission) {
-            'all' => "                            ->allowAllCommands()\n                            // WARNING: This allows all commands - use with caution",
-            'none' => "                            ->allowedCommands([])\n                            // TODO: Configure your allowed commands here",
-            default => "                            ->allowedCommands([
-                                'ls', 'ls *', 'pwd', 'cd', 'cd *', 'whoami', 'date', 'uptime', 'uname', 'uname *',
-                                'cat *', 'head *', 'tail *', 'wc *', 'grep *',
-                            ])",
-        };
     }
 
     /**

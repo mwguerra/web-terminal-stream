@@ -3,67 +3,6 @@
 return [
     /*
     |--------------------------------------------------------------------------
-    | Terminal UI
-    |--------------------------------------------------------------------------
-    */
-    'terminal' => [
-        'connect' => 'Conectar',
-        'disconnect' => 'Desconectar',
-        'connected' => 'Conectado',
-        'disconnected' => 'Desconectado',
-        'connection_info' => 'Informações da conexão',
-        'please_wait' => 'Aguarde...',
-        'connect_terminal' => 'Conectar terminal',
-        'disconnect_terminal' => 'Desconectar terminal',
-        'session_status' => 'Status da sessão',
-        'connection_details' => 'Detalhes da Conexão',
-        'type' => 'Tipo',
-        'host' => 'Servidor',
-        'port' => 'Porta',
-        'username' => 'Usuário',
-        'auth_method' => 'Método de Autenticação',
-        'ssh_key' => 'Chave SSH',
-        'password' => 'Senha',
-        'working_directory' => 'Diretório de Trabalho',
-        'command_timeout' => 'Timeout do Comando',
-        'login_shell' => 'Shell de Login',
-        'enabled' => 'Habilitado',
-        'disabled' => 'Desabilitado',
-        'command_access' => 'Acesso a Comandos',
-        'all_commands' => 'Todos os Comandos',
-        'allowed_count' => ':count permitidos',
-        'no_restrictions' => 'Sem restrições',
-        'session_info' => 'Informações da Sessão',
-        'session_id' => 'ID da Sessão',
-        'commands_run' => 'Comandos Executados',
-        'session_duration' => 'Duração da Sessão',
-        'errors' => 'Erros',
-        'allowed_commands' => 'Comandos Permitidos',
-        'close_info_panel' => 'Fechar Painel de Informações',
-        'click_connect' => 'Clique em Conectar para iniciar...',
-        'type_input' => 'Digite e pressione Enter (Ctrl+C para cancelar)...',
-        'type_command' => 'Digite um comando...',
-        'running' => 'Executando',
-        'cancel' => 'Cancelar',
-        'cancel_shortcut' => 'Cancelar (Ctrl+C)',
-        'keys' => 'Teclas:',
-        'arrow_up' => 'Seta para Cima',
-        'arrow_down' => 'Seta para Baixo',
-        'arrow_left' => 'Seta para Esquerda',
-        'arrow_right' => 'Seta para Direita',
-        'enter' => 'Enter',
-        'space' => 'Espaço',
-        'tab' => 'Tab',
-        'escape' => 'Escape',
-        'backspace' => 'Backspace',
-        'f1_help' => 'F1 - Ajuda',
-        'f10_quit' => 'F10 - Sair (htop)',
-        'local' => 'Local',
-        'ssh' => 'SSH',
-    ],
-
-    /*
-    |--------------------------------------------------------------------------
     | Navigation
     |--------------------------------------------------------------------------
     */

@@ -9,7 +9,7 @@
         showInfoPanel: false,
         copyFeedback: false,
         // Key of a script awaiting user confirmation before running.
-        // Empty string = nothing pending. Stream-side is client-only because
+        // Empty string = nothing pending. This gate is client-only because
         // Stream already grants raw PTY access — this is UX, not security.
         pendingScriptKey: '',
         ws: null,
@@ -179,8 +179,7 @@
         },
 
         async runScript(key, requiresConfirmation = false) {
-            // Confirmation gate — matches the Classic-mode state machine.
-            // First click arms; a second call with pendingScriptKey already
+            // Confirmation gate. First click arms; a second call with pendingScriptKey already
             // set to this key passes through (triggered by the Confirm button).
             if (requiresConfirmation && this.pendingScriptKey !== key) {
                 this.pendingScriptKey = key;
@@ -259,7 +258,7 @@
          When chrome === 'none' (frameless), the same action group renders as an
          absolutely-positioned floating overlay on the terminal body. Same Alpine
          state, same event wiring — only the outer container's layout changes,
-         so every existing setting (windowControls, mode pill, scripts dropdown,
+         so every existing setting (windowControls, scripts dropdown,
          info panel) continues to work unchanged. --}}
     <div @class([
         'flex items-center px-4 py-3 bg-slate-200/80 dark:bg-black/30 border-b border-slate-300 dark:border-white/5 shrink-0' => $chrome !== 'none',
@@ -280,10 +279,6 @@
 
         {{-- Header Actions --}}
         <div class="flex items-center gap-2 shrink-0">
-            @if($hasModePill)
-            @include('web-terminal::partials.toggle-pill')
-            @endif
-
             {{-- Scripts Dropdown --}}
             @if(!empty($scripts))
             <div class="relative" x-data="{ showScriptsDropdown: false }">

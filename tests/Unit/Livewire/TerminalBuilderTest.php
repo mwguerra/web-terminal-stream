@@ -2,173 +2,64 @@
 
 declare(strict_types=1);
 
-use MWGuerra\WebTerminal\Enums\TerminalPermission;
+use MWGuerra\WebTerminal\Data\ConnectionConfig;
 use MWGuerra\WebTerminal\Livewire\TerminalBuilder;
 
 describe('TerminalBuilder', function () {
-    describe('permission methods', function () {
-        it('sets allowAllCommands', function () {
+    describe('connection configuration', function () {
+        it('defaults to an empty connection config', function () {
             $builder = new TerminalBuilder;
-            $builder->local()->allowAllCommands();
 
             $params = $builder->getParameters();
 
-            expect($params['allowAllCommands'])->toBeTrue();
+            expect($params['connectionConfig'])->toBe([]);
         });
 
-        it('sets allowPipes', function () {
+        it('sets local connection', function () {
             $builder = new TerminalBuilder;
-            $builder->local()->allowPipes();
+            $builder->local();
 
             $params = $builder->getParameters();
 
-            expect($params['allowPipes'])->toBeTrue();
+            expect($params['connectionConfig']['type'])->toBe('local');
         });
 
-        it('sets allowRedirection', function () {
+        it('sets SSH connection with password', function () {
             $builder = new TerminalBuilder;
-            $builder->local()->allowRedirection();
+            $builder->sshWithPassword('example.com', 'deploy', 'secret', 2222);
 
-            $params = $builder->getParameters();
+            $config = $builder->getParameters()['connectionConfig'];
 
-            expect($params['allowRedirection'])->toBeTrue();
+            expect($config['type'])->toBe('ssh')
+                ->and($config['host'])->toBe('example.com')
+                ->and($config['username'])->toBe('deploy')
+                ->and($config['password'])->toBe('secret')
+                ->and($config['port'])->toBe(2222);
         });
 
-        it('sets allowChaining', function () {
+        it('sets SSH connection with key', function () {
             $builder = new TerminalBuilder;
-            $builder->local()->allowChaining();
+            $builder->sshWithKey('example.com', 'deploy', 'PRIVATE-KEY', 'phrase');
 
-            $params = $builder->getParameters();
+            $config = $builder->getParameters()['connectionConfig'];
 
-            expect($params['allowChaining'])->toBeTrue();
+            expect($config['type'])->toBe('ssh')
+                ->and($config['private_key'])->toBe('PRIVATE-KEY')
+                ->and($config['passphrase'])->toBe('phrase');
         });
 
-        it('sets allowExpansion', function () {
+        it('accepts a ConnectionConfig value object', function () {
             $builder = new TerminalBuilder;
-            $builder->local()->allowExpansion();
+            $builder->withConfig(ConnectionConfig::local(workingDirectory: '/tmp'));
 
-            $params = $builder->getParameters();
+            $config = $builder->getParameters()['connectionConfig'];
 
-            expect($params['allowExpansion'])->toBeTrue();
-        });
-
-        it('sets allowAllShellOperators with all sub-flags', function () {
-            $builder = new TerminalBuilder;
-            $builder->local()->allowAllShellOperators();
-
-            $params = $builder->getParameters();
-
-            expect($params['allowAllShellOperators'])->toBeTrue()
-                ->and($params['allowPipes'])->toBeTrue()
-                ->and($params['allowRedirection'])->toBeTrue()
-                ->and($params['allowChaining'])->toBeTrue()
-                ->and($params['allowExpansion'])->toBeTrue();
-        });
-
-        it('sets allowInteractiveMode', function () {
-            $builder = new TerminalBuilder;
-            $builder->local()->allowInteractiveMode();
-
-            $params = $builder->getParameters();
-
-            expect($params['allowInteractiveMode'])->toBeTrue();
+            expect($config['type'])->toBe('local')
+                ->and($config['working_directory'])->toBe('/tmp');
         });
     });
 
-    describe('allow() with enum', function () {
-        it('sets InteractiveMode permission', function () {
-            $builder = new TerminalBuilder;
-            $builder->local()->allow([TerminalPermission::InteractiveMode]);
-
-            $params = $builder->getParameters();
-
-            expect($params['allowInteractiveMode'])->toBeTrue();
-        });
-
-        it('sets All permission enables everything', function () {
-            $builder = new TerminalBuilder;
-            $builder->local()->allow([TerminalPermission::All]);
-
-            $params = $builder->getParameters();
-
-            expect($params['allowAllCommands'])->toBeTrue()
-                ->and($params['allowAllShellOperators'])->toBeTrue()
-                ->and($params['allowInteractiveMode'])->toBeTrue()
-                ->and($params['allowPipes'])->toBeTrue()
-                ->and($params['allowRedirection'])->toBeTrue()
-                ->and($params['allowChaining'])->toBeTrue()
-                ->and($params['allowExpansion'])->toBeTrue();
-        });
-
-        it('sets ShellOperators enables all operator flags', function () {
-            $builder = new TerminalBuilder;
-            $builder->local()->allow([TerminalPermission::ShellOperators]);
-
-            $params = $builder->getParameters();
-
-            expect($params['allowPipes'])->toBeTrue()
-                ->and($params['allowRedirection'])->toBeTrue()
-                ->and($params['allowChaining'])->toBeTrue()
-                ->and($params['allowExpansion'])->toBeTrue()
-                ->and($params['allowAllShellOperators'])->toBeTrue();
-
-            expect($params)->not->toHaveKey('allowAllCommands')
-                ->not->toHaveKey('allowInteractiveMode');
-        });
-
-        it('combines multiple permissions', function () {
-            $builder = new TerminalBuilder;
-            $builder->local()->allow([
-                TerminalPermission::InteractiveMode,
-                TerminalPermission::Pipes,
-            ]);
-
-            $params = $builder->getParameters();
-
-            expect($params['allowInteractiveMode'])->toBeTrue()
-                ->and($params['allowPipes'])->toBeTrue();
-
-            expect($params)->not->toHaveKey('allowAllCommands');
-        });
-    });
-
-    describe('new configuration methods', function () {
-        it('sets environment variables', function () {
-            $builder = new TerminalBuilder;
-            $builder->local()->environment(['FOO' => 'bar']);
-
-            $params = $builder->getParameters();
-
-            expect($params['environment'])->toBe(['FOO' => 'bar']);
-        });
-
-        it('sets loginShell', function () {
-            $builder = new TerminalBuilder;
-            $builder->local()->loginShell();
-
-            $params = $builder->getParameters();
-
-            expect($params['useLoginShell'])->toBeTrue();
-        });
-
-        it('sets custom shell', function () {
-            $builder = new TerminalBuilder;
-            $builder->local()->shell('/bin/zsh');
-
-            $params = $builder->getParameters();
-
-            expect($params['shell'])->toBe('/bin/zsh');
-        });
-
-        it('sets startConnected', function () {
-            $builder = new TerminalBuilder;
-            $builder->local()->startConnected();
-
-            $params = $builder->getParameters();
-
-            expect($params['startConnected'])->toBeTrue();
-        });
-
+    describe('appearance configuration', function () {
         it('sets title', function () {
             $builder = new TerminalBuilder;
             $builder->local()->title('My Terminal');
@@ -196,13 +87,22 @@ describe('TerminalBuilder', function () {
             expect($params['height'])->toBe('600px');
         });
 
+        it('sets squareCorners', function () {
+            $builder = new TerminalBuilder;
+            $builder->local()->squareCorners();
+
+            $params = $builder->getParameters();
+
+            expect($params['squareCorners'])->toBeTrue();
+        });
+    });
+
+    describe('logging configuration', function () {
         it('sets log configuration', function () {
             $builder = new TerminalBuilder;
             $builder->local()->log(
                 enabled: true,
                 connections: true,
-                commands: true,
-                output: false,
                 identifier: 'test-terminal',
             );
 
@@ -210,11 +110,23 @@ describe('TerminalBuilder', function () {
 
             expect($params['loggingEnabled'])->toBeTrue()
                 ->and($params['logConnections'])->toBeTrue()
-                ->and($params['logCommands'])->toBeTrue()
-                ->and($params['logOutput'])->toBeFalse()
                 ->and($params['logIdentifier'])->toBe('test-terminal');
         });
 
+        it('leaves logging params null when not configured', function () {
+            $builder = new TerminalBuilder;
+            $builder->local();
+
+            $params = $builder->getParameters();
+
+            expect($params['loggingEnabled'])->toBeNull()
+                ->and($params['logConnections'])->toBeNull()
+                ->and($params['logIdentifier'])->toBeNull()
+                ->and($params['logMetadata'])->toBe([]);
+        });
+    });
+
+    describe('scripts configuration', function () {
         it('sets scripts and normalizes them to array form', function () {
             $builder = new TerminalBuilder;
             $builder->local()->scripts([
@@ -233,31 +145,14 @@ describe('TerminalBuilder', function () {
         });
     });
 
-    describe('does not include default values', function () {
-        it('excludes false booleans from parameters', function () {
+    describe('render', function () {
+        it('renders the stream terminal component', function () {
             $builder = new TerminalBuilder;
             $builder->local();
 
-            $params = $builder->getParameters();
+            $html = $builder->render();
 
-            expect($params)->not->toHaveKey('allowAllCommands')
-                ->not->toHaveKey('allowPipes')
-                ->not->toHaveKey('allowRedirection')
-                ->not->toHaveKey('allowChaining')
-                ->not->toHaveKey('allowExpansion')
-                ->not->toHaveKey('allowAllShellOperators')
-                ->not->toHaveKey('allowInteractiveMode')
-                ->not->toHaveKey('startConnected')
-                ->not->toHaveKey('useLoginShell');
-        });
-
-        it('excludes default shell from parameters', function () {
-            $builder = new TerminalBuilder;
-            $builder->local();
-
-            $params = $builder->getParameters();
-
-            expect($params)->not->toHaveKey('shell');
+            expect((string) $html)->toContain('stream-web-terminal');
         });
     });
 });

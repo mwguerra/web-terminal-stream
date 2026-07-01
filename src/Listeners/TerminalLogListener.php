@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace MWGuerra\WebTerminal\Listeners;
 
-use MWGuerra\WebTerminal\Events\CommandExecutedEvent;
 use MWGuerra\WebTerminal\Events\TerminalConnectedEvent;
 use MWGuerra\WebTerminal\Events\TerminalDisconnectedEvent;
 use MWGuerra\WebTerminal\Services\TerminalLogger;
@@ -60,20 +59,6 @@ class TerminalLogListener
     }
 
     /**
-     * Handle command executed events.
-     */
-    public function handleCommand(CommandExecutedEvent $event): void
-    {
-        $this->logger->logCommand($event->sessionId ?? '', $event->command, [
-            'connection_type' => $event->connectionType->value,
-            'exit_code' => $event->result->exitCode,
-            'execution_time_seconds' => (int) ceil($event->result->executionTime),
-            'ip_address' => $event->ipAddress,
-            'metadata' => $event->metadata,
-        ]);
-    }
-
-    /**
      * Register the listeners for the subscriber.
      *
      * @return array<string, string>
@@ -83,7 +68,6 @@ class TerminalLogListener
         return [
             TerminalConnectedEvent::class => 'handleConnected',
             TerminalDisconnectedEvent::class => 'handleDisconnected',
-            CommandExecutedEvent::class => 'handleCommand',
         ];
     }
 }

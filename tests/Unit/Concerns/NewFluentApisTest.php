@@ -4,54 +4,16 @@ declare(strict_types=1);
 
 use MWGuerra\WebTerminal\Enums\ConnectionBehavior;
 use MWGuerra\WebTerminal\Enums\TerminalChrome;
-use MWGuerra\WebTerminal\Enums\TerminalMode;
-use MWGuerra\WebTerminal\Enums\TerminalPermission;
 use MWGuerra\WebTerminal\Livewire\TerminalBuilder;
 
 /*
- * Coverage for the Stage 5 API consolidation — `mode()`, `dual()`,
- * `chrome()`, `frameless()`, `connectionBehavior()`, and `deny()`.
+ * Coverage for the appearance-related fluent APIs — `chrome()`,
+ * `frameless()`, and `connectionBehavior()`.
  *
  * These run against `TerminalBuilder` because it uses the exact same
  * Concerns/Configures* traits as Schemas\Components\WebTerminal and
  * doesn't need Filament loaded in the test container.
  */
-
-describe('mode()', function () {
-    it('stream sets stream on and classic off', function () {
-        $b = (new TerminalBuilder)->mode(TerminalMode::Stream);
-
-        expect($b->getStreamEnabled())->toBeTrue();
-        expect($b->getClassicEnabled())->toBeFalse();
-        expect($b->getDefaultMode())->toBe(TerminalMode::Stream);
-    });
-
-    it('classic sets classic on and stream off', function () {
-        $b = (new TerminalBuilder)
-            ->mode(TerminalMode::Stream)   // flip first
-            ->mode(TerminalMode::Classic); // then back
-
-        expect($b->getStreamEnabled())->toBeFalse();
-        expect($b->getClassicEnabled())->toBeTrue();
-        expect($b->getDefaultMode())->toBe(TerminalMode::Classic);
-    });
-});
-
-describe('dual()', function () {
-    it('enables both modes with Classic default by default', function () {
-        $b = (new TerminalBuilder)->dual();
-
-        expect($b->getStreamEnabled())->toBeTrue();
-        expect($b->getClassicEnabled())->toBeTrue();
-        expect($b->getDefaultMode())->toBe(TerminalMode::Classic);
-    });
-
-    it('honors an explicit default mode argument', function () {
-        $b = (new TerminalBuilder)->dual(TerminalMode::Stream);
-
-        expect($b->getDefaultMode())->toBe(TerminalMode::Stream);
-    });
-});
 
 describe('chrome()', function () {
     it('defaults to Full', function () {
@@ -97,30 +59,5 @@ describe('connectionBehavior()', function () {
 
         expect($b->getStartConnected())->toBeTrue();
         expect($b->getAutoConnect())->toBeTrue();
-    });
-});
-
-describe('deny()', function () {
-    it('removes permissions granted by a preceding allow()', function () {
-        $b = (new TerminalBuilder)
-            ->allow([TerminalPermission::ShellOperators])
-            ->deny([TerminalPermission::Expansion]);
-
-        expect($b->getAllowPipes())->toBeTrue();
-        expect($b->getAllowRedirection())->toBeTrue();
-        expect($b->getAllowChaining())->toBeTrue();
-        expect($b->getAllowExpansion())->toBeFalse();
-    });
-
-    it('revokes all four individual flags when denying the aggregate', function () {
-        $b = (new TerminalBuilder)
-            ->allow([TerminalPermission::ShellOperators])
-            ->deny([TerminalPermission::ShellOperators]);
-
-        expect($b->getAllowPipes())->toBeFalse();
-        expect($b->getAllowRedirection())->toBeFalse();
-        expect($b->getAllowChaining())->toBeFalse();
-        expect($b->getAllowExpansion())->toBeFalse();
-        expect($b->getAllowAllShellOperators())->toBeFalse();
     });
 });

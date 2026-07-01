@@ -32,10 +32,7 @@ class TerminalInstallCommand extends Command
                             {--force : Overwrite existing files}
                             {--page : Generate a custom Terminal page}
                             {--resource : Generate a custom TerminalLogs resource}
-                            {--panel= : The Filament panel to generate files for}
-                            {--allow-all-commands : Generated page uses allowAllCommands() - DANGEROUS}
-                            {--allow-secure-commands : Generated page uses default readonly commands}
-                            {--allow-no-commands : Generated page uses empty allowedCommands()}';
+                            {--panel= : The Filament panel to generate files for}';
 
     /**
      * The console command description.
@@ -78,19 +75,6 @@ class TerminalInstallCommand extends Command
         // Validate mutually exclusive options
         if ($this->option('with-tenant') && $this->option('no-tenant')) {
             $this->error('Cannot use --with-tenant and --no-tenant together.');
-
-            return self::FAILURE;
-        }
-
-        // Validate command permission options
-        $commandOptions = array_filter([
-            $this->option('allow-all-commands'),
-            $this->option('allow-secure-commands'),
-            $this->option('allow-no-commands'),
-        ]);
-
-        if (count($commandOptions) > 1) {
-            $this->error('Cannot use multiple --allow-* options together.');
 
             return self::FAILURE;
         }
@@ -475,9 +459,6 @@ class TerminalInstallCommand extends Command
             }
         }
 
-        // Determine commands configuration
-        $commandsConfig = $this->getCommandsConfig();
-
         // Generate from stub
         $content = $this->generateFromStub('terminal-page.php.stub', [
             'namespace' => $namespace,
@@ -485,7 +466,6 @@ class TerminalInstallCommand extends Command
             'navigation_label' => 'Terminal',
             'slug' => 'terminal',
             'terminal_key' => 'app-terminal',
-            'commands_config' => $commandsConfig,
         ]);
 
         $this->files->ensureDirectoryExists($directory);
@@ -493,26 +473,6 @@ class TerminalInstallCommand extends Command
 
         $this->generatedPage = true;
         info("Terminal page created at {$path}");
-    }
-
-    /**
-     * Get the commands configuration based on command options.
-     */
-    protected function getCommandsConfig(): string
-    {
-        if ($this->option('allow-all-commands')) {
-            return "                            ->allowAllCommands()\n                            // WARNING: This allows all commands - use with caution";
-        }
-
-        if ($this->option('allow-no-commands')) {
-            return "                            ->allowedCommands([])\n                            // TODO: Configure your allowed commands here";
-        }
-
-        // Default: secure commands
-        return "                            ->allowedCommands([
-                                'ls', 'ls *', 'pwd', 'cd', 'cd *', 'whoami', 'date', 'uptime', 'uname', 'uname *',
-                                'cat *', 'head *', 'tail *', 'wc *', 'grep *',
-                            ])";
     }
 
     /**

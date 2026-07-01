@@ -27,13 +27,5 @@ abstract class TestCase extends Orchestra
     {
         config()->set('database.default', 'testing');
         config()->set('app.key', 'base64:'.base64_encode(random_bytes(32)));
-        config()->set('web-terminal.timeout', 10);
-        config()->set('web-terminal.rate_limit.enabled', false);
-        config()->set('web-terminal.allowed_commands', [
-            'ls',
-            'pwd',
-            'whoami',
-            'echo',
-        ]);
     }
 }

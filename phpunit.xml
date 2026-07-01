@@ -22,9 +22,6 @@
         <include>
             <directory>src</directory>
         </include>
-        <exclude>
-            <directory>src/Exceptions</directory>
-        </exclude>
     </source>
     <coverage>
         <report>
