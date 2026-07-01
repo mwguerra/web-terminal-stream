@@ -2,7 +2,6 @@
 
 declare(strict_types=1);
 
-use Filament\Schemas\Components\Livewire;
 use Filament\Schemas\Schema;
 use MWGuerra\WebTerminalStream\Schemas\Components\WebTerminalStream;
 
@@ -13,12 +12,6 @@ use MWGuerra\WebTerminalStream\Schemas\Components\WebTerminalStream;
  *
  * Regression test for multi-terminal isolation.
  */
-
-beforeEach(function () {
-    if (! class_exists(Livewire::class)) {
-        $this->markTestSkipped('Filament is not installed. These tests require filament/filament package.');
-    }
-});
 
 it('generates a unique key for each WebTerminalStream::make() invocation', function () {
     // getKey() resolves against the owning schema, so attach one as a

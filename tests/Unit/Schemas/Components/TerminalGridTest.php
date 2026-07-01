@@ -3,19 +3,11 @@
 declare(strict_types=1);
 
 use Filament\Schemas\Components\Grid;
-use Filament\Schemas\Components\Livewire;
 use Filament\Schemas\Schema;
 use MWGuerra\WebTerminalStream\Enums\ConnectionBehavior;
 use MWGuerra\WebTerminalStream\Enums\TerminalChrome;
 use MWGuerra\WebTerminalStream\Schemas\Components\TerminalGrid;
 use MWGuerra\WebTerminalStream\Schemas\Components\WebTerminalStream;
-
-// Skip all tests if Filament is not installed
-beforeEach(function () {
-    if (! class_exists(Livewire::class)) {
-        $this->markTestSkipped('Filament is not installed. These tests require filament/filament package.');
-    }
-});
 
 describe('make', function () {
     it('composes Filament\'s Grid with 2 columns by default', function () {

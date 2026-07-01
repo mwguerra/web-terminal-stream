@@ -44,7 +44,7 @@ composer release        # bash scripts/release.sh
 composer bench          # advisory; currently no registered benchmarks (see docs/benchmarks/README.md)
 ```
 
-PHPUnit is configured with `failOnRisky=true` and `failOnWarning=true` — risky/warning tests break the build. Tests live only under `tests/Unit/` (no `Feature` dir, even though `Pest.php` references one). Filament is not in require-dev, so the Filament-gated tests (Schemas, Plugin) self-skip locally.
+PHPUnit is configured with `failOnRisky=true` and `failOnWarning=true` — risky/warning tests break the build. Tests live only under `tests/Unit/` (no `Feature` dir, even though `Pest.php` references one). Filament is in require-dev (dev-only — production installs still bring their own), so the Filament-dependent tests (Schemas, Plugin) run for real; no test in the suite skips. `composer.lock` is committed.
 
 ## How to Test Changes Against a Real Filament App
 

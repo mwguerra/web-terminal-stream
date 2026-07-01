@@ -3,20 +3,17 @@
 declare(strict_types=1);
 
 use Filament\Contracts\Plugin;
+use Filament\Panel;
+use MWGuerra\WebTerminalStream\Filament\Pages\Terminal;
+use MWGuerra\WebTerminalStream\Filament\Resources\TerminalLogResource;
 use MWGuerra\WebTerminalStream\WebTerminalStreamPlugin;
-
-// Skip all tests if Filament is not installed
-beforeEach(function () {
-    if (! interface_exists(Plugin::class)) {
-        $this->markTestSkipped('Filament is not installed. These tests require filament/filament package.');
-    }
-});
 
 describe('WebTerminalStreamPlugin', function () {
     it('can be instantiated using make()', function () {
         $plugin = WebTerminalStreamPlugin::make();
 
-        expect($plugin)->toBeInstanceOf(WebTerminalStreamPlugin::class);
+        expect($plugin)->toBeInstanceOf(WebTerminalStreamPlugin::class)
+            ->and($plugin)->toBeInstanceOf(Plugin::class);
     });
 
     it('has correct plugin id', function () {
@@ -25,65 +22,177 @@ describe('WebTerminalStreamPlugin', function () {
         expect($plugin->getId())->toBe('web-terminal-stream');
     });
 
-    it('is enabled by default', function () {
-        $plugin = WebTerminalStreamPlugin::make();
+    describe('register', function () {
+        it('registers the Terminal page and TerminalLogResource by default', function () {
+            $panel = Panel::make()->id('test');
 
-        expect($plugin->isEnabled())->toBeTrue();
+            WebTerminalStreamPlugin::make()->register($panel);
+
+            expect($panel->getPages())->toContain(Terminal::class);
+            expect($panel->getResources())->toContain(TerminalLogResource::class);
+        });
+
+        it('stores the registered instance for current()', function () {
+            $plugin = WebTerminalStreamPlugin::make();
+            $plugin->register(Panel::make()->id('test'));
+
+            expect(WebTerminalStreamPlugin::current())->toBe($plugin);
+        });
+
+        it('stores the booted instance for current()', function () {
+            $plugin = WebTerminalStreamPlugin::make();
+            $plugin->boot(Panel::make()->id('test'));
+
+            expect(WebTerminalStreamPlugin::current())->toBe($plugin);
+        });
     });
 
-    it('can be disabled', function () {
-        $plugin = WebTerminalStreamPlugin::make()->disabled();
+    describe('terminal page', function () {
+        it('is enabled by default', function () {
+            expect(WebTerminalStreamPlugin::make()->isTerminalPageEnabled())->toBeTrue();
+        });
 
-        expect($plugin->isEnabled())->toBeFalse();
+        it('can be disabled with withoutTerminalPage()', function () {
+            $plugin = WebTerminalStreamPlugin::make()->withoutTerminalPage();
+
+            expect($plugin->isTerminalPageEnabled())->toBeFalse();
+
+            $panel = Panel::make()->id('test');
+            $plugin->register($panel);
+
+            expect($panel->getPages())->not->toContain(Terminal::class);
+            expect($panel->getResources())->toContain(TerminalLogResource::class);
+        });
+
+        it('can be toggled with terminalPage()', function () {
+            expect(WebTerminalStreamPlugin::make()->terminalPage(false)->isTerminalPageEnabled())->toBeFalse();
+            expect(WebTerminalStreamPlugin::make()->terminalPage(false)->terminalPage()->isTerminalPageEnabled())->toBeTrue();
+        });
     });
 
-    it('can be enabled after being disabled', function () {
-        $plugin = WebTerminalStreamPlugin::make()
-            ->disabled()
-            ->enabled();
+    describe('terminal logs resource', function () {
+        it('is enabled by default', function () {
+            expect(WebTerminalStreamPlugin::make()->isTerminalLogsEnabled())->toBeTrue();
+        });
 
-        expect($plugin->isEnabled())->toBeTrue();
+        it('can be disabled with withoutTerminalLogs()', function () {
+            $plugin = WebTerminalStreamPlugin::make()->withoutTerminalLogs();
+
+            expect($plugin->isTerminalLogsEnabled())->toBeFalse();
+
+            $panel = Panel::make()->id('test');
+            $plugin->register($panel);
+
+            expect($panel->getPages())->toContain(Terminal::class);
+            expect($panel->getResources())->not->toContain(TerminalLogResource::class);
+        });
+
+        it('can be toggled with terminalLogs()', function () {
+            expect(WebTerminalStreamPlugin::make()->terminalLogs(false)->isTerminalLogsEnabled())->toBeFalse();
+            expect(WebTerminalStreamPlugin::make()->terminalLogs(false)->terminalLogs()->isTerminalLogsEnabled())->toBeTrue();
+        });
     });
 
-    it('can set allowed commands', function () {
-        $commands = ['ls', 'pwd', 'whoami'];
+    describe('component selection', function () {
+        it('only() restricts registration to the given components', function () {
+            $panel = Panel::make()->id('test');
 
-        $plugin = WebTerminalStreamPlugin::make()
-            ->allowedCommands($commands);
+            WebTerminalStreamPlugin::make()
+                ->only([TerminalLogResource::class])
+                ->register($panel);
 
-        expect($plugin->getAllowedCommands())->toBe($commands);
+            expect($panel->getPages())->not->toContain(Terminal::class);
+            expect($panel->getResources())->toContain(TerminalLogResource::class);
+        });
+
+        it('components() restricts registration to the given components', function () {
+            $panel = Panel::make()->id('test');
+
+            WebTerminalStreamPlugin::make()
+                ->components([Terminal::class])
+                ->register($panel);
+
+            expect($panel->getPages())->toContain(Terminal::class);
+            expect($panel->getResources())->not->toContain(TerminalLogResource::class);
+        });
+
+        it('make() accepts the component list directly', function () {
+            $panel = Panel::make()->id('test');
+
+            WebTerminalStreamPlugin::make([Terminal::class])->register($panel);
+
+            expect($panel->getPages())->toContain(Terminal::class);
+            expect($panel->getResources())->not->toContain(TerminalLogResource::class);
+        });
+
+        it('ignores unknown classes in the component list', function () {
+            $panel = Panel::make()->id('test');
+
+            WebTerminalStreamPlugin::make()
+                ->only([stdClass::class])
+                ->register($panel);
+
+            expect($panel->getPages())->not->toContain(Terminal::class);
+            expect($panel->getResources())->not->toContain(TerminalLogResource::class);
+        });
     });
 
-    it('can set connection type', function () {
-        $plugin = WebTerminalStreamPlugin::make()
-            ->connectionType('local');
+    describe('terminal navigation', function () {
+        it('has sensible defaults', function () {
+            $plugin = WebTerminalStreamPlugin::make();
 
-        expect($plugin->getConnectionType())->toBe('local');
+            expect($plugin->getTerminalNavigationIcon())->toBe('heroicon-o-command-line')
+                ->and($plugin->getTerminalNavigationLabel())->toBe('Terminal')
+                ->and($plugin->getTerminalNavigationSort())->toBe(100)
+                ->and($plugin->getTerminalNavigationGroup())->toBe('Tools');
+        });
+
+        it('is configurable via terminalNavigation()', function () {
+            $plugin = WebTerminalStreamPlugin::make()->terminalNavigation(
+                icon: 'heroicon-o-cpu-chip',
+                label: 'Console',
+                sort: 10,
+                group: 'Ops',
+            );
+
+            expect($plugin->getTerminalNavigationIcon())->toBe('heroicon-o-cpu-chip')
+                ->and($plugin->getTerminalNavigationLabel())->toBe('Console')
+                ->and($plugin->getTerminalNavigationSort())->toBe(10)
+                ->and($plugin->getTerminalNavigationGroup())->toBe('Ops');
+        });
+
+        it('keeps defaults for omitted terminalNavigation() arguments', function () {
+            $plugin = WebTerminalStreamPlugin::make()->terminalNavigation(label: 'Console');
+
+            expect($plugin->getTerminalNavigationLabel())->toBe('Console')
+                ->and($plugin->getTerminalNavigationIcon())->toBe('heroicon-o-command-line')
+                ->and($plugin->getTerminalNavigationSort())->toBe(100)
+                ->and($plugin->getTerminalNavigationGroup())->toBe('Tools');
+        });
     });
 
-    it('can set connection config', function () {
-        $config = [
-            'host' => 'localhost',
-            'port' => 22,
-        ];
+    describe('terminal logs navigation', function () {
+        it('has sensible defaults', function () {
+            $plugin = WebTerminalStreamPlugin::make();
 
-        $plugin = WebTerminalStreamPlugin::make()
-            ->connectionConfig($config);
+            expect($plugin->getTerminalLogsNavigationIcon())->toBe('heroicon-o-clipboard-document-list')
+                ->and($plugin->getTerminalLogsNavigationLabel())->toBe('Terminal Logs')
+                ->and($plugin->getTerminalLogsNavigationSort())->toBe(101)
+                ->and($plugin->getTerminalLogsNavigationGroup())->toBe('Tools');
+        });
 
-        expect($plugin->getConnectionConfig())->toBe($config);
-    });
+        it('is configurable via terminalLogsNavigation()', function () {
+            $plugin = WebTerminalStreamPlugin::make()->terminalLogsNavigation(
+                icon: 'heroicon-o-document-text',
+                label: 'Console Logs',
+                sort: 11,
+                group: 'Ops',
+            );
 
-    it('supports fluent configuration', function () {
-        $plugin = WebTerminalStreamPlugin::make()
-            ->enabled()
-            ->allowedCommands(['ls', 'pwd'])
-            ->connectionType('ssh')
-            ->connectionConfig(['host' => 'example.com']);
-
-        expect($plugin)
-            ->isEnabled()->toBeTrue()
-            ->getAllowedCommands()->toBe(['ls', 'pwd'])
-            ->getConnectionType()->toBe('ssh')
-            ->getConnectionConfig()->toBe(['host' => 'example.com']);
+            expect($plugin->getTerminalLogsNavigationIcon())->toBe('heroicon-o-document-text')
+                ->and($plugin->getTerminalLogsNavigationLabel())->toBe('Console Logs')
+                ->and($plugin->getTerminalLogsNavigationSort())->toBe(11)
+                ->and($plugin->getTerminalLogsNavigationGroup())->toBe('Ops');
+        });
     });
 });

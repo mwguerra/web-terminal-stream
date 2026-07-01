@@ -6,13 +6,6 @@ use MWGuerra\WebTerminalStream\Enums\ConnectionBehavior;
 use MWGuerra\WebTerminalStream\Livewire\StreamTerminal as StreamTerminalComponent;
 use MWGuerra\WebTerminalStream\Schemas\Components\WebTerminalStream as WebTerminal;
 
-// Skip all tests if Filament is not installed
-beforeEach(function () {
-    if (! class_exists(Livewire::class)) {
-        $this->markTestSkipped('Filament is not installed. These tests require filament/filament package.');
-    }
-});
-
 describe('make', function () {
     it('creates instance with default component', function () {
         $component = WebTerminal::make();
