@@ -17,5 +17,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- The WebSocket server's ReactPHP stack (`react/socket`, `react/event-loop`, `ratchet/rfc6455`) moved from `require-dev`/`suggest` to `require` — it is the package's core and now installs automatically.
 - **Breaking (vs. `mwguerra/web-terminal`):** Classic command-by-command mode was removed entirely — Stream is the only rendering path. The command whitelist/sanitizer/rate-limit security layer, interactive TUI sessions, mode toggles (`mode()`, `dual()`, `streamTerminal()`, `classicTerminal()`), and the related fluent knobs and config keys do not exist in this package.
 - Package renamed to `mwguerra/web-terminal-stream` with namespace `MWGuerra\WebTerminalStream\`, config file `config/web-terminal-stream.php`, view/translation namespace `web-terminal-stream::`, `terminal-stream:*` Artisan commands, `terminal-stream/ws-token` route, and `terminal_stream_logs` table, so it can be installed side-by-side with `mwguerra/web-terminal`.

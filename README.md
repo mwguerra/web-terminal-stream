@@ -60,11 +60,7 @@ composer require mwguerra/web-terminal-stream
 
 (For private repos, make sure your machine/CI can authenticate to GitHub — e.g. `composer config --global github-oauth.github.com <token>`.)
 
-The WebSocket server needs the ReactPHP stack, which is suggested rather than hard-required:
-
-```bash
-composer require react/socket react/event-loop ratchet/rfc6455
-```
+The WebSocket server's ReactPHP stack (`react/socket`, `react/event-loop`, `ratchet/rfc6455`) is a hard requirement and installs automatically.
 
 ### Interactive installer
 
