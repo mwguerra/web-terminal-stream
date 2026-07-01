@@ -1,10 +1,12 @@
 <?php
+
 declare(strict_types=1);
 
-namespace MWGuerra\WebTerminal\WebSocket;
+namespace MWGuerra\WebTerminalStream\WebSocket;
 
 use Illuminate\Contracts\Foundation\Application;
 use React\EventLoop\Loop;
+use React\Socket\ConnectionInterface;
 use React\Socket\SocketServer;
 
 class ReactPhpProvider implements WebSocketProviderInterface
@@ -18,10 +20,10 @@ class ReactPhpProvider implements WebSocketProviderInterface
 
     public function start(string $host, int $port): void
     {
-        $config = $this->app['config']->get('web-terminal.stream', []);
+        $config = $this->app['config']->get('web-terminal-stream.stream', []);
 
         $registry = new PtySessionRegistry(
-            $this->app->storagePath('web-terminal')
+            $this->app->storagePath('web-terminal-stream')
         );
 
         // Cleanup orphaned PIDs from previous crashes
@@ -60,7 +62,7 @@ class ReactPhpProvider implements WebSocketProviderInterface
 
         $socket = new SocketServer($uri, $context, $loop);
 
-        $socket->on('connection', function (\React\Socket\ConnectionInterface $conn) use ($server) {
+        $socket->on('connection', function (ConnectionInterface $conn) use ($server) {
             $server->handleConnection($conn);
         });
 

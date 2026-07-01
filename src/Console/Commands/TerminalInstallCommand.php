@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace MWGuerra\WebTerminal\Console\Commands;
+namespace MWGuerra\WebTerminalStream\Console\Commands;
 
 use Filament\Facades\Filament;
 use Filament\Panel;
@@ -22,7 +22,7 @@ class TerminalInstallCommand extends Command
     /**
      * The name and signature of the console command.
      */
-    protected $signature = 'terminal:install
+    protected $signature = 'terminal-stream:install
                             {--config : Publish the configuration file}
                             {--migration : Publish the database migration}
                             {--views : Publish Blade views for customization}
@@ -37,7 +37,7 @@ class TerminalInstallCommand extends Command
     /**
      * The console command description.
      */
-    protected $description = 'Install WebTerminal with logging support';
+    protected $description = 'Install WebTerminalStream with logging support';
 
     /**
      * The filesystem instance.
@@ -111,8 +111,8 @@ class TerminalInstallCommand extends Command
     protected function displayWelcome(): void
     {
         $this->newLine();
-        note('WebTerminal Installation');
-        info('Welcome to WebTerminal installer!');
+        note('WebTerminalStream Installation');
+        info('Welcome to WebTerminalStream installer!');
         info('This will set up terminal logging for your application.');
         $this->newLine();
     }
@@ -354,8 +354,8 @@ class TerminalInstallCommand extends Command
      */
     protected function publishConfig(): void
     {
-        $source = __DIR__.'/../../../config/web-terminal.php';
-        $destination = config_path('web-terminal.php');
+        $source = __DIR__.'/../../../config/web-terminal-stream.php';
+        $destination = config_path('web-terminal-stream.php');
 
         if ($this->files->exists($destination) && ! $this->option('force')) {
             if ($this->option('no-interaction')) {
@@ -372,7 +372,7 @@ class TerminalInstallCommand extends Command
         }
 
         $this->files->copy($source, $destination);
-        info('Configuration published to config/web-terminal.php');
+        info('Configuration published to config/web-terminal-stream.php');
     }
 
     /**
@@ -381,15 +381,15 @@ class TerminalInstallCommand extends Command
     protected function publishMigration(bool $withTenant): void
     {
         $stubName = $withTenant
-            ? 'create_terminal_logs_table_with_tenant.php.stub'
-            : 'create_terminal_logs_table.php.stub';
+            ? 'create_terminal_stream_logs_table_with_tenant.php.stub'
+            : 'create_terminal_stream_logs_table.php.stub';
 
         $source = __DIR__.'/../../../database/migrations/'.$stubName;
         $timestamp = date('Y_m_d_His');
-        $destination = database_path("migrations/{$timestamp}_create_terminal_logs_table.php");
+        $destination = database_path("migrations/{$timestamp}_create_terminal_stream_logs_table.php");
 
         // Check if migration already exists
-        $existingMigrations = glob(database_path('migrations/*_create_terminal_logs_table.php'));
+        $existingMigrations = glob(database_path('migrations/*_create_terminal_stream_logs_table.php'));
         if (! empty($existingMigrations) && ! $this->option('force')) {
             if ($this->option('no-interaction')) {
                 warning('Skipped migration file (already exists).');
@@ -407,7 +407,7 @@ class TerminalInstallCommand extends Command
         $this->files->copy($source, $destination);
 
         $tenantInfo = $withTenant ? ' (with tenant support)' : '';
-        info("Migration published to database/migrations/{$timestamp}_create_terminal_logs_table.php{$tenantInfo}");
+        info("Migration published to database/migrations/{$timestamp}_create_terminal_stream_logs_table.php{$tenantInfo}");
     }
 
     /**
@@ -416,7 +416,7 @@ class TerminalInstallCommand extends Command
     protected function publishViews(): void
     {
         $source = __DIR__.'/../../../resources/views';
-        $destination = resource_path('views/vendor/web-terminal');
+        $destination = resource_path('views/vendor/web-terminal-stream');
 
         if ($this->files->isDirectory($destination) && ! $this->option('force')) {
             if ($this->option('no-interaction')) {
@@ -433,7 +433,7 @@ class TerminalInstallCommand extends Command
         }
 
         $this->files->copyDirectory($source, $destination);
-        info('Views published to resources/views/vendor/web-terminal');
+        info('Views published to resources/views/vendor/web-terminal-stream');
     }
 
     /**
@@ -589,7 +589,7 @@ class TerminalInstallCommand extends Command
         if ($this->generatedPage || $this->generatedResource) {
             $this->displayNextSteps();
         } else {
-            note('Configure logging in config/web-terminal.php');
+            note('Configure logging in config/web-terminal-stream.php');
         }
 
         $this->newLine();
@@ -603,37 +603,37 @@ class TerminalInstallCommand extends Command
         $this->newLine();
         note('Next steps:');
         $this->line('1. Customize the generated files as needed');
-        $this->line('2. If using the WebTerminalPlugin, adjust your panel provider:');
+        $this->line('2. If using the WebTerminalStreamPlugin, adjust your panel provider:');
         $this->newLine();
 
         if ($this->generatedPage && $this->generatedResource) {
             $this->line('   // Disable both default pages:');
-            $this->line('   WebTerminalPlugin::make()');
+            $this->line('   WebTerminalStreamPlugin::make()');
             $this->line('       ->withoutTerminalPage()');
             $this->line('       ->withoutTerminalLogs()');
             $this->newLine();
             $this->line('   // Or use empty only() to keep services without pages:');
-            $this->line('   WebTerminalPlugin::make()');
+            $this->line('   WebTerminalStreamPlugin::make()');
             $this->line('       ->only([])');
         } elseif ($this->generatedPage) {
             $this->line('   // Disable the default Terminal page:');
-            $this->line('   WebTerminalPlugin::make()');
+            $this->line('   WebTerminalStreamPlugin::make()');
             $this->line('       ->withoutTerminalPage()');
             $this->newLine();
             $this->line('   // Or use only() to keep just TerminalLogs from the plugin:');
-            $this->line('   WebTerminalPlugin::make()');
+            $this->line('   WebTerminalStreamPlugin::make()');
             $this->line('       ->only([');
-            $this->line('           \\MWGuerra\\WebTerminal\\Filament\\Resources\\TerminalLogResource::class,');
+            $this->line('           \\MWGuerra\\WebTerminalStream\\Filament\\Resources\\TerminalLogResource::class,');
             $this->line('       ])');
         } elseif ($this->generatedResource) {
             $this->line('   // Disable the default TerminalLogs:');
-            $this->line('   WebTerminalPlugin::make()');
+            $this->line('   WebTerminalStreamPlugin::make()');
             $this->line('       ->withoutTerminalLogs()');
             $this->newLine();
             $this->line('   // Or use only() to keep just Terminal page from the plugin:');
-            $this->line('   WebTerminalPlugin::make()');
+            $this->line('   WebTerminalStreamPlugin::make()');
             $this->line('       ->only([');
-            $this->line('           \\MWGuerra\\WebTerminal\\Filament\\Pages\\Terminal::class,');
+            $this->line('           \\MWGuerra\\WebTerminalStream\\Filament\\Pages\\Terminal::class,');
             $this->line('       ])');
         }
     }

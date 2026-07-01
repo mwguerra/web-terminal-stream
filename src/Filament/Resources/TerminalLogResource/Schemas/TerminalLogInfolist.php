@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace MWGuerra\WebTerminal\Filament\Resources\TerminalLogResource\Schemas;
+namespace MWGuerra\WebTerminalStream\Filament\Resources\TerminalLogResource\Schemas;
 
 use Filament\Infolists\Components\KeyValueEntry;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
-use MWGuerra\WebTerminal\Models\TerminalLog;
+use MWGuerra\WebTerminalStream\Models\TerminalLog;
 
 class TerminalLogInfolist
 {
@@ -19,13 +19,13 @@ class TerminalLogInfolist
             ->components([
                 Grid::make(2)->columnSpanFull()->schema([
                     Grid::make(1)->schema([
-                        Section::make(__('web-terminal::terminal.infolist.event_information'))
+                        Section::make(__('web-terminal-stream::terminal.infolist.event_information'))
                             ->icon('heroicon-o-information-circle')
                             ->schema([
                                 Grid::make(2)
                                     ->schema([
                                         TextEntry::make('event_type')
-                                            ->label(__('web-terminal::terminal.infolist.event_type'))
+                                            ->label(__('web-terminal-stream::terminal.infolist.event_type'))
                                             ->badge()
                                             ->color(fn (string $state): string => match ($state) {
                                                 TerminalLog::EVENT_CONNECTED => 'success',
@@ -38,7 +38,7 @@ class TerminalLogInfolist
                                             ->formatStateUsing(fn (string $state): string => ucfirst($state)),
 
                                         TextEntry::make('connection_type')
-                                            ->label(__('web-terminal::terminal.infolist.connection_type'))
+                                            ->label(__('web-terminal-stream::terminal.infolist.connection_type'))
                                             ->badge()
                                             ->color(fn (string $state): string => match ($state) {
                                                 TerminalLog::CONNECTION_LOCAL => 'primary',
@@ -49,41 +49,41 @@ class TerminalLogInfolist
                                     ]),
                             ]),
 
-                        Section::make(__('web-terminal::terminal.infolist.user_session'))
+                        Section::make(__('web-terminal-stream::terminal.infolist.user_session'))
                             ->icon('heroicon-o-user')
                             ->schema([
                                 Grid::make(2)
                                     ->schema([
                                         TextEntry::make('user.name')
-                                            ->label(__('web-terminal::terminal.infolist.user'))
-                                            ->placeholder(__('web-terminal::terminal.table.system')),
+                                            ->label(__('web-terminal-stream::terminal.infolist.user'))
+                                            ->placeholder(__('web-terminal-stream::terminal.table.system')),
 
                                         TextEntry::make('terminal_identifier')
-                                            ->label(__('web-terminal::terminal.infolist.terminal_identifier'))
+                                            ->label(__('web-terminal-stream::terminal.infolist.terminal_identifier'))
                                             ->fontFamily('mono')
                                             ->placeholder('—'),
                                     ]),
 
                                 TextEntry::make('terminal_session_id')
-                                    ->label(__('web-terminal::terminal.infolist.session_id'))
+                                    ->label(__('web-terminal-stream::terminal.infolist.session_id'))
                                     ->fontFamily('mono')
                                     ->copyable()
-                                    ->copyMessage(__('web-terminal::terminal.infolist.session_id_copied')),
+                                    ->copyMessage(__('web-terminal-stream::terminal.infolist.session_id_copied')),
                             ]),
 
-                        Section::make(__('web-terminal::terminal.infolist.client_information'))
+                        Section::make(__('web-terminal-stream::terminal.infolist.client_information'))
                             ->icon('heroicon-o-computer-desktop')
                             ->collapsed()
                             ->schema([
                                 Grid::make(2)
                                     ->schema([
                                         TextEntry::make('ip_address')
-                                            ->label(__('web-terminal::terminal.infolist.ip_address'))
+                                            ->label(__('web-terminal-stream::terminal.infolist.ip_address'))
                                             ->fontFamily('mono')
                                             ->placeholder('—'),
 
                                         TextEntry::make('user_agent')
-                                            ->label(__('web-terminal::terminal.infolist.user_agent'))
+                                            ->label(__('web-terminal-stream::terminal.infolist.user_agent'))
                                             ->limit(80)
                                             ->tooltip(fn ($record): ?string => $record->user_agent)
                                             ->placeholder('—'),
@@ -93,54 +93,54 @@ class TerminalLogInfolist
                     ]),
 
                     Grid::make(1)->schema([
-                        Section::make(__('web-terminal::terminal.infolist.timing'))
+                        Section::make(__('web-terminal-stream::terminal.infolist.timing'))
                             ->icon('heroicon-o-clock')
                             ->schema([
                                 Grid::make(2)
                                     ->schema([
                                         TextEntry::make('created_at')
-                                            ->label(__('web-terminal::terminal.infolist.timestamp'))
+                                            ->label(__('web-terminal-stream::terminal.infolist.timestamp'))
                                             ->dateTime('F j, Y g:i:s A'),
 
                                         TextEntry::make('execution_time_seconds')
-                                            ->label(__('web-terminal::terminal.infolist.execution_time'))
-                                            ->formatStateUsing(fn (?int $state): string => $state !== null ? __('web-terminal::terminal.infolist.seconds', ['count' => $state]) : '—')
+                                            ->label(__('web-terminal-stream::terminal.infolist.execution_time'))
+                                            ->formatStateUsing(fn (?int $state): string => $state !== null ? __('web-terminal-stream::terminal.infolist.seconds', ['count' => $state]) : '—')
                                             ->placeholder('—'),
                                     ]),
                             ]),
 
-                        Section::make(__('web-terminal::terminal.infolist.ssh_connection_details'))
+                        Section::make(__('web-terminal-stream::terminal.infolist.ssh_connection_details'))
                             ->icon('heroicon-o-server')
                             ->visible(fn ($record): bool => $record->connection_type === TerminalLog::CONNECTION_SSH)
                             ->schema([
                                 Grid::make(3)
                                     ->schema([
                                         TextEntry::make('host')
-                                            ->label(__('web-terminal::terminal.infolist.host'))
+                                            ->label(__('web-terminal-stream::terminal.infolist.host'))
                                             ->fontFamily('mono'),
 
                                         TextEntry::make('port')
-                                            ->label(__('web-terminal::terminal.infolist.port'))
+                                            ->label(__('web-terminal-stream::terminal.infolist.port'))
                                             ->fontFamily('mono'),
 
                                         TextEntry::make('ssh_username')
-                                            ->label(__('web-terminal::terminal.infolist.ssh_username'))
+                                            ->label(__('web-terminal-stream::terminal.infolist.ssh_username'))
                                             ->fontFamily('mono'),
                                     ]),
                             ]),
 
-                        Section::make(__('web-terminal::terminal.infolist.command'))
+                        Section::make(__('web-terminal-stream::terminal.infolist.command'))
                             ->icon('heroicon-o-command-line')
                             ->visible(fn ($record): bool => $record->command !== null)
                             ->schema([
                                 TextEntry::make('command')
-                                    ->label(__('web-terminal::terminal.infolist.command'))
+                                    ->label(__('web-terminal-stream::terminal.infolist.command'))
                                     ->fontFamily('mono')
                                     ->copyable()
-                                    ->copyMessage(__('web-terminal::terminal.infolist.command_copied')),
+                                    ->copyMessage(__('web-terminal-stream::terminal.infolist.command_copied')),
 
                                 TextEntry::make('exit_code')
-                                    ->label(__('web-terminal::terminal.infolist.exit_code'))
+                                    ->label(__('web-terminal-stream::terminal.infolist.exit_code'))
                                     ->badge()
                                     ->color(fn (?int $state): string => match (true) {
                                         $state === null => 'gray',
@@ -150,7 +150,7 @@ class TerminalLogInfolist
                                     ->placeholder('—'),
                             ]),
 
-                        Section::make(__('web-terminal::terminal.infolist.output'))
+                        Section::make(__('web-terminal-stream::terminal.infolist.output'))
                             ->icon('heroicon-o-document-text')
                             ->visible(fn ($record): bool => $record->output !== null)
                             ->collapsed()
@@ -173,15 +173,15 @@ class TerminalLogInfolist
                                     ->html(),
                             ]),
 
-                        Section::make(__('web-terminal::terminal.infolist.metadata'))
+                        Section::make(__('web-terminal-stream::terminal.infolist.metadata'))
                             ->icon('heroicon-o-code-bracket')
                             ->visible(fn ($record): bool => ! empty($record->metadata))
                             ->collapsed()
                             ->schema([
                                 KeyValueEntry::make('metadata')
                                     ->label('')
-                                    ->keyLabel(__('web-terminal::terminal.infolist.metadata_key'))
-                                    ->valueLabel(__('web-terminal::terminal.infolist.metadata_value')),
+                                    ->keyLabel(__('web-terminal-stream::terminal.infolist.metadata_key'))
+                                    ->valueLabel(__('web-terminal-stream::terminal.infolist.metadata_value')),
                             ]),
                     ]),
                 ]),

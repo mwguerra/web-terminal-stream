@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace {{ namespace }};
 
 use BackedEnum;
-use MWGuerra\WebTerminal\Filament\Resources\TerminalLogResource as BaseTerminalLogResource;
+use MWGuerra\WebTerminalStream\Filament\Resources\TerminalLogResource as BaseTerminalLogResource;
 
 class TerminalLogResource extends BaseTerminalLogResource
 {
@@ -16,12 +16,12 @@ class TerminalLogResource extends BaseTerminalLogResource
 
     public static function getNavigationLabel(): string
     {
-        return __('web-terminal::terminal.navigation.terminal_logs');
+        return __('web-terminal-stream::terminal.navigation.terminal_logs');
     }
 
     public static function getNavigationGroup(): ?string
     {
-        return __('web-terminal::terminal.navigation.tools');
+        return __('web-terminal-stream::terminal.navigation.tools');
     }
 
     public static function getNavigationSort(): ?int

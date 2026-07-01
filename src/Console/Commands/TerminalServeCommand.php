@@ -2,17 +2,18 @@
 
 declare(strict_types=1);
 
-namespace MWGuerra\WebTerminal\Console\Commands;
+namespace MWGuerra\WebTerminalStream\Console\Commands;
 
 use Illuminate\Console\Command;
-use MWGuerra\WebTerminal\WebSocket\ReactPhpProvider;
+use MWGuerra\WebTerminalStream\WebSocket\ReactPhpProvider;
+use React\Socket\SocketServer;
 
 class TerminalServeCommand extends Command
 {
     /**
      * The name and signature of the console command.
      */
-    protected $signature = 'terminal:serve
+    protected $signature = 'terminal-stream:serve
                             {--host= : The host to bind to}
                             {--port= : The port to listen on}';
 
@@ -26,14 +27,14 @@ class TerminalServeCommand extends Command
      */
     public function handle(): int
     {
-        if (! class_exists(\React\Socket\SocketServer::class)) {
+        if (! class_exists(SocketServer::class)) {
             $this->error('ReactPHP is not installed. Run: composer require react/socket react/event-loop ratchet/rfc6455');
 
             return self::FAILURE;
         }
 
-        $host = $this->option('host') ?? config('web-terminal.stream.ratchet_host', '127.0.0.1');
-        $port = $this->option('port') ?? config('web-terminal.stream.ratchet_port', 8090);
+        $host = $this->option('host') ?? config('web-terminal-stream.stream.ratchet_host', '127.0.0.1');
+        $port = $this->option('port') ?? config('web-terminal-stream.stream.ratchet_port', 8090);
 
         $this->info("Starting WebSocket server on {$host}:{$port}...");
         $this->info('Press Ctrl+C to stop.');

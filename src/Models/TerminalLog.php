@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace MWGuerra\WebTerminal\Models;
+namespace MWGuerra\WebTerminalStream\Models;
 
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
@@ -13,7 +13,7 @@ class TerminalLog extends Model
     /**
      * The table associated with the model.
      */
-    protected $table = 'terminal_logs';
+    protected $table = 'terminal_stream_logs';
 
     /**
      * The attributes that are mass assignable.
@@ -74,11 +74,11 @@ class TerminalLog extends Model
      */
     public function user(): BelongsTo
     {
-        $userTable = config('web-terminal.logging.user_table', 'users');
+        $userTable = config('web-terminal-stream.logging.user_table', 'users');
 
         return $this->belongsTo(
             related: config('auth.providers.users.model', 'App\\Models\\User'),
-            foreignKey: config('web-terminal.logging.user_foreign_key', 'user_id'),
+            foreignKey: config('web-terminal-stream.logging.user_foreign_key', 'user_id'),
         );
     }
 
@@ -111,7 +111,7 @@ class TerminalLog extends Model
      */
     public function scopeForTenant(Builder $query, mixed $tenantId): Builder
     {
-        $tenantColumn = config('web-terminal.logging.tenant_column');
+        $tenantColumn = config('web-terminal-stream.logging.tenant_column');
 
         if (! $tenantColumn) {
             return $query;

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace MWGuerra\WebTerminal\Filament\Pages;
+namespace MWGuerra\WebTerminalStream\Filament\Pages;
 
 use BackedEnum;
 use Filament\Pages\Page;
@@ -12,48 +12,48 @@ use Filament\Schemas\Concerns\InteractsWithSchemas;
 use Filament\Schemas\Contracts\HasSchemas;
 use Filament\Schemas\Schema;
 use Illuminate\Contracts\Support\Htmlable;
-use MWGuerra\WebTerminal\Schemas\Components\WebTerminal;
-use MWGuerra\WebTerminal\WebTerminalPlugin;
+use MWGuerra\WebTerminalStream\Schemas\Components\WebTerminalStream;
+use MWGuerra\WebTerminalStream\WebTerminalStreamPlugin;
 
 class Terminal extends Page implements HasSchemas
 {
     use InteractsWithSchemas;
 
-    protected string $view = 'web-terminal::filament.pages.terminal';
+    protected string $view = 'web-terminal-stream::filament.pages.terminal';
 
     protected static string $routePath = 'terminal';
 
     public static function getNavigationIcon(): string|BackedEnum|Htmlable|null
     {
         return static::$navigationIcon
-            ?? WebTerminalPlugin::current()?->getTerminalNavigationIcon()
+            ?? WebTerminalStreamPlugin::current()?->getTerminalNavigationIcon()
             ?? 'heroicon-o-command-line';
     }
 
     public function getTitle(): string|Htmlable
     {
-        return __('web-terminal::terminal.pages.terminal.title');
+        return __('web-terminal-stream::terminal.pages.terminal.title');
     }
 
     public static function getNavigationLabel(): string
     {
         return static::$navigationLabel
-            ?? WebTerminalPlugin::current()?->getTerminalNavigationLabel()
-            ?? __('web-terminal::terminal.navigation.terminal');
+            ?? WebTerminalStreamPlugin::current()?->getTerminalNavigationLabel()
+            ?? __('web-terminal-stream::terminal.navigation.terminal');
     }
 
     public static function getNavigationSort(): ?int
     {
         return static::$navigationSort
-            ?? WebTerminalPlugin::current()?->getTerminalNavigationSort()
+            ?? WebTerminalStreamPlugin::current()?->getTerminalNavigationSort()
             ?? 100;
     }
 
     public static function getNavigationGroup(): ?string
     {
         return static::$navigationGroup
-            ?? WebTerminalPlugin::current()?->getTerminalNavigationGroup()
-            ?? __('web-terminal::terminal.navigation.tools');
+            ?? WebTerminalStreamPlugin::current()?->getTerminalNavigationGroup()
+            ?? __('web-terminal-stream::terminal.navigation.tools');
     }
 
     public static function getSlug(?Panel $panel = null): string
@@ -65,16 +65,16 @@ class Terminal extends Page implements HasSchemas
     {
         return $schema
             ->components([
-                Section::make(__('web-terminal::terminal.pages.terminal.local_terminal'))
-                    ->description(__('web-terminal::terminal.pages.terminal.local_terminal_description'))
+                Section::make(__('web-terminal-stream::terminal.pages.terminal.local_terminal'))
+                    ->description(__('web-terminal-stream::terminal.pages.terminal.local_terminal_description'))
                     ->icon('heroicon-o-command-line')
                     ->schema([
-                        WebTerminal::make()
+                        WebTerminalStream::make()
                             ->key('local-terminal')
                             ->local()
                             ->workingDirectory(base_path())
                             ->height('400px')
-                            ->title(__('web-terminal::terminal.pages.terminal.local_terminal'))
+                            ->title(__('web-terminal-stream::terminal.pages.terminal.local_terminal'))
                             ->log(
                                 enabled: true,
                                 connections: true,

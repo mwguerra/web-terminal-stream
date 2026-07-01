@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 use Illuminate\Support\Facades\Event;
 use Livewire\Livewire;
-use MWGuerra\WebTerminal\Enums\ConnectionType;
-use MWGuerra\WebTerminal\Events\TerminalConnectedEvent;
-use MWGuerra\WebTerminal\Events\TerminalDisconnectedEvent;
-use MWGuerra\WebTerminal\Livewire\StreamTerminal;
+use MWGuerra\WebTerminalStream\Enums\ConnectionType;
+use MWGuerra\WebTerminalStream\Events\TerminalConnectedEvent;
+use MWGuerra\WebTerminalStream\Events\TerminalDisconnectedEvent;
+use MWGuerra\WebTerminalStream\Livewire\StreamTerminal;
 
 describe('StreamTerminal', function () {
     it('can be mounted with default parameters', function () {
@@ -40,7 +40,7 @@ describe('StreamTerminal', function () {
             'title' => 'Test Terminal',
             'streamTheme' => [],
             'showWindowControls' => true,
-        ])->assertViewIs('web-terminal::stream-terminal');
+        ])->assertViewIs('web-terminal-stream::stream-terminal');
     });
 
     describe('connection lifecycle events', function () {

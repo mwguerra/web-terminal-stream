@@ -2,17 +2,17 @@
 
 declare(strict_types=1);
 
-namespace MWGuerra\WebTerminal\Livewire;
+namespace MWGuerra\WebTerminalStream\Livewire;
 
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Str;
 use Livewire\Attributes\Locked;
 use Livewire\Component;
-use MWGuerra\WebTerminal\Enums\ConnectionType;
-use MWGuerra\WebTerminal\Events\TerminalConnectedEvent;
-use MWGuerra\WebTerminal\Events\TerminalDisconnectedEvent;
-use MWGuerra\WebTerminal\Services\TerminalLogger;
+use MWGuerra\WebTerminalStream\Enums\ConnectionType;
+use MWGuerra\WebTerminalStream\Events\TerminalConnectedEvent;
+use MWGuerra\WebTerminalStream\Events\TerminalDisconnectedEvent;
+use MWGuerra\WebTerminalStream\Services\TerminalLogger;
 
 class StreamTerminal extends Component
 {
@@ -96,9 +96,9 @@ class StreamTerminal extends Component
 
         $sessionId = Str::uuid()->toString();
         $this->sessionId = $sessionId;
-        $ttl = config('web-terminal.stream.signed_url_ttl', 300);
+        $ttl = config('web-terminal-stream.stream.signed_url_ttl', 300);
 
-        Cache::put("terminal-pty:{$sessionId}", $this->connectionConfig, $ttl);
+        Cache::put("terminal-stream-pty:{$sessionId}", $this->connectionConfig, $ttl);
 
         $payload = json_encode([
             'userId' => auth()->id(),
@@ -109,13 +109,13 @@ class StreamTerminal extends Component
         $token = app('encrypter')->encrypt($payload);
         $encodedToken = urlencode($token);
 
-        $wsUrl = config('web-terminal.stream.websocket_url');
+        $wsUrl = config('web-terminal-stream.stream.websocket_url');
         if ($wsUrl) {
             $separator = str_contains($wsUrl, '?') ? '&' : '?';
             $url = "{$wsUrl}{$separator}token={$encodedToken}";
         } else {
-            $host = config('web-terminal.stream.ratchet_host', '127.0.0.1');
-            $port = config('web-terminal.stream.ratchet_port', 8090);
+            $host = config('web-terminal-stream.stream.ratchet_host', '127.0.0.1');
+            $port = config('web-terminal-stream.stream.ratchet_port', 8090);
             $url = "ws://{$host}:{$port}?token={$encodedToken}";
         }
 
@@ -216,6 +216,6 @@ class StreamTerminal extends Component
 
     public function render()
     {
-        return view('web-terminal::stream-terminal');
+        return view('web-terminal-stream::stream-terminal');
     }
 }

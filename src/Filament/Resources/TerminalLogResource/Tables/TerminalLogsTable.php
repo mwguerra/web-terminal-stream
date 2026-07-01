@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace MWGuerra\WebTerminal\Filament\Resources\TerminalLogResource\Tables;
+namespace MWGuerra\WebTerminalStream\Filament\Resources\TerminalLogResource\Tables;
 
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
@@ -13,7 +13,7 @@ use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
-use MWGuerra\WebTerminal\Models\TerminalLog;
+use MWGuerra\WebTerminalStream\Models\TerminalLog;
 
 class TerminalLogsTable
 {
@@ -23,13 +23,13 @@ class TerminalLogsTable
             ->defaultSort('created_at', 'desc')
             ->columns([
                 TextColumn::make('created_at')
-                    ->label(__('web-terminal::terminal.table.time'))
+                    ->label(__('web-terminal-stream::terminal.table.time'))
                     ->dateTime('M d, Y H:i:s')
                     ->sortable()
                     ->searchable(),
 
                 TextColumn::make('event_type')
-                    ->label(__('web-terminal::terminal.table.event'))
+                    ->label(__('web-terminal-stream::terminal.table.event'))
                     ->badge()
                     ->color(fn (string $state): string => match ($state) {
                         TerminalLog::EVENT_CONNECTED => 'success',
@@ -42,13 +42,13 @@ class TerminalLogsTable
                     ->sortable(),
 
                 TextColumn::make('terminal_identifier')
-                    ->label(__('web-terminal::terminal.table.terminal'))
+                    ->label(__('web-terminal-stream::terminal.table.terminal'))
                     ->searchable()
                     ->placeholder('—')
                     ->toggleable(),
 
                 TextColumn::make('connection_type')
-                    ->label(__('web-terminal::terminal.table.type'))
+                    ->label(__('web-terminal-stream::terminal.table.type'))
                     ->badge()
                     ->color(fn (string $state): string => match ($state) {
                         TerminalLog::CONNECTION_LOCAL => 'primary',
@@ -58,13 +58,13 @@ class TerminalLogsTable
                     ->sortable(),
 
                 TextColumn::make('user.name')
-                    ->label(__('web-terminal::terminal.table.user'))
+                    ->label(__('web-terminal-stream::terminal.table.user'))
                     ->searchable()
                     ->sortable()
-                    ->placeholder(__('web-terminal::terminal.table.system')),
+                    ->placeholder(__('web-terminal-stream::terminal.table.system')),
 
                 TextColumn::make('command')
-                    ->label(__('web-terminal::terminal.table.command'))
+                    ->label(__('web-terminal-stream::terminal.table.command'))
                     ->limit(50)
                     ->tooltip(fn (?string $state): ?string => $state)
                     ->searchable()
@@ -72,7 +72,7 @@ class TerminalLogsTable
                     ->fontFamily('mono'),
 
                 TextColumn::make('exit_code')
-                    ->label(__('web-terminal::terminal.table.exit'))
+                    ->label(__('web-terminal-stream::terminal.table.exit'))
                     ->badge()
                     ->color(fn (?int $state): string => match (true) {
                         $state === null => 'gray',
@@ -83,52 +83,52 @@ class TerminalLogsTable
                     ->toggleable(),
 
                 TextColumn::make('host')
-                    ->label(__('web-terminal::terminal.table.host'))
-                    ->placeholder(__('web-terminal::terminal.table.localhost'))
+                    ->label(__('web-terminal-stream::terminal.table.host'))
+                    ->placeholder(__('web-terminal-stream::terminal.table.localhost'))
                     ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('terminal_session_id')
-                    ->label(__('web-terminal::terminal.table.session_id'))
+                    ->label(__('web-terminal-stream::terminal.table.session_id'))
                     ->limit(8)
                     ->tooltip(fn (?string $state): ?string => $state)
                     ->fontFamily('mono')
                     ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('ip_address')
-                    ->label(__('web-terminal::terminal.table.ip_address'))
+                    ->label(__('web-terminal-stream::terminal.table.ip_address'))
                     ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('execution_time_seconds')
-                    ->label(__('web-terminal::terminal.table.duration'))
+                    ->label(__('web-terminal-stream::terminal.table.duration'))
                     ->formatStateUsing(fn (?int $state): string => $state !== null ? "{$state}s" : '—')
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
                 SelectFilter::make('event_type')
-                    ->label(__('web-terminal::terminal.filters.event_type'))
+                    ->label(__('web-terminal-stream::terminal.filters.event_type'))
                     ->options([
-                        TerminalLog::EVENT_CONNECTED => __('web-terminal::terminal.events.connected'),
-                        TerminalLog::EVENT_DISCONNECTED => __('web-terminal::terminal.events.disconnected'),
-                        TerminalLog::EVENT_COMMAND => __('web-terminal::terminal.events.command'),
-                        TerminalLog::EVENT_OUTPUT => __('web-terminal::terminal.events.output'),
-                        TerminalLog::EVENT_ERROR => __('web-terminal::terminal.events.error'),
+                        TerminalLog::EVENT_CONNECTED => __('web-terminal-stream::terminal.events.connected'),
+                        TerminalLog::EVENT_DISCONNECTED => __('web-terminal-stream::terminal.events.disconnected'),
+                        TerminalLog::EVENT_COMMAND => __('web-terminal-stream::terminal.events.command'),
+                        TerminalLog::EVENT_OUTPUT => __('web-terminal-stream::terminal.events.output'),
+                        TerminalLog::EVENT_ERROR => __('web-terminal-stream::terminal.events.error'),
                     ]),
 
                 SelectFilter::make('connection_type')
-                    ->label(__('web-terminal::terminal.filters.connection_type'))
+                    ->label(__('web-terminal-stream::terminal.filters.connection_type'))
                     ->options([
-                        TerminalLog::CONNECTION_LOCAL => __('web-terminal::terminal.connection_types.local'),
-                        TerminalLog::CONNECTION_SSH => __('web-terminal::terminal.connection_types.ssh'),
+                        TerminalLog::CONNECTION_LOCAL => __('web-terminal-stream::terminal.connection_types.local'),
+                        TerminalLog::CONNECTION_SSH => __('web-terminal-stream::terminal.connection_types.ssh'),
                     ]),
 
                 SelectFilter::make('user_id')
-                    ->label(__('web-terminal::terminal.filters.user'))
+                    ->label(__('web-terminal-stream::terminal.filters.user'))
                     ->relationship('user', 'name')
                     ->searchable()
                     ->preload(),
 
                 SelectFilter::make('terminal_identifier')
-                    ->label(__('web-terminal::terminal.filters.terminal'))
+                    ->label(__('web-terminal-stream::terminal.filters.terminal'))
                     ->options(fn () => TerminalLog::query()
                         ->whereNotNull('terminal_identifier')
                         ->distinct()
@@ -137,15 +137,15 @@ class TerminalLogsTable
                     ),
 
                 Filter::make('exit_code_failed')
-                    ->label(__('web-terminal::terminal.filters.failed_commands_only'))
+                    ->label(__('web-terminal-stream::terminal.filters.failed_commands_only'))
                     ->query(fn (Builder $query): Builder => $query->where('exit_code', '!=', 0)->whereNotNull('exit_code')),
 
                 Filter::make('created_at')
                     ->form([
                         DatePicker::make('from')
-                            ->label(__('web-terminal::terminal.filters.from')),
+                            ->label(__('web-terminal-stream::terminal.filters.from')),
                         DatePicker::make('until')
-                            ->label(__('web-terminal::terminal.filters.until')),
+                            ->label(__('web-terminal-stream::terminal.filters.until')),
                     ])
                     ->query(function (Builder $query, array $data): Builder {
                         return $query

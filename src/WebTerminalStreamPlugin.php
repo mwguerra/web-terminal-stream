@@ -2,16 +2,16 @@
 
 declare(strict_types=1);
 
-namespace MWGuerra\WebTerminal;
+namespace MWGuerra\WebTerminalStream;
 
 use BackedEnum;
 use Filament\Contracts\Plugin;
 use Filament\Panel;
 use Illuminate\Contracts\Support\Htmlable;
-use MWGuerra\WebTerminal\Filament\Pages\Terminal;
-use MWGuerra\WebTerminal\Filament\Resources\TerminalLogResource;
+use MWGuerra\WebTerminalStream\Filament\Pages\Terminal;
+use MWGuerra\WebTerminalStream\Filament\Resources\TerminalLogResource;
 
-class WebTerminalPlugin implements Plugin
+class WebTerminalStreamPlugin implements Plugin
 {
     /**
      * Singleton instance for accessing configuration from pages/components.
@@ -78,7 +78,7 @@ class WebTerminalPlugin implements Plugin
 
     public function getId(): string
     {
-        return 'web-terminal';
+        return 'web-terminal-stream';
     }
 
     public function register(Panel $panel): void
@@ -136,10 +136,10 @@ class WebTerminalPlugin implements Plugin
      *
      * @example
      * // Register all enabled components
-     * WebTerminalPlugin::make()
+     * WebTerminalStreamPlugin::make()
      * @example
      * // Register only specific components
-     * WebTerminalPlugin::make([
+     * WebTerminalStreamPlugin::make([
      *     Terminal::class,
      *     TerminalLogResource::class,
      * ])

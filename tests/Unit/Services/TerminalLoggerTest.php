@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-use MWGuerra\WebTerminal\Models\TerminalLog;
-use MWGuerra\WebTerminal\Services\TerminalLogger;
+use MWGuerra\WebTerminalStream\Models\TerminalLog;
+use MWGuerra\WebTerminalStream\Services\TerminalLogger;
 
 beforeEach(function () {
     // Clean up any existing logs
     try {
         TerminalLog::query()->delete();
-    } catch (\Throwable) {
+    } catch (Throwable) {
         // Table may not exist in test environment
     }
 });

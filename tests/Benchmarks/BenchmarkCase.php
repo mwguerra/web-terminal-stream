@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace MWGuerra\WebTerminal\Tests\Benchmarks;
+namespace MWGuerra\WebTerminalStream\Tests\Benchmarks;
 
-use MWGuerra\WebTerminal\Tests\TestCase;
+use MWGuerra\WebTerminalStream\Tests\TestCase;
 
 /**
  * Base class for benchmark suites.

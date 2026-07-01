@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-use MWGuerra\WebTerminal\Data\ConnectionConfig;
-use MWGuerra\WebTerminal\WebSocket\PtySessionRegistry;
-use MWGuerra\WebTerminal\WebSocket\TerminalPtyBridge;
+use MWGuerra\WebTerminalStream\Data\ConnectionConfig;
+use MWGuerra\WebTerminalStream\WebSocket\PtySessionRegistry;
+use MWGuerra\WebTerminalStream\WebSocket\TerminalPtyBridge;
 
 /*
  * The bridge is intentionally truthful: if the underlying transport
@@ -20,7 +20,7 @@ use MWGuerra\WebTerminal\WebSocket\TerminalPtyBridge;
 function sshlessBridge(): TerminalPtyBridge
 {
     $config = ConnectionConfig::local();
-    $registry = new PtySessionRegistry(sys_get_temp_dir() . '/test-' . uniqid());
+    $registry = new PtySessionRegistry(sys_get_temp_dir().'/test-'.uniqid());
 
     return new TerminalPtyBridge($config, 'test-session', 1, $registry);
 }

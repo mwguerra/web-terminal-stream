@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 /**
- * Benchmark harness for web-terminal.
+ * Benchmark harness for web-terminal-stream.
  *
  * Runs the PHP microbenchmark suite (tests/Benchmarks/) via Pest, aggregates
  * samples recorded through BenchmarkRecorder, and emits a JSON report.
@@ -15,7 +15,6 @@ declare(strict_types=1);
  *
  * Advisory only. Never gates CI.
  */
-
 $args = [];
 foreach (array_slice($argv, 1) as $arg) {
     if (str_starts_with($arg, '--')) {
@@ -29,7 +28,7 @@ foreach (array_slice($argv, 1) as $arg) {
 }
 
 $root = dirname(__DIR__);
-$outPath = $args['out'] ?? $root . '/docs/benchmarks/latest.json';
+$outPath = $args['out'] ?? $root.'/docs/benchmarks/latest.json';
 
 // Run Pest on the Benchmarks directory — BenchmarkRecorder collects samples.
 // We run in a subprocess and capture the serialized recorder export via a temp file.
@@ -40,7 +39,7 @@ putenv("WEB_TERMINAL_BENCH_DUMP={$recorderDump}");
 $pestCmd = sprintf(
     '%s %s --colors=never 2>&1',
     escapeshellarg(PHP_BINARY),
-    escapeshellarg($root . '/vendor/bin/pest'),
+    escapeshellarg($root.'/vendor/bin/pest'),
 );
 
 $pestCmd .= ' --testsuite=Benchmarks';
@@ -58,15 +57,15 @@ $samples = json_decode((string) file_get_contents($recorderDump), true);
 
 $report = [
     'captured_at' => date('c'),
-    'commit' => trim((string) shell_exec('git -C ' . escapeshellarg($root) . ' rev-parse --short HEAD')),
-    'branch' => trim((string) shell_exec('git -C ' . escapeshellarg($root) . ' branch --show-current')),
+    'commit' => trim((string) shell_exec('git -C '.escapeshellarg($root).' rev-parse --short HEAD')),
+    'branch' => trim((string) shell_exec('git -C '.escapeshellarg($root).' branch --show-current')),
     'php' => PHP_VERSION,
-    'uname' => php_uname('s') . ' ' . php_uname('r'),
+    'uname' => php_uname('s').' '.php_uname('r'),
     'measurements' => $samples,
 ];
 
 @mkdir(dirname($outPath), 0755, true);
-file_put_contents($outPath, json_encode($report, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) . "\n");
+file_put_contents($outPath, json_encode($report, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES)."\n");
 
 echo "\n✓ Report written to {$outPath}\n";
 
@@ -77,13 +76,14 @@ if (isset($args['compare'])) {
         exit(1);
     }
 
-    echo "\n→ Deltas vs " . $args['compare'] . "\n\n";
+    echo "\n→ Deltas vs ".$args['compare']."\n\n";
     printf("%-60s  %10s  %10s  %8s\n", 'measurement', 'baseline µs', 'now µs', 'Δ%');
-    echo str_repeat('-', 95) . "\n";
+    echo str_repeat('-', 95)."\n";
 
     foreach ($samples as $name => $current) {
         if (! isset($baseline['measurements'][$name])) {
             printf("%-60s  %10s  %10.1f  %8s\n", $name, '(new)', $current['median_us'], '—');
+
             continue;
         }
         $base = $baseline['measurements'][$name]['median_us'];

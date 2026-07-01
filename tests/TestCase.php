@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace MWGuerra\WebTerminal\Tests;
+namespace MWGuerra\WebTerminalStream\Tests;
 
 use Livewire\LivewireServiceProvider;
-use MWGuerra\WebTerminal\WebTerminalServiceProvider;
+use MWGuerra\WebTerminalStream\WebTerminalStreamServiceProvider;
 use Orchestra\Testbench\TestCase as Orchestra;
 
 abstract class TestCase extends Orchestra
@@ -19,7 +19,7 @@ abstract class TestCase extends Orchestra
     {
         return [
             LivewireServiceProvider::class,
-            WebTerminalServiceProvider::class,
+            WebTerminalStreamServiceProvider::class,
         ];
     }
 

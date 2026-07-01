@@ -53,19 +53,19 @@ A secure web terminal package for Laravel with Filament integration. Execute all
 ### For Filament 5 / Laravel 12–13 (latest)
 
 ```bash
-composer require mwguerra/web-terminal:"^2.0"
+composer require mwguerra/web-terminal-stream:"^2.0"
 ```
 
 ### For Filament 4 / Laravel 11 (legacy)
 
 ```bash
-composer require mwguerra/web-terminal:"^1.0"
+composer require mwguerra/web-terminal-stream:"^1.0"
 ```
 
 ### Upgrading from v1.x to v2.x
 
 ```bash
-composer require mwguerra/web-terminal:"^2.0"
+composer require mwguerra/web-terminal-stream:"^2.0"
 ```
 
 Key changes in v2.x:
@@ -77,7 +77,7 @@ Key changes in v2.x:
 Run the install command for guided configuration:
 
 ```bash
-php artisan terminal:install
+php artisan terminal-stream:install
 ```
 
 The installer will:
@@ -90,16 +90,16 @@ The installer will:
 
 ```bash
 # Standard installation (interactive)
-php artisan terminal:install
+php artisan terminal-stream:install
 
 # Multi-tenant installation (adds tenant_id column)
-php artisan terminal:install --with-tenant
+php artisan terminal-stream:install --with-tenant
 
 # Standard installation (explicitly no tenant)
-php artisan terminal:install --no-tenant
+php artisan terminal-stream:install --no-tenant
 
 # Force overwrite existing files
-php artisan terminal:install --force
+php artisan terminal-stream:install --force
 ```
 
 #### Non-Interactive Installation
@@ -108,19 +108,19 @@ Use `--no-interaction` (or `-n`) with specific flags to skip prompts:
 
 ```bash
 # Install only config file
-php artisan terminal:install --config -n
+php artisan terminal-stream:install --config -n
 
 # Install only migration
-php artisan terminal:install --migration -n
+php artisan terminal-stream:install --migration -n
 
 # Install config, migration, and run migrate
-php artisan terminal:install --config --migration --migrate -n
+php artisan terminal-stream:install --config --migration --migrate -n
 
 # Install page only (requires --panel for multi-panel apps)
-php artisan terminal:install --page --panel=admin -n
+php artisan terminal-stream:install --page --panel=admin -n
 
 # Install everything non-interactively
-php artisan terminal:install --config --migration --views --page --resource --migrate --panel=admin -n
+php artisan terminal-stream:install --config --migration --views --page --resource --migrate --panel=admin -n
 ```
 
 | Flag | Description |
@@ -141,16 +141,16 @@ Generate customizable Terminal page and TerminalLogs resource in your applicatio
 
 ```bash
 # Generate a custom Terminal page
-php artisan terminal:install --page
+php artisan terminal-stream:install --page
 
 # Generate a custom TerminalLogs resource
-php artisan terminal:install --resource
+php artisan terminal-stream:install --resource
 
 # Generate both page and resource
-php artisan terminal:install --page --resource
+php artisan terminal-stream:install --page --resource
 
 # Generate for a specific panel (multi-panel apps)
-php artisan terminal:install --page --panel=admin
+php artisan terminal-stream:install --page --panel=admin
 ```
 
 The generated files are placed in directories configured in your panel provider via `->discoverPages()` and `->discoverResources()`. For example:
@@ -166,24 +166,24 @@ The generated files are placed in directories configured in your panel provider 
 
 ```php
 // If you generated only the Terminal page
-WebTerminalPlugin::make()
+WebTerminalStreamPlugin::make()
     ->withoutTerminalPage()
 
 // If you generated only the TerminalLogs resource
-WebTerminalPlugin::make()
+WebTerminalStreamPlugin::make()
     ->withoutTerminalLogs()
 
 // If you generated both, disable both plugin defaults
-WebTerminalPlugin::make()
+WebTerminalStreamPlugin::make()
     ->withoutTerminalPage()
     ->withoutTerminalLogs()
 
 // Or use only() to keep plugin services without any default pages
-WebTerminalPlugin::make()
+WebTerminalStreamPlugin::make()
     ->only([])
 ```
 
-If you don't need the plugin at all (using only custom pages), you can remove `WebTerminalPlugin::make()` from your panel provider entirely.
+If you don't need the plugin at all (using only custom pages), you can remove `WebTerminalStreamPlugin::make()` from your panel provider entirely.
 
 #### Terminal Command Permissions
 
@@ -191,13 +191,13 @@ When generating a custom Terminal page, you can specify command permissions:
 
 ```bash
 # Default - safe readonly commands (ls, pwd, cd, cat, grep, etc.)
-php artisan terminal:install --page --allow-secure-commands
+php artisan terminal-stream:install --page --allow-secure-commands
 
 # Allow all commands (dangerous - use with caution)
-php artisan terminal:install --page --allow-all-commands
+php artisan terminal-stream:install --page --allow-all-commands
 
 # No commands - configure manually in the generated file
-php artisan terminal:install --page --allow-no-commands
+php artisan terminal-stream:install --page --allow-no-commands
 ```
 
 | Option | Generated Configuration | Description |
@@ -208,27 +208,27 @@ php artisan terminal:install --page --allow-no-commands
 
 #### Create Terminal Page Command
 
-For more control over page generation, use the dedicated `terminal:make-page` command:
+For more control over page generation, use the dedicated `terminal-stream:make-page` command:
 
 ```bash
 # Interactive mode - prompts for all options
-php artisan terminal:make-page
+php artisan terminal-stream:make-page
 
 # Create a page with a specific name
-php artisan terminal:make-page ServerTerminal
+php artisan terminal-stream:make-page ServerTerminal
 
 # Specify panel and terminal key
-php artisan terminal:make-page ServerTerminal --panel=admin --key=server-term
+php artisan terminal-stream:make-page ServerTerminal --panel=admin --key=server-term
 
 # Set command permissions
-php artisan terminal:make-page AdminTerminal --allow-all-commands
-php artisan terminal:make-page ViewerTerminal --allow-no-commands
+php artisan terminal-stream:make-page AdminTerminal --allow-all-commands
+php artisan terminal-stream:make-page ViewerTerminal --allow-no-commands
 
 # Non-interactive with defaults
-php artisan terminal:make-page --no-interaction
+php artisan terminal-stream:make-page --no-interaction
 
 # Overwrite existing file
-php artisan terminal:make-page Terminal --force
+php artisan terminal-stream:make-page Terminal --force
 ```
 
 | Option | Description |
@@ -253,10 +253,10 @@ If you prefer manual setup:
 
 ```bash
 # Publish configuration
-php artisan vendor:publish --tag=web-terminal-config
+php artisan vendor:publish --tag=web-terminal-stream-config
 
 # Publish views (optional)
-php artisan vendor:publish --tag=web-terminal-views
+php artisan vendor:publish --tag=web-terminal-stream-views
 ```
 
 ## Quick Start
@@ -265,13 +265,13 @@ Get a working terminal in under a minute:
 
 ```php
 // In your Filament PanelProvider
-use MWGuerra\WebTerminal\WebTerminalPlugin;
+use MWGuerra\WebTerminalStream\WebTerminalStreamPlugin;
 
 public function panel(Panel $panel): Panel
 {
     return $panel
         ->plugins([
-            WebTerminalPlugin::make(),
+            WebTerminalStreamPlugin::make(),
         ]);
 }
 ```
@@ -281,11 +281,11 @@ That's it! Visit `/admin/terminal` to access the terminal.
 For a custom terminal using the modern fluent API:
 
 ```php
-use MWGuerra\WebTerminal\Schemas\Components\WebTerminal;
-use MWGuerra\WebTerminal\Enums\ConnectionBehavior;
-use MWGuerra\WebTerminal\Enums\TerminalChrome;
-use MWGuerra\WebTerminal\Enums\TerminalMode;
-use MWGuerra\WebTerminal\Enums\TerminalPermission;
+use MWGuerra\WebTerminalStream\Schemas\Components\WebTerminalStream;
+use MWGuerra\WebTerminalStream\Enums\ConnectionBehavior;
+use MWGuerra\WebTerminalStream\Enums\TerminalChrome;
+use MWGuerra\WebTerminalStream\Enums\TerminalMode;
+use MWGuerra\WebTerminalStream\Enums\TerminalPermission;
 
 WebTerminal::make()
     ->local()
@@ -305,7 +305,7 @@ WebTerminal::make()
 // Frameless terminal (no header, no footer chrome)
 WebTerminal::make()->local()->frameless();
 
-// Stream-only (full PTY shell via WebSocket — needs `terminal:serve`)
+// Stream-only (full PTY shell via WebSocket — needs `terminal-stream:serve`)
 WebTerminal::make()->local()->mode(TerminalMode::Stream);
 
 // Dual-mode (Classic + Stream with a header toggle pill)
@@ -320,7 +320,7 @@ WebTerminal::make()->local()->dual(TerminalMode::Stream); // dual, default to St
 > for removal in 3.0. See [UPGRADING.md](UPGRADING.md) for the full
 > before/after list and an opt-in flag that surfaces every call site.
 
-![Local Terminal](https://raw.githubusercontent.com/mwguerra/web-terminal/main/docs/images/local-terminal.jpg)
+![Local Terminal](https://raw.githubusercontent.com/mwguerra/web-terminal-stream/main/docs/images/local-terminal.jpg)
 
 ## Filament Integration
 
@@ -339,7 +339,7 @@ namespace App\Providers\Filament;
 
 use Filament\Panel;
 use Filament\PanelProvider;
-use MWGuerra\WebTerminal\WebTerminalPlugin;
+use MWGuerra\WebTerminalStream\WebTerminalStreamPlugin;
 
 class AdminPanelProvider extends PanelProvider
 {
@@ -347,7 +347,7 @@ class AdminPanelProvider extends PanelProvider
     {
         return $panel
             ->plugins([
-                WebTerminalPlugin::make(),
+                WebTerminalStreamPlugin::make(),
             ]);
     }
 }
@@ -358,7 +358,7 @@ class AdminPanelProvider extends PanelProvider
 #### Customize Navigation
 
 ```php
-WebTerminalPlugin::make()
+WebTerminalStreamPlugin::make()
     // Configure Terminal page navigation
     ->terminalNavigation(
         icon: 'heroicon-o-command-line',
@@ -379,27 +379,27 @@ WebTerminalPlugin::make()
 
 ```php
 // Disable Terminal page (only show logs)
-WebTerminalPlugin::make()
+WebTerminalStreamPlugin::make()
     ->withoutTerminalPage()
 
 // Disable Terminal Logs resource (only show terminal)
-WebTerminalPlugin::make()
+WebTerminalStreamPlugin::make()
     ->withoutTerminalLogs()
 
 // Register only specific components
-WebTerminalPlugin::make()
+WebTerminalStreamPlugin::make()
     ->only([
-        \MWGuerra\WebTerminal\Filament\Pages\Terminal::class,
+        \MWGuerra\WebTerminalStream\Filament\Pages\Terminal::class,
     ])
 ```
 
 #### Access Plugin Configuration
 
 ```php
-use MWGuerra\WebTerminal\WebTerminalPlugin;
+use MWGuerra\WebTerminalStream\WebTerminalStreamPlugin;
 
 // Get current plugin instance
-$plugin = WebTerminalPlugin::get();
+$plugin = WebTerminalStreamPlugin::get();
 
 // Check if components are enabled
 $plugin->isTerminalPageEnabled();
@@ -423,8 +423,8 @@ namespace App\Filament\Pages;
 
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
-use MWGuerra\WebTerminal\Filament\Pages\Terminal as BaseTerminal;
-use MWGuerra\WebTerminal\Schemas\Components\WebTerminal;
+use MWGuerra\WebTerminalStream\Filament\Pages\Terminal as BaseTerminal;
+use MWGuerra\WebTerminalStream\Schemas\Components\WebTerminalStream;
 
 class Terminal extends BaseTerminal
 {
@@ -473,7 +473,7 @@ Then disable the plugin's default page and register your custom one:
 
 ```php
 // In your PanelProvider
-WebTerminalPlugin::make()
+WebTerminalStreamPlugin::make()
     ->withoutTerminalPage()  // Disable default Terminal page
 ```
 
@@ -486,7 +486,7 @@ public function panel(Panel $panel): Panel
             \App\Filament\Pages\Terminal::class,
         ])
         ->plugins([
-            WebTerminalPlugin::make()
+            WebTerminalStreamPlugin::make()
                 ->withoutTerminalPage(),
         ]);
 }
@@ -523,7 +523,7 @@ use Filament\Schemas\Schema;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Concerns\InteractsWithSchemas;
 use Filament\Schemas\Contracts\HasSchemas;
-use MWGuerra\WebTerminal\Schemas\Components\WebTerminal;
+use MWGuerra\WebTerminalStream\Schemas\Components\WebTerminalStream;
 
 class Terminal extends Page implements HasSchemas
 {
@@ -567,7 +567,7 @@ The package uses command whitelisting for security. Only commands in the whiteli
 
 ### Config File Defaults
 
-The `config/web-terminal.php` file includes these default allowed commands:
+The `config/web-terminal-stream.php` file includes these default allowed commands:
 
 ```php
 'allowed_commands' => [
@@ -611,7 +611,7 @@ The Filament plugin's Terminal page (`/admin/terminal`) uses an extended command
 
 **Note:** The `*` wildcard allows the command with any arguments (e.g., `php artisan migrate`, `composer require package/name`).
 
-![Terminal Commands](https://raw.githubusercontent.com/mwguerra/web-terminal/main/docs/images/local-terminal-commands.jpg)
+![Terminal Commands](https://raw.githubusercontent.com/mwguerra/web-terminal-stream/main/docs/images/local-terminal-commands.jpg)
 
 ### Customizing Commands
 
@@ -769,8 +769,8 @@ WebTerminal::make()
 For complex configurations, use the `connection()` method with a config array or `ConnectionConfig` object:
 
 ```php
-use MWGuerra\WebTerminal\Data\ConnectionConfig;
-use MWGuerra\WebTerminal\Enums\ConnectionType;
+use MWGuerra\WebTerminalStream\Data\ConnectionConfig;
+use MWGuerra\WebTerminalStream\Enums\ConnectionType;
 
 // Using array
 WebTerminal::make()
@@ -794,7 +794,7 @@ $config = new ConnectionConfig(
 WebTerminal::make()->connection($config)
 
 // Using static factory methods (cleaner API)
-use MWGuerra\WebTerminal\Data\ConnectionConfig;
+use MWGuerra\WebTerminalStream\Data\ConnectionConfig;
 
 // Local connection
 $config = ConnectionConfig::local(
@@ -899,14 +899,14 @@ Stream mode always auto-connects when the terminal becomes visible. The connect/
 Stream mode requires a WebSocket server to bridge the browser to a PTY shell process. Start it with:
 
 ```bash
-php artisan terminal:serve
+php artisan terminal-stream:serve
 ```
 
 Options:
 
 ```bash
 # Custom host and port
-php artisan terminal:serve --host=0.0.0.0 --port=8090
+php artisan terminal-stream:serve --host=0.0.0.0 --port=8090
 
 # Default: 127.0.0.1:8090
 ```
@@ -929,7 +929,7 @@ WEB_TERMINAL_SSL_CERT=/path/to/cert.crt
 WEB_TERMINAL_SSL_KEY=/path/to/cert.key
 ```
 
-Or configure in `config/web-terminal.php`:
+Or configure in `config/web-terminal-stream.php`:
 
 ```php
 'stream' => [
@@ -961,7 +961,7 @@ For production, run the WebSocket server as a supervised process:
 ```bash
 # Using Supervisor
 [program:terminal-serve]
-command=php /path/to/artisan terminal:serve --host=0.0.0.0 --port=8090
+command=php /path/to/artisan terminal-stream:serve --host=0.0.0.0 --port=8090
 autostart=true
 autorestart=true
 user=www-data
@@ -977,7 +977,7 @@ Description=Web Terminal WebSocket Server
 After=network.target
 
 [Service]
-ExecStart=/usr/bin/php /path/to/artisan terminal:serve --host=0.0.0.0 --port=8090
+ExecStart=/usr/bin/php /path/to/artisan terminal-stream:serve --host=0.0.0.0 --port=8090
 Restart=always
 User=www-data
 
@@ -1015,7 +1015,7 @@ WebTerminal::make()
 
 #### Session Configuration in Config File
 
-You can also configure these settings globally in `config/web-terminal.php`:
+You can also configure these settings globally in `config/web-terminal-stream.php`:
 
 ```php
 'session' => [
@@ -1099,15 +1099,15 @@ WebTerminal::make()
 
 Scripts allow you to define reusable sequences of commands that can be executed with a single click. They appear in a dropdown menu in the terminal header and provide visual feedback during execution.
 
-![Scripts Dropdown Menu](https://raw.githubusercontent.com/mwguerra/web-terminal/main/docs/images/terminal-scripts-menu.jpg)
+![Scripts Dropdown Menu](https://raw.githubusercontent.com/mwguerra/web-terminal-stream/main/docs/images/terminal-scripts-menu.jpg)
 
 ### Defining Scripts
 
 Use the `Script` class to define scripts with a fluent API:
 
 ```php
-use MWGuerra\WebTerminal\Data\Script;
-use MWGuerra\WebTerminal\Schemas\Components\WebTerminal;
+use MWGuerra\WebTerminalStream\Data\Script;
+use MWGuerra\WebTerminalStream\Schemas\Components\WebTerminalStream;
 
 WebTerminal::make()
     ->local()
@@ -1209,7 +1209,7 @@ Script::make('admin-task')
 
 ### Script Execution UI
 
-![Script Execution Status](https://raw.githubusercontent.com/mwguerra/web-terminal/main/docs/images/terminal-scripts-status.jpg)
+![Script Execution Status](https://raw.githubusercontent.com/mwguerra/web-terminal-stream/main/docs/images/terminal-scripts-status.jpg)
 
 When a script runs, a slide-over panel displays:
 - Script name and progress percentage
@@ -1304,11 +1304,11 @@ Script::make('server-status')
 
 The package includes comprehensive logging for terminal sessions, connections, and command execution.
 
-![Terminal Logs Resource](https://raw.githubusercontent.com/mwguerra/web-terminal/main/docs/images/terminal-log-resource.jpg)
+![Terminal Logs Resource](https://raw.githubusercontent.com/mwguerra/web-terminal-stream/main/docs/images/terminal-log-resource.jpg)
 
 ### Configuration
 
-Logging is configured in `config/web-terminal.php`:
+Logging is configured in `config/web-terminal-stream.php`:
 
 ```php
 'logging' => [
@@ -1330,7 +1330,7 @@ Logging is configured in `config/web-terminal.php`:
     'user_table' => 'users',
     'user_foreign_key' => 'user_id',
 
-    // Retention (cleanup via manual `terminal:cleanup` command)
+    // Retention (cleanup via manual `terminal-stream:logs:cleanup` command)
     'retention_days' => env('WEB_TERMINAL_LOG_RETENTION', 90),
 
     // Terminals to log (empty = all)
@@ -1473,12 +1473,12 @@ When logging is enabled, the terminal info panel displays session statistics:
 - Session Duration
 - Error Count
 
-![Session Info Panel](https://raw.githubusercontent.com/mwguerra/web-terminal/main/docs/images/ssh-terminal-info-panel.jpg)
+![Session Info Panel](https://raw.githubusercontent.com/mwguerra/web-terminal-stream/main/docs/images/ssh-terminal-info-panel.jpg)
 
 ### Querying Logs
 
 ```php
-use MWGuerra\WebTerminal\Models\TerminalLog;
+use MWGuerra\WebTerminalStream\Models\TerminalLog;
 
 // Get all commands for a user today
 TerminalLog::forUser(auth()->id())
@@ -1522,11 +1522,11 @@ TerminalLog::connections()
 | `recent(int $hours)` | Logs from the last N hours |
 | `olderThan(int $days)` | Logs older than N days |
 
-![Terminal Log View](https://raw.githubusercontent.com/mwguerra/web-terminal/main/docs/images/terminal-log-view-page.jpg)
+![Terminal Log View](https://raw.githubusercontent.com/mwguerra/web-terminal-stream/main/docs/images/terminal-log-view-page.jpg)
 
-![Terminal Log Filter](https://raw.githubusercontent.com/mwguerra/web-terminal/main/docs/images/terminal-log-filter.jpg)
+![Terminal Log Filter](https://raw.githubusercontent.com/mwguerra/web-terminal-stream/main/docs/images/terminal-log-filter.jpg)
 
-![Terminal Log Command Output](https://raw.githubusercontent.com/mwguerra/web-terminal/main/docs/images/terminal-log-command-output.jpg)
+![Terminal Log Command Output](https://raw.githubusercontent.com/mwguerra/web-terminal-stream/main/docs/images/terminal-log-command-output.jpg)
 
 ### Log Cleanup
 
@@ -1534,13 +1534,13 @@ Clean up old log entries manually:
 
 ```bash
 # Clean logs older than retention period (default 90 days)
-php artisan terminal:cleanup
+php artisan terminal-stream:logs:cleanup
 
 # Clean logs older than 30 days
-php artisan terminal:cleanup --days=30
+php artisan terminal-stream:logs:cleanup --days=30
 
 # Preview what would be deleted (dry run)
-php artisan terminal:cleanup --dry-run
+php artisan terminal-stream:logs:cleanup --dry-run
 ```
 
 ### Multi-Tenant Support
@@ -1548,7 +1548,7 @@ php artisan terminal:cleanup --dry-run
 For multi-tenant applications, configure the tenant resolver:
 
 ```php
-// In config/web-terminal.php
+// In config/web-terminal-stream.php
 'logging' => [
     'tenant_column' => 'tenant_id',
     'tenant_resolver' => fn () => auth()->user()?->tenant_id,
@@ -1641,7 +1641,7 @@ Commands are validated server-side against a configurable allowlist before execu
 
 Only whitelisted commands can be executed (unless `allowAllCommands()` is explicitly used).
 
-![Blocked Command](https://raw.githubusercontent.com/mwguerra/web-terminal/main/docs/images/ssh-terminal-not-allowed.jpg)
+![Blocked Command](https://raw.githubusercontent.com/mwguerra/web-terminal-stream/main/docs/images/ssh-terminal-not-allowed.jpg)
 
 ### Shell Operator Controls
 
@@ -1695,7 +1695,7 @@ WebTerminal::make()
     ->allowAllShellOperators()
 
 // Or use the TerminalPermission enum
-use MWGuerra\WebTerminal\Enums\TerminalPermission;
+use MWGuerra\WebTerminalStream\Enums\TerminalPermission;
 
 WebTerminal::make()
     ->allowedCommands(['php artisan *', 'composer *'])
@@ -1714,7 +1714,7 @@ When `allowInteractiveMode()` is enabled:
 Instead of chaining multiple `allow*()` methods, use the `allow()` method with the `TerminalPermission` enum:
 
 ```php
-use MWGuerra\WebTerminal\Enums\TerminalPermission;
+use MWGuerra\WebTerminalStream\Enums\TerminalPermission;
 
 // Individual permissions
 WebTerminal::make()
@@ -1814,14 +1814,14 @@ The default settings allow 1 command per second per user. Adjust based on your u
 
 The package dispatches events you can listen to:
 
-- `MWGuerra\WebTerminal\Events\CommandExecutedEvent` - After command execution
-- `MWGuerra\WebTerminal\Events\TerminalConnectedEvent` - When terminal connects
-- `MWGuerra\WebTerminal\Events\TerminalDisconnectedEvent` - When terminal disconnects
+- `MWGuerra\WebTerminalStream\Events\CommandExecutedEvent` - After command execution
+- `MWGuerra\WebTerminalStream\Events\TerminalConnectedEvent` - When terminal connects
+- `MWGuerra\WebTerminalStream\Events\TerminalDisconnectedEvent` - When terminal disconnects
 
 Example listener:
 
 ```php
-use MWGuerra\WebTerminal\Events\CommandExecutedEvent;
+use MWGuerra\WebTerminalStream\Events\CommandExecutedEvent;
 
 class LogDangerousCommands
 {
@@ -1933,15 +1933,15 @@ This will copy the language files to `lang/vendor/web-terminal/`.
 
 ### Using Translations
 
-Translations use the `web-terminal::terminal` namespace:
+Translations use the `web-terminal-stream::terminal` namespace:
 
 ```php
 // In PHP
-__('web-terminal::terminal.navigation.terminal')
-__('web-terminal::terminal.resource.label')
+__('web-terminal-stream::terminal.navigation.terminal')
+__('web-terminal-stream::terminal.resource.label')
 
 // In Blade
-{{ __('web-terminal::terminal.terminal.connect') }}
+{{ __('web-terminal-stream::terminal.terminal.connect') }}
 ```
 
 ### Available Translation Keys
@@ -1971,13 +1971,13 @@ cp lang/en/terminal.php lang/es/terminal.php
 
 ## Issues and Contributing
 
-Found a bug or have a feature request? Please open an issue on [GitHub Issues](https://github.com/mwguerra/web-terminal/issues).
+Found a bug or have a feature request? Please open an issue on [GitHub Issues](https://github.com/mwguerra/web-terminal-stream/issues).
 
-We welcome contributions! Please read our [Contributing Guide](https://github.com/mwguerra/web-terminal/blob/main/CONTRIBUTING.md) before submitting a pull request.
+We welcome contributions! Please read our [Contributing Guide](https://github.com/mwguerra/web-terminal-stream/blob/main/CONTRIBUTING.md) before submitting a pull request.
 
 ## License
 
-Web Terminal is open-sourced software licensed under the [MIT License](https://github.com/mwguerra/web-terminal/blob/main/LICENSE).
+Web Terminal is open-sourced software licensed under the [MIT License](https://github.com/mwguerra/web-terminal-stream/blob/main/LICENSE).
 
 ## Author
 

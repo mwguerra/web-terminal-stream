@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-use MWGuerra\WebTerminal\Livewire\TerminalBuilder;
+use MWGuerra\WebTerminalStream\Livewire\TerminalBuilder;
 
 describe('TerminalBuilder Stream Methods', function () {
     describe('streamTheme()', function () {

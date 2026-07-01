@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace MWGuerra\WebTerminal\Listeners;
+namespace MWGuerra\WebTerminalStream\Listeners;
 
-use MWGuerra\WebTerminal\Events\TerminalConnectedEvent;
-use MWGuerra\WebTerminal\Events\TerminalDisconnectedEvent;
-use MWGuerra\WebTerminal\Services\TerminalLogger;
+use MWGuerra\WebTerminalStream\Events\TerminalConnectedEvent;
+use MWGuerra\WebTerminalStream\Events\TerminalDisconnectedEvent;
+use MWGuerra\WebTerminalStream\Services\TerminalLogger;
 
 /**
  * Event listener for terminal logging.

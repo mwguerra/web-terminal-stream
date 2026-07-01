@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace MWGuerra\WebTerminal\Enums;
+namespace MWGuerra\WebTerminalStream\Enums;
 
 enum ConnectionType: string
 {

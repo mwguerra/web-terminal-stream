@@ -1,7 +1,8 @@
 {
+    "name": "web-terminal-stream",
     "private": true,
     "scripts": {
-        "build": "npx @tailwindcss/cli -i resources/css/index.css -o resources/dist/web-terminal.css --minify",
+        "build": "npx @tailwindcss/cli -i resources/css/index.css -o resources/dist/web-terminal-stream.css --minify",
         "build:js": "npx esbuild resources/js/stream-terminal.js --bundle --minify --format=iife --global-name=StreamWeb --outfile=resources/dist/stream-terminal.js",
         "build:all": "npm run build && npm run build:js"
     },

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace MWGuerra\WebTerminal\Console\Commands;
+namespace MWGuerra\WebTerminalStream\Console\Commands;
 
 use Filament\Facades\Filament;
 use Filament\Panel;
@@ -22,7 +22,7 @@ class TerminalMakePageCommand extends Command
     /**
      * The name and signature of the console command.
      */
-    protected $signature = 'terminal:make-page
+    protected $signature = 'terminal-stream:make-page
                             {name? : The name of the terminal page class}
                             {--panel= : The Filament panel to create the page for}
                             {--key= : The terminal identifier key}
@@ -293,16 +293,16 @@ class TerminalMakePageCommand extends Command
         $this->newLine();
         note('Next steps:');
         $this->line('1. Customize the terminal configuration in the generated page');
-        $this->line('2. If using WebTerminalPlugin, disable its default Terminal page:');
+        $this->line('2. If using WebTerminalStreamPlugin, disable its default Terminal page:');
         $this->newLine();
-        $this->line('   WebTerminalPlugin::make()');
+        $this->line('   WebTerminalStreamPlugin::make()');
         $this->line('       ->withoutTerminalPage()');
         $this->newLine();
         $this->line('   Or use only() to keep just TerminalLogs from the plugin:');
         $this->newLine();
-        $this->line('   WebTerminalPlugin::make()');
+        $this->line('   WebTerminalStreamPlugin::make()');
         $this->line('       ->only([');
-        $this->line('           \\MWGuerra\\WebTerminal\\Filament\\Resources\\TerminalLogResource::class,');
+        $this->line('           \\MWGuerra\\WebTerminalStream\\Filament\\Resources\\TerminalLogResource::class,');
         $this->line('       ])');
         $this->newLine();
     }

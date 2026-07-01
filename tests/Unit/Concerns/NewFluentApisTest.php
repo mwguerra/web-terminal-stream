@@ -2,16 +2,16 @@
 
 declare(strict_types=1);
 
-use MWGuerra\WebTerminal\Enums\ConnectionBehavior;
-use MWGuerra\WebTerminal\Enums\TerminalChrome;
-use MWGuerra\WebTerminal\Livewire\TerminalBuilder;
+use MWGuerra\WebTerminalStream\Enums\ConnectionBehavior;
+use MWGuerra\WebTerminalStream\Enums\TerminalChrome;
+use MWGuerra\WebTerminalStream\Livewire\TerminalBuilder;
 
 /*
  * Coverage for the appearance-related fluent APIs — `chrome()`,
  * `frameless()`, and `connectionBehavior()`.
  *
  * These run against `TerminalBuilder` because it uses the exact same
- * Concerns/Configures* traits as Schemas\Components\WebTerminal and
+ * Concerns/Configures* traits as Schemas\Components\WebTerminalStream and
  * doesn't need Filament loaded in the test container.
  */
 

@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # =============================================================================
-# Web Terminal Release Script
+# Web Terminal Stream Release Script
 # =============================================================================
 # This script automates the release process:
 # 1. Displays package information
@@ -33,7 +33,7 @@ cd "$PACKAGE_ROOT"
 
 echo -e "${CYAN}"
 echo "╔══════════════════════════════════════════════════════════╗"
-echo "║             Web Terminal Release Script                   ║"
+echo "║          Web Terminal Stream Release Script               ║"
 echo "╚══════════════════════════════════════════════════════════╝"
 echo -e "${NC}"
 

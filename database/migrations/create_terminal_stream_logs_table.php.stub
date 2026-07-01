@@ -11,9 +11,8 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('terminal_logs', function (Blueprint $table) {
+        Schema::create('terminal_stream_logs', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('tenant_id')->constrained()->cascadeOnDelete();
             $table->foreignId('user_id')->nullable()->constrained('users')->nullOnDelete();
             $table->string('terminal_session_id', 36)->index();
             $table->string('terminal_identifier')->nullable()->index();
@@ -43,7 +42,6 @@ return new class extends Migration
             // Composite indexes for common queries
             $table->index(['terminal_session_id', 'event_type']);
             $table->index(['user_id', 'created_at']);
-            $table->index(['tenant_id', 'created_at']);
         });
     }
 
@@ -52,6 +50,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('terminal_logs');
+        Schema::dropIfExists('terminal_stream_logs');
     }
 };

@@ -1,16 +1,16 @@
 <?php
 
-namespace MWGuerra\WebTerminal\Schemas\Components;
+namespace MWGuerra\WebTerminalStream\Schemas\Components;
 
 use Closure;
 use Filament\Schemas\Components\Livewire;
 use Illuminate\Support\Str;
-use MWGuerra\WebTerminal\Concerns\ConfiguresLogging;
-use MWGuerra\WebTerminal\Concerns\ConfiguresScripts;
-use MWGuerra\WebTerminal\Concerns\ConfiguresStreamMode;
-use MWGuerra\WebTerminal\Concerns\ConfiguresTerminalAppearance;
-use MWGuerra\WebTerminal\Data\ConnectionConfig;
-use MWGuerra\WebTerminal\Livewire\StreamTerminal as StreamTerminalComponent;
+use MWGuerra\WebTerminalStream\Concerns\ConfiguresLogging;
+use MWGuerra\WebTerminalStream\Concerns\ConfiguresScripts;
+use MWGuerra\WebTerminalStream\Concerns\ConfiguresStreamMode;
+use MWGuerra\WebTerminalStream\Concerns\ConfiguresTerminalAppearance;
+use MWGuerra\WebTerminalStream\Data\ConnectionConfig;
+use MWGuerra\WebTerminalStream\Livewire\StreamTerminal as StreamTerminalComponent;
 
 /**
  * Web Terminal component for use in Filament schemas/forms.
@@ -20,12 +20,12 @@ use MWGuerra\WebTerminal\Livewire\StreamTerminal as StreamTerminalComponent;
  * Filament's built-in Livewire component for proper component isolation.
  *
  * @example
- * WebTerminal::make()
+ * WebTerminalStream::make()
  *     ->local()
  *     ->height('400px')
  *     ->title('Server Console')
  */
-class WebTerminal extends Livewire
+class WebTerminalStream extends Livewire
 {
     use ConfiguresLogging;
     use ConfiguresScripts;
@@ -44,12 +44,12 @@ class WebTerminal extends Livewire
         ]);
         $static->configure();
 
-        // Unique default key per instance so two WebTerminal::make() calls on the
+        // Unique default key per instance so two WebTerminalStream::make() calls on the
         // same Filament page don't collide on Livewire's wire:key. Users who call
         // ->key('custom-id') later override this default. The random segment is
         // stable for the lifetime of a page render (make() only runs at schema
         // build time, not on every re-render).
-        $static->key('web-terminal-'.Str::random(8));
+        $static->key('web-terminal-stream-'.Str::random(8));
 
         return $static;
     }

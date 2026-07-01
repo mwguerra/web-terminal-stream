@@ -30,7 +30,7 @@ return [
         'user_table' => 'users',
         'user_foreign_key' => 'user_id',
 
-        // Retention (cleanup via manual `terminal:logs:cleanup` command)
+        // Retention (cleanup via manual `terminal-stream:logs:cleanup` command)
         'retention_days' => env('WEB_TERMINAL_LOG_RETENTION', 90),
 
         // Specific terminals to log (empty array = all terminals)
@@ -53,7 +53,7 @@ return [
     |
     | Configuration for the stream terminal. It provides a full interactive
     | PTY shell via WebSocket, using the ghostty-web WASM terminal emulator.
-    | Start the WebSocket server with `php artisan terminal:serve`.
+    | Start the WebSocket server with `php artisan terminal-stream:serve`.
     |
     */
     'stream' => [

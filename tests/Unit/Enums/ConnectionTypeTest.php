@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-use MWGuerra\WebTerminal\Enums\ConnectionType;
+use MWGuerra\WebTerminalStream\Enums\ConnectionType;
 
 describe('ConnectionType', function () {
     it('has local case', function () {

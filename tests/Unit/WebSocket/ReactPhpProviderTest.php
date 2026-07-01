@@ -1,8 +1,9 @@
 <?php
+
 declare(strict_types=1);
 
-use MWGuerra\WebTerminal\WebSocket\ReactPhpProvider;
-use MWGuerra\WebTerminal\WebSocket\WebSocketProviderInterface;
+use MWGuerra\WebTerminalStream\WebSocket\ReactPhpProvider;
+use MWGuerra\WebTerminalStream\WebSocket\WebSocketProviderInterface;
 
 describe('ReactPhpProvider', function () {
     it('implements WebSocketProviderInterface', function () {

@@ -1,13 +1,14 @@
 <?php
+
 declare(strict_types=1);
 
-namespace MWGuerra\WebTerminal\WebSocket;
+namespace MWGuerra\WebTerminalStream\WebSocket;
 
 use GuzzleHttp\Psr7\HttpFactory;
 use GuzzleHttp\Psr7\Message;
 use Illuminate\Contracts\Encryption\Encrypter;
 use Illuminate\Support\Facades\Cache;
-use MWGuerra\WebTerminal\Data\ConnectionConfig;
+use MWGuerra\WebTerminalStream\Data\ConnectionConfig;
 use Ratchet\RFC6455\Handshake\RequestVerifier;
 use Ratchet\RFC6455\Handshake\ServerNegotiator;
 use Ratchet\RFC6455\Messaging\CloseFrameChecker;
@@ -27,8 +28,11 @@ class ReactPhpWebSocketServer
     private array $buffers = [];
 
     private PtySessionRegistry $registry;
+
     private Encrypter $encrypter;
+
     private array $config;
+
     private ServerNegotiator $negotiator;
 
     public function __construct(
@@ -40,8 +44,8 @@ class ReactPhpWebSocketServer
         $this->encrypter = $encrypter;
         $this->config = $config;
         $this->negotiator = new ServerNegotiator(
-            new RequestVerifier(),
-            new HttpFactory(),
+            new RequestVerifier,
+            new HttpFactory,
         );
     }
 
@@ -127,7 +131,7 @@ class ReactPhpWebSocketServer
         $userId = $payload['userId'];
 
         // Retrieve connection config from cache (one-time use)
-        $configData = Cache::pull("terminal-pty:{$sessionId}");
+        $configData = Cache::pull("terminal-stream-pty:{$sessionId}");
         if ($configData === null) {
             $conn->close();
 
@@ -150,7 +154,7 @@ class ReactPhpWebSocketServer
         // Set up WebSocket message buffer for this connection.
         // expectMask = true because browser clients always mask frames.
         $this->buffers[$id] = new MessageBuffer(
-            new CloseFrameChecker(),
+            new CloseFrameChecker,
             function ($msg) use ($id) {
                 $this->handleMessage($id, $msg->getPayload());
             },

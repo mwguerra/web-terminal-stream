@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace MWGuerra\WebTerminal\Concerns;
+namespace MWGuerra\WebTerminalStream\Concerns;
 
 use Closure;
 
@@ -14,7 +14,7 @@ use Closure;
  * logging — only connection lifecycle events are recorded.
  *
  * Nullable fields mean "not explicitly set" — downstream code falls back
- * to the package-wide defaults in `config/web-terminal.logging.*`.
+ * to the package-wide defaults in `config/web-terminal-stream.logging.*`.
  *
  * The `log()` method accepts three call shapes:
  *   - Named parameters: `log(enabled: true, identifier: 'admin')`

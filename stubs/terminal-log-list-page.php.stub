@@ -6,7 +6,7 @@ namespace {{ namespace }};
 
 use Filament\Resources\Pages\ListRecords;
 use {{ resource_class }};
-use MWGuerra\WebTerminal\Filament\Resources\TerminalLogResource\Widgets\TerminalLogsStatsOverview;
+use MWGuerra\WebTerminalStream\Filament\Resources\TerminalLogResource\Widgets\TerminalLogsStatsOverview;
 
 class ListTerminalLogs extends ListRecords
 {

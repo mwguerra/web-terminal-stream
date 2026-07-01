@@ -3,10 +3,11 @@
 declare(strict_types=1);
 
 use Illuminate\Contracts\Encryption\Encrypter;
-use MWGuerra\WebTerminal\WebSocket\PtySessionRegistry;
-use MWGuerra\WebTerminal\WebSocket\ReactPhpWebSocketServer;
-use MWGuerra\WebTerminal\WebSocket\TerminalPtyBridge;
+use MWGuerra\WebTerminalStream\WebSocket\PtySessionRegistry;
+use MWGuerra\WebTerminalStream\WebSocket\ReactPhpWebSocketServer;
+use MWGuerra\WebTerminalStream\WebSocket\TerminalPtyBridge;
 use React\Socket\ConnectionInterface;
+use React\Stream\WritableStreamInterface;
 
 /*
  * Event-loop safety boundary tests.
@@ -23,8 +24,8 @@ use React\Socket\ConnectionInterface;
 
 function serverWithInjectedBridges(array $bridges, array $connections = []): ReactPhpWebSocketServer
 {
-    $encrypter = \Mockery::mock(Encrypter::class);
-    $registry = new PtySessionRegistry(sys_get_temp_dir() . '/test-' . uniqid());
+    $encrypter = Mockery::mock(Encrypter::class);
+    $registry = new PtySessionRegistry(sys_get_temp_dir().'/test-'.uniqid());
     $server = new ReactPhpWebSocketServer($registry, $encrypter, []);
 
     $ref = new ReflectionClass($server);
@@ -42,7 +43,8 @@ function serverWithInjectedBridges(array $bridges, array $connections = []): Rea
 
 function throwingBridge(string $on = 'isRunning'): TerminalPtyBridge
 {
-    return new class($on) extends TerminalPtyBridge {
+    return new class($on) extends TerminalPtyBridge
+    {
         public function __construct(private string $throwOn)
         {
             // Intentionally skip parent constructor — we're a test stand-in.
@@ -51,7 +53,7 @@ function throwingBridge(string $on = 'isRunning'): TerminalPtyBridge
         public function isRunning(): bool
         {
             if ($this->throwOn === 'isRunning') {
-                throw new \RuntimeException('transport gone');
+                throw new RuntimeException('transport gone');
             }
 
             return true;
@@ -60,7 +62,7 @@ function throwingBridge(string $on = 'isRunning'): TerminalPtyBridge
         public function read(): string
         {
             if ($this->throwOn === 'read') {
-                throw new \RuntimeException('channel broken');
+                throw new RuntimeException('channel broken');
             }
 
             return '';
@@ -69,21 +71,21 @@ function throwingBridge(string $on = 'isRunning'): TerminalPtyBridge
         public function write(string $data): void
         {
             if ($this->throwOn === 'write') {
-                throw new \RuntimeException('write failed');
+                throw new RuntimeException('write failed');
             }
         }
 
         public function resize(int $cols, int $rows): void
         {
             if ($this->throwOn === 'resize') {
-                throw new \RuntimeException('resize failed');
+                throw new RuntimeException('resize failed');
             }
         }
 
         public function terminate(): void
         {
             if ($this->throwOn === 'terminate') {
-                throw new \RuntimeException('terminate failed');
+                throw new RuntimeException('terminate failed');
             }
         }
     };
@@ -91,8 +93,10 @@ function throwingBridge(string $on = 'isRunning'): TerminalPtyBridge
 
 function nullConnection(): ConnectionInterface
 {
-    return new class implements ConnectionInterface {
+    return new class implements ConnectionInterface
+    {
         public array $writes = [];
+
         public bool $closed = false;
 
         public function getRemoteAddress(): ?string
@@ -119,7 +123,7 @@ function nullConnection(): ConnectionInterface
 
         public function resume(): void {}
 
-        public function pipe(\React\Stream\WritableStreamInterface $dest, array $options = []): \React\Stream\WritableStreamInterface
+        public function pipe(WritableStreamInterface $dest, array $options = []): WritableStreamInterface
         {
             return $dest;
         }
@@ -170,7 +174,7 @@ it('tick() does not throw when a bridge isRunning() throws', function () {
         1 => nullConnection(),
     ]);
 
-    expect(fn () => $server->tick())->not->toThrow(\Throwable::class);
+    expect(fn () => $server->tick())->not->toThrow(Throwable::class);
 });
 
 it('tick() does not throw when a bridge read() throws', function () {
@@ -180,7 +184,7 @@ it('tick() does not throw when a bridge read() throws', function () {
         1 => nullConnection(),
     ]);
 
-    expect(fn () => $server->tick())->not->toThrow(\Throwable::class);
+    expect(fn () => $server->tick())->not->toThrow(Throwable::class);
 });
 
 it('tick() closes the connection of a bridge that throws and preserves the others', function () {
@@ -219,7 +223,7 @@ it('handleMessage() does not throw when a bridge write() throws', function () {
     $method = $ref->getMethod('handleMessage');
     $method->setAccessible(true);
 
-    expect(fn () => $method->invoke($server, 1, 'echo hello'))->not->toThrow(\Throwable::class);
+    expect(fn () => $method->invoke($server, 1, 'echo hello'))->not->toThrow(Throwable::class);
 });
 
 it('handleMessage() does not throw when a resize dispatch throws', function () {
@@ -234,7 +238,7 @@ it('handleMessage() does not throw when a resize dispatch throws', function () {
     $method->setAccessible(true);
 
     expect(fn () => $method->invoke($server, 1, json_encode(['type' => 'resize', 'cols' => 80, 'rows' => 24])))
-        ->not->toThrow(\Throwable::class);
+        ->not->toThrow(Throwable::class);
 });
 
 it('handleClose() swallows throws from a bridge terminate() path', function () {
@@ -246,5 +250,5 @@ it('handleClose() swallows throws from a bridge terminate() path', function () {
     $method = $ref->getMethod('handleClose');
     $method->setAccessible(true);
 
-    expect(fn () => $method->invoke($server, 1))->not->toThrow(\Throwable::class);
+    expect(fn () => $method->invoke($server, 1))->not->toThrow(Throwable::class);
 });

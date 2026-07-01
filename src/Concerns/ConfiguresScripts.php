@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace MWGuerra\WebTerminal\Concerns;
+namespace MWGuerra\WebTerminalStream\Concerns;
 
 use Closure;
-use MWGuerra\WebTerminal\Data\Script;
+use MWGuerra\WebTerminalStream\Data\Script;
 
 /**
  * Fluent configuration for the list of scripts exposed in the terminal
@@ -23,7 +23,7 @@ trait ConfiguresScripts
     protected array|Closure $scripts = [];
 
     /**
-     * @param array<int, Script|array<string, mixed>>|Closure $scripts
+     * @param  array<int, Script|array<string, mixed>>|Closure  $scripts
      */
     public function scripts(array|Closure $scripts): static
     {

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace MWGuerra\WebTerminal\Http\Controllers;
+namespace MWGuerra\WebTerminalStream\Http\Controllers;
 
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -16,10 +16,10 @@ class TerminalWebSocketController extends Controller
     {
         $sessionId = Str::uuid()->toString();
         $config = $request->input('connectionConfig', []);
-        $ttl = config('web-terminal.stream.signed_url_ttl', 300);
+        $ttl = config('web-terminal-stream.stream.signed_url_ttl', 300);
 
         // Store connection config in cache (one-time retrieval)
-        Cache::put("terminal-pty:{$sessionId}", $config, $ttl);
+        Cache::put("terminal-stream-pty:{$sessionId}", $config, $ttl);
 
         $payload = json_encode([
             'userId' => $request->user()->id,
@@ -29,13 +29,13 @@ class TerminalWebSocketController extends Controller
 
         $token = app('encrypter')->encrypt($payload);
 
-        $host = config('web-terminal.stream.ratchet_host', '127.0.0.1');
-        $port = config('web-terminal.stream.ratchet_port', 8090);
+        $host = config('web-terminal-stream.stream.ratchet_host', '127.0.0.1');
+        $port = config('web-terminal-stream.stream.ratchet_port', 8090);
         $protocol = $request->isSecure() ? 'wss' : 'ws';
 
         return response()->json([
             'token' => $token,
-            'url' => "{$protocol}://{$host}:{$port}?token=" . urlencode($token),
+            'url' => "{$protocol}://{$host}:{$port}?token=".urlencode($token),
             'sessionId' => $sessionId,
         ]);
     }

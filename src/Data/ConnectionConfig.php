@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace MWGuerra\WebTerminal\Data;
+namespace MWGuerra\WebTerminalStream\Data;
 
 use InvalidArgumentException;
-use MWGuerra\WebTerminal\Enums\ConnectionType;
+use MWGuerra\WebTerminalStream\Enums\ConnectionType;
 
 /**
  * Data Transfer Object for connection configuration.

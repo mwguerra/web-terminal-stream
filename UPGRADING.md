@@ -25,10 +25,10 @@ WEB_TERMINAL_DEPRECATIONS_EMIT_NOTICES=true
 
 The package then calls `trigger_error(..., E_USER_DEPRECATED)` every time a
 deprecated fluent-API method is invoked. Each notice starts with
-`web-terminal:` so grepping staging logs is easy:
+`web-terminal-stream:` so grepping staging logs is easy:
 
 ```bash
-tail -f storage/logs/laravel.log | grep 'web-terminal:'
+tail -f storage/logs/laravel.log | grep 'web-terminal-stream:'
 ```
 
 Turn it back off before deploying to production.
@@ -53,7 +53,7 @@ WebTerminal::make()
     ->allowExpansion();
 
 // After
-use MWGuerra\WebTerminal\Enums\TerminalPermission;
+use MWGuerra\WebTerminalStream\Enums\TerminalPermission;
 
 WebTerminal::make()
     ->allow([
@@ -87,16 +87,16 @@ management are not serialized into the HTML string.
 {{ (new TerminalBuilder)->local()->allowedCommands(['ls'])->render() }}
 ```
 
-#### `MWGuerra\WebTerminal\Schemas\Components\WebTerminalEmbed` alias
+#### `MWGuerra\WebTerminalStream\Schemas\Components\WebTerminalEmbed` alias
 
 Use the canonical class directly:
 
 ```php
 // Before
-use MWGuerra\WebTerminal\Schemas\Components\WebTerminalEmbed;
+use MWGuerra\WebTerminalStream\Schemas\Components\WebTerminalEmbed;
 
 // After
-use MWGuerra\WebTerminal\Schemas\Components\WebTerminal;
+use MWGuerra\WebTerminalStream\Schemas\Components\WebTerminalStream;
 ```
 
 The old alias continues to resolve through every 2.x release.
@@ -109,7 +109,7 @@ predict which combination they were getting. Replaced with a single
 enum-based method:
 
 ```php
-use MWGuerra\WebTerminal\Enums\ConnectionBehavior;
+use MWGuerra\WebTerminalStream\Enums\ConnectionBehavior;
 
 // Before
 WebTerminal::make()->startConnected();         // auto-connect, button visible
@@ -130,7 +130,7 @@ silently produced dual-mode because `classicEnabled` defaulted to
 selector:
 
 ```php
-use MWGuerra\WebTerminal\Enums\TerminalMode;
+use MWGuerra\WebTerminalStream\Enums\TerminalMode;
 
 // Before
 WebTerminal::make()->streamTerminal()->classicTerminal(false); // stream-only
@@ -149,7 +149,7 @@ The boolean only toggled the three colored dots. The new enum covers
 the whole spectrum of surrounding UI:
 
 ```php
-use MWGuerra\WebTerminal\Enums\TerminalChrome;
+use MWGuerra\WebTerminalStream\Enums\TerminalChrome;
 
 // Before
 WebTerminal::make()->windowControls(true);   // dots visible
@@ -169,7 +169,7 @@ so "all shell operators except expansion" patterns stop requiring
 the individual methods:
 
 ```php
-use MWGuerra\WebTerminal\Enums\TerminalPermission;
+use MWGuerra\WebTerminalStream\Enums\TerminalPermission;
 
 WebTerminal::make()
     ->allow([TerminalPermission::ShellOperators])
@@ -194,6 +194,6 @@ with at least one 2.x release of runway before removal.
   Laravel 11 / Filament 4 / Livewire 3).
 - If you published Blade views: update any `@entangle('prop')` to
   `$wire.entangle('prop')` in your custom views.
-- Composer: `composer require mwguerra/web-terminal:"^2.0"`.
+- Composer: `composer require mwguerra/web-terminal-stream:"^2.0"`.
 
 See the CHANGELOG for the full list of changes.

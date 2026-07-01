@@ -2,42 +2,43 @@
 
 declare(strict_types=1);
 
-use MWGuerra\WebTerminal\WebTerminalPlugin;
+use Filament\Contracts\Plugin;
+use MWGuerra\WebTerminalStream\WebTerminalStreamPlugin;
 
 // Skip all tests if Filament is not installed
 beforeEach(function () {
-    if (! interface_exists(\Filament\Contracts\Plugin::class)) {
+    if (! interface_exists(Plugin::class)) {
         $this->markTestSkipped('Filament is not installed. These tests require filament/filament package.');
     }
 });
 
-describe('WebTerminalPlugin', function () {
+describe('WebTerminalStreamPlugin', function () {
     it('can be instantiated using make()', function () {
-        $plugin = WebTerminalPlugin::make();
+        $plugin = WebTerminalStreamPlugin::make();
 
-        expect($plugin)->toBeInstanceOf(WebTerminalPlugin::class);
+        expect($plugin)->toBeInstanceOf(WebTerminalStreamPlugin::class);
     });
 
     it('has correct plugin id', function () {
-        $plugin = WebTerminalPlugin::make();
+        $plugin = WebTerminalStreamPlugin::make();
 
-        expect($plugin->getId())->toBe('web-terminal');
+        expect($plugin->getId())->toBe('web-terminal-stream');
     });
 
     it('is enabled by default', function () {
-        $plugin = WebTerminalPlugin::make();
+        $plugin = WebTerminalStreamPlugin::make();
 
         expect($plugin->isEnabled())->toBeTrue();
     });
 
     it('can be disabled', function () {
-        $plugin = WebTerminalPlugin::make()->disabled();
+        $plugin = WebTerminalStreamPlugin::make()->disabled();
 
         expect($plugin->isEnabled())->toBeFalse();
     });
 
     it('can be enabled after being disabled', function () {
-        $plugin = WebTerminalPlugin::make()
+        $plugin = WebTerminalStreamPlugin::make()
             ->disabled()
             ->enabled();
 
@@ -47,14 +48,14 @@ describe('WebTerminalPlugin', function () {
     it('can set allowed commands', function () {
         $commands = ['ls', 'pwd', 'whoami'];
 
-        $plugin = WebTerminalPlugin::make()
+        $plugin = WebTerminalStreamPlugin::make()
             ->allowedCommands($commands);
 
         expect($plugin->getAllowedCommands())->toBe($commands);
     });
 
     it('can set connection type', function () {
-        $plugin = WebTerminalPlugin::make()
+        $plugin = WebTerminalStreamPlugin::make()
             ->connectionType('local');
 
         expect($plugin->getConnectionType())->toBe('local');
@@ -66,14 +67,14 @@ describe('WebTerminalPlugin', function () {
             'port' => 22,
         ];
 
-        $plugin = WebTerminalPlugin::make()
+        $plugin = WebTerminalStreamPlugin::make()
             ->connectionConfig($config);
 
         expect($plugin->getConnectionConfig())->toBe($config);
     });
 
     it('supports fluent configuration', function () {
-        $plugin = WebTerminalPlugin::make()
+        $plugin = WebTerminalStreamPlugin::make()
             ->enabled()
             ->allowedCommands(['ls', 'pwd'])
             ->connectionType('ssh')

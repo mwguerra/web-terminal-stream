@@ -2,8 +2,7 @@
 
 use Filament\Schemas\Components\Component;
 use Filament\Schemas\Components\Livewire;
-use MWGuerra\WebTerminal\Livewire\StreamTerminal as StreamTerminalComponent;
-use MWGuerra\WebTerminal\Schemas\Components\WebTerminal;
+use MWGuerra\WebTerminalStream\Livewire\StreamTerminal as StreamTerminalComponent;
 
 // Skip all tests if Filament is not installed
 beforeEach(function () {

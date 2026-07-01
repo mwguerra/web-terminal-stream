@@ -1,7 +1,8 @@
 <?php
+
 declare(strict_types=1);
 
-namespace MWGuerra\WebTerminal\WebSocket;
+namespace MWGuerra\WebTerminalStream\WebSocket;
 
 class PtySessionRegistry
 {
@@ -9,7 +10,7 @@ class PtySessionRegistry
 
     public function __construct(string $storagePath)
     {
-        $this->registryPath = rtrim($storagePath, '/') . '/pty-sessions.json';
+        $this->registryPath = rtrim($storagePath, '/').'/pty-sessions.json';
     }
 
     public function register(string $sessionId, int $pid, int $userId): void

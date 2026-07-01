@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace MWGuerra\WebTerminal\Filament\Resources\TerminalLogResource\Pages;
+namespace MWGuerra\WebTerminalStream\Filament\Resources\TerminalLogResource\Pages;
 
 use Filament\Resources\Pages\ListRecords;
-use MWGuerra\WebTerminal\Filament\Resources\TerminalLogResource;
-use MWGuerra\WebTerminal\Filament\Resources\TerminalLogResource\Widgets\TerminalLogsStatsOverview;
+use MWGuerra\WebTerminalStream\Filament\Resources\TerminalLogResource;
+use MWGuerra\WebTerminalStream\Filament\Resources\TerminalLogResource\Widgets\TerminalLogsStatsOverview;
 
 class ListTerminalLogs extends ListRecords
 {

@@ -16,7 +16,7 @@ class ViewTerminalLog extends ViewRecord
     {
         return [
             Action::make('back')
-                ->label(__('web-terminal::terminal.resource.back'))
+                ->label(__('web-terminal-stream::terminal.resource.back'))
                 ->icon('heroicon-o-arrow-left')
                 ->url(TerminalLogResource::getUrl('index'))
                 ->color('gray'),

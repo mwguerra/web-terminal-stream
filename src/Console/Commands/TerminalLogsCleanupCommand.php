@@ -2,18 +2,18 @@
 
 declare(strict_types=1);
 
-namespace MWGuerra\WebTerminal\Console\Commands;
+namespace MWGuerra\WebTerminalStream\Console\Commands;
 
 use Illuminate\Console\Command;
-use MWGuerra\WebTerminal\Models\TerminalLog;
-use MWGuerra\WebTerminal\Services\TerminalLogger;
+use MWGuerra\WebTerminalStream\Models\TerminalLog;
+use MWGuerra\WebTerminalStream\Services\TerminalLogger;
 
 class TerminalLogsCleanupCommand extends Command
 {
     /**
      * The name and signature of the console command.
      */
-    protected $signature = 'terminal:cleanup
+    protected $signature = 'terminal-stream:logs:cleanup
                             {--days= : Number of days to retain logs (default from config)}
                             {--dry-run : Show how many records would be deleted without actually deleting}';
 
@@ -29,7 +29,7 @@ class TerminalLogsCleanupCommand extends Command
     {
         $days = $this->option('days')
             ? (int) $this->option('days')
-            : (int) config('web-terminal.logging.retention_days', 90);
+            : (int) config('web-terminal-stream.logging.retention_days', 90);
 
         $dryRun = $this->option('dry-run');
 

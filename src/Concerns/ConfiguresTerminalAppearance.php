@@ -2,17 +2,17 @@
 
 declare(strict_types=1);
 
-namespace MWGuerra\WebTerminal\Concerns;
+namespace MWGuerra\WebTerminalStream\Concerns;
 
 use Closure;
-use MWGuerra\WebTerminal\Enums\ConnectionBehavior;
-use MWGuerra\WebTerminal\Enums\TerminalChrome;
+use MWGuerra\WebTerminalStream\Enums\ConnectionBehavior;
+use MWGuerra\WebTerminalStream\Enums\TerminalChrome;
 
 /**
  * Fluent configuration for a terminal's visual shell:
  * size, title, chrome level, and initial connect behavior.
  *
- * Consumed by both `Schemas\Components\WebTerminal` and
+ * Consumed by both `Schemas\Components\WebTerminalStream` and
  * `Livewire\TerminalBuilder`. All fields accept a Closure so values
  * can be resolved at render time (e.g. from the authenticated user).
  *

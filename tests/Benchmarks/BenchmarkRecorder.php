@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace MWGuerra\WebTerminal\Tests\Benchmarks;
+namespace MWGuerra\WebTerminalStream\Tests\Benchmarks;
 
 /**
  * In-memory accumulator for benchmark samples.
@@ -19,7 +19,7 @@ final class BenchmarkRecorder
     private static bool $shutdownRegistered = false;
 
     /**
-     * @param array<int, float> $samples Microsecond samples.
+     * @param  array<int, float>  $samples  Microsecond samples.
      */
     public static function record(string $name, array $samples): void
     {

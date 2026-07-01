@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace MWGuerra\WebTerminal\Concerns;
+namespace MWGuerra\WebTerminalStream\Concerns;
 
 use Closure;
 

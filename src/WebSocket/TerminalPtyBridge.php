@@ -1,16 +1,22 @@
 <?php
+
 declare(strict_types=1);
 
-namespace MWGuerra\WebTerminal\WebSocket;
+namespace MWGuerra\WebTerminalStream\WebSocket;
 
-use MWGuerra\WebTerminal\Data\ConnectionConfig;
-use MWGuerra\WebTerminal\Enums\ConnectionType;
+use MWGuerra\WebTerminalStream\Data\ConnectionConfig;
+use MWGuerra\WebTerminalStream\Enums\ConnectionType;
+use phpseclib3\Crypt\PublicKeyLoader;
+use phpseclib3\Net\SSH2;
 
 class TerminalPtyBridge
 {
     private string $sessionId;
+
     private int $userId;
+
     private ConnectionConfig $config;
+
     private PtySessionRegistry $registry;
 
     /** @var resource|null */
@@ -42,6 +48,7 @@ class TerminalPtyBridge
     {
         if ($this->config->type === ConnectionType::SSH) {
             $this->startSsh();
+
             return;
         }
 
@@ -63,7 +70,7 @@ class TerminalPtyBridge
 
         $cwd = $this->config->workingDirectory;
         if ($cwd !== null && ! is_dir($cwd)) {
-            $cwd = config('web-terminal.stream.working_directory') ?? getcwd();
+            $cwd = config('web-terminal-stream.stream.working_directory') ?? getcwd();
         }
 
         $this->process = proc_open(
@@ -87,14 +94,14 @@ class TerminalPtyBridge
 
     private function startSsh(): void
     {
-        $ssh = new \phpseclib3\Net\SSH2(
+        $ssh = new SSH2(
             $this->config->host,
             $this->config->port ?? 22,
             $this->config->timeout
         );
 
         if ($this->config->privateKey !== null) {
-            $key = \phpseclib3\Crypt\PublicKeyLoader::load(
+            $key = PublicKeyLoader::load(
                 $this->config->privateKey,
                 $this->config->passphrase ?? ''
             );
@@ -124,7 +131,7 @@ class TerminalPtyBridge
         //
         // See: https://github.com/mwguerra/web-terminal/issues/3
         $ssh->setTimeout(max(5, $this->config->timeout ?? 10));
-        $ssh->write('', \phpseclib3\Net\SSH2::CHANNEL_SHELL);
+        $ssh->write('', SSH2::CHANNEL_SHELL);
         $ssh->setTimeout(0.01);
         $this->sshShell = $ssh;
         // SSH sessions use pid -1 (sentinel) since there's no local process
@@ -135,6 +142,7 @@ class TerminalPtyBridge
     {
         if ($this->sshShell !== null) {
             $this->sshShell->write($data);
+
             return;
         }
 
@@ -178,6 +186,7 @@ class TerminalPtyBridge
 
         if ($this->sshShell !== null) {
             $this->sshShell->setWindowSize($cols, $rows);
+
             return;
         }
 
@@ -198,7 +207,7 @@ class TerminalPtyBridge
         $ttyDevice = @readlink($ttyLink);
 
         if ($ttyDevice !== false && str_starts_with($ttyDevice, '/dev/pts/')) {
-            @exec("stty -F " . escapeshellarg($ttyDevice) . " rows {$rows} cols {$cols} 2>/dev/null");
+            @exec('stty -F '.escapeshellarg($ttyDevice)." rows {$rows} cols {$cols} 2>/dev/null");
         }
 
         // Send SIGWINCH to the process group so apps (vim, htop) re-read size
@@ -216,6 +225,7 @@ class TerminalPtyBridge
         }
 
         $status = proc_get_status($this->process);
+
         return $status['running'];
     }
 
@@ -227,6 +237,7 @@ class TerminalPtyBridge
             $this->sshShell->disconnect();
             $this->sshShell = null;
             $this->registry->unregister($this->sessionId);
+
             return;
         }
 

@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace MWGuerra\WebTerminal\Services;
+namespace MWGuerra\WebTerminalStream\Services;
 
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
-use MWGuerra\WebTerminal\Models\TerminalLog;
+use MWGuerra\WebTerminalStream\Models\TerminalLog;
 
 class TerminalLogger
 {
@@ -25,7 +25,7 @@ class TerminalLogger
      */
     public function __construct(?array $config = null)
     {
-        $this->config = $config ?? config('web-terminal.logging', []);
+        $this->config = $config ?? config('web-terminal-stream.logging', []);
     }
 
     /**

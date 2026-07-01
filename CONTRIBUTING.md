@@ -6,7 +6,7 @@ Thank you for considering contributing to Web Terminal! We welcome contributions
 
 ### Reporting Bugs
 
-If you find a bug, please open an issue on [GitHub Issues](https://github.com/mwguerra/web-terminal/issues) with:
+If you find a bug, please open an issue on [GitHub Issues](https://github.com/mwguerra/web-terminal-stream/issues) with:
 
 - A clear and descriptive title
 - Steps to reproduce the issue
@@ -43,7 +43,7 @@ Feature requests are welcome! Please open an issue describing:
 
 ```bash
 # Clone your fork
-git clone https://github.com/your-username/web-terminal.git
+git clone https://github.com/your-username/web-terminal-stream.git
 
 # Install dependencies
 composer install

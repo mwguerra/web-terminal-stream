@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace MWGuerra\WebTerminal\Filament\Resources\TerminalLogResource\Pages;
+namespace MWGuerra\WebTerminalStream\Filament\Resources\TerminalLogResource\Pages;
 
 use Filament\Actions\Action;
 use Filament\Resources\Pages\ViewRecord;
-use MWGuerra\WebTerminal\Filament\Resources\TerminalLogResource;
+use MWGuerra\WebTerminalStream\Filament\Resources\TerminalLogResource;
 
 class ViewTerminalLog extends ViewRecord
 {
@@ -16,7 +16,7 @@ class ViewTerminalLog extends ViewRecord
     {
         return [
             Action::make('back')
-                ->label(__('web-terminal::terminal.resource.back'))
+                ->label(__('web-terminal-stream::terminal.resource.back'))
                 ->icon('heroicon-o-arrow-left')
                 ->url(TerminalLogResource::getUrl('index'))
                 ->color('gray'),

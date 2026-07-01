@@ -2,10 +2,11 @@
 
 declare(strict_types=1);
 
-use MWGuerra\WebTerminal\Schemas\Components\WebTerminal;
+use Filament\Schemas\Components\Livewire;
+use MWGuerra\WebTerminalStream\Schemas\Components\WebTerminalStream;
 
 /*
- * Two WebTerminal::make() calls on the same Filament page must not produce
+ * Two WebTerminalStream::make() calls on the same Filament page must not produce
  * the same Livewire wire:key — otherwise morphing conflates the two
  * instances and the second terminal never mounts correctly.
  *
@@ -13,28 +14,28 @@ use MWGuerra\WebTerminal\Schemas\Components\WebTerminal;
  */
 
 beforeEach(function () {
-    if (! class_exists(\Filament\Schemas\Components\Livewire::class)) {
+    if (! class_exists(Livewire::class)) {
         $this->markTestSkipped('Filament is not installed. These tests require filament/filament package.');
     }
 });
 
-it('generates a unique key for each WebTerminal::make() invocation', function () {
-    $a = WebTerminal::make();
-    $b = WebTerminal::make();
+it('generates a unique key for each WebTerminalStream::make() invocation', function () {
+    $a = WebTerminalStream::make();
+    $b = WebTerminalStream::make();
 
     expect($a->getKey())->not->toBe($b->getKey());
-    expect($a->getKey())->toStartWith('web-terminal-');
-    expect($b->getKey())->toStartWith('web-terminal-');
+    expect($a->getKey())->toStartWith('web-terminal-stream-');
+    expect($b->getKey())->toStartWith('web-terminal-stream-');
 });
 
 it('honors an explicit ->key() call over the auto-generated default', function () {
-    $component = WebTerminal::make()->key('my-custom-terminal');
+    $component = WebTerminalStream::make()->key('my-custom-terminal');
 
     expect($component->getKey())->toBe('my-custom-terminal');
 });
 
 it('produces a stable key across repeated accessors on the same instance', function () {
-    $component = WebTerminal::make();
+    $component = WebTerminalStream::make();
     $first = $component->getKey();
     $second = $component->getKey();
 

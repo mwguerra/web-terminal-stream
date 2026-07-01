@@ -2,8 +2,8 @@
 
 declare(strict_types=1);
 
-use MWGuerra\WebTerminal\Data\ConnectionConfig;
-use MWGuerra\WebTerminal\Livewire\TerminalBuilder;
+use MWGuerra\WebTerminalStream\Data\ConnectionConfig;
+use MWGuerra\WebTerminalStream\Livewire\TerminalBuilder;
 
 describe('TerminalBuilder', function () {
     describe('connection configuration', function () {

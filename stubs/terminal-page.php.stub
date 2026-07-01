@@ -6,8 +6,8 @@ namespace {{ namespace }};
 
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
-use MWGuerra\WebTerminal\Filament\Pages\Terminal as BaseTerminal;
-use MWGuerra\WebTerminal\Schemas\Components\WebTerminal;
+use MWGuerra\WebTerminalStream\Filament\Pages\Terminal as BaseTerminal;
+use MWGuerra\WebTerminalStream\Schemas\Components\WebTerminalStream;
 use BackedEnum;
 use UnitEnum;
 
@@ -26,22 +26,22 @@ class {{ class_name }} extends BaseTerminal
     /**
      * Customize the terminal schema.
      *
-     * @see https://github.com/mwguerra/web-terminal for all available options
+     * @see https://github.com/mwguerra/web-terminal-stream for all available options
      */
     public function schema(Schema $schema): Schema
     {
         return $schema
             ->components([
-                Section::make(__('web-terminal::terminal.pages.terminal.local_terminal'))
-                    ->description(__('web-terminal::terminal.pages.terminal.local_terminal_description'))
+                Section::make(__('web-terminal-stream::terminal.pages.terminal.local_terminal'))
+                    ->description(__('web-terminal-stream::terminal.pages.terminal.local_terminal_description'))
                     ->icon('heroicon-o-command-line')
                     ->schema([
-                        WebTerminal::make()
+                        WebTerminalStream::make()
                             ->key('{{ terminal_key }}')
                             ->local()
                             ->workingDirectory(base_path())
                             ->height('400px')
-                            ->title(__('web-terminal::terminal.pages.terminal.local_terminal'))
+                            ->title(__('web-terminal-stream::terminal.pages.terminal.local_terminal'))
                             ->log(
                                 enabled: true,
                                 connections: true,

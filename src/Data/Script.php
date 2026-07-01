@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace MWGuerra\WebTerminal\Data;
+namespace MWGuerra\WebTerminalStream\Data;
 
 use InvalidArgumentException;
 

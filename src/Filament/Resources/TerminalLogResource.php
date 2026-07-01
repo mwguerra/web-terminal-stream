@@ -2,19 +2,19 @@
 
 declare(strict_types=1);
 
-namespace MWGuerra\WebTerminal\Filament\Resources;
+namespace MWGuerra\WebTerminalStream\Filament\Resources;
 
 use BackedEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Tables\Table;
-use MWGuerra\WebTerminal\Filament\Resources\TerminalLogResource\Pages\ListTerminalLogs;
-use MWGuerra\WebTerminal\Filament\Resources\TerminalLogResource\Pages\ViewTerminalLog;
-use MWGuerra\WebTerminal\Filament\Resources\TerminalLogResource\Schemas\TerminalLogInfolist;
-use MWGuerra\WebTerminal\Filament\Resources\TerminalLogResource\Tables\TerminalLogsTable;
-use MWGuerra\WebTerminal\Filament\Resources\TerminalLogResource\Widgets\TerminalLogsStatsOverview;
-use MWGuerra\WebTerminal\Models\TerminalLog;
-use MWGuerra\WebTerminal\WebTerminalPlugin;
+use MWGuerra\WebTerminalStream\Filament\Resources\TerminalLogResource\Pages\ListTerminalLogs;
+use MWGuerra\WebTerminalStream\Filament\Resources\TerminalLogResource\Pages\ViewTerminalLog;
+use MWGuerra\WebTerminalStream\Filament\Resources\TerminalLogResource\Schemas\TerminalLogInfolist;
+use MWGuerra\WebTerminalStream\Filament\Resources\TerminalLogResource\Tables\TerminalLogsTable;
+use MWGuerra\WebTerminalStream\Filament\Resources\TerminalLogResource\Widgets\TerminalLogsStatsOverview;
+use MWGuerra\WebTerminalStream\Models\TerminalLog;
+use MWGuerra\WebTerminalStream\WebTerminalStreamPlugin;
 
 class TerminalLogResource extends Resource
 {
@@ -24,35 +24,35 @@ class TerminalLogResource extends Resource
 
     public static function getModelLabel(): string
     {
-        return __('web-terminal::terminal.resource.label');
+        return __('web-terminal-stream::terminal.resource.label');
     }
 
     public static function getPluralModelLabel(): string
     {
-        return __('web-terminal::terminal.resource.plural_label');
+        return __('web-terminal-stream::terminal.resource.plural_label');
     }
 
     public static function getNavigationIcon(): string|BackedEnum|null
     {
-        return WebTerminalPlugin::current()?->getTerminalLogsNavigationIcon()
+        return WebTerminalStreamPlugin::current()?->getTerminalLogsNavigationIcon()
             ?? 'heroicon-o-clipboard-document-list';
     }
 
     public static function getNavigationLabel(): string
     {
-        return WebTerminalPlugin::current()?->getTerminalLogsNavigationLabel()
-            ?? __('web-terminal::terminal.navigation.terminal_logs');
+        return WebTerminalStreamPlugin::current()?->getTerminalLogsNavigationLabel()
+            ?? __('web-terminal-stream::terminal.navigation.terminal_logs');
     }
 
     public static function getNavigationGroup(): ?string
     {
-        return WebTerminalPlugin::current()?->getTerminalLogsNavigationGroup()
-            ?? __('web-terminal::terminal.navigation.tools');
+        return WebTerminalStreamPlugin::current()?->getTerminalLogsNavigationGroup()
+            ?? __('web-terminal-stream::terminal.navigation.tools');
     }
 
     public static function getNavigationSort(): ?int
     {
-        return WebTerminalPlugin::current()?->getTerminalLogsNavigationSort()
+        return WebTerminalStreamPlugin::current()?->getTerminalLogsNavigationSort()
             ?? 101;
     }
 

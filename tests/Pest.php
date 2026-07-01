@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-use MWGuerra\WebTerminal\Tests\TestCase;
+use MWGuerra\WebTerminalStream\Tests\TestCase;
 
 /*
 |--------------------------------------------------------------------------

@@ -1,10 +1,11 @@
 <?php
+
 declare(strict_types=1);
 
-use MWGuerra\WebTerminal\WebSocket\PtySessionRegistry;
+use MWGuerra\WebTerminalStream\WebSocket\PtySessionRegistry;
 
 beforeEach(function () {
-    $this->registryPath = sys_get_temp_dir() . '/web-terminal-test-' . uniqid() . '/pty-sessions.json';
+    $this->registryPath = sys_get_temp_dir().'/web-terminal-test-'.uniqid().'/pty-sessions.json';
     $this->registry = new PtySessionRegistry(dirname($this->registryPath));
 });
 
@@ -60,7 +61,9 @@ describe('PtySessionRegistry', function () {
 
     it('cleans up stale sessions', function () {
         $dir = dirname($this->registryPath);
-        if (! is_dir($dir)) { mkdir($dir, 0755, true); }
+        if (! is_dir($dir)) {
+            mkdir($dir, 0755, true);
+        }
         file_put_contents($this->registryPath, json_encode([
             'old-session' => ['pid' => 99999, 'userId' => 1, 'createdAt' => time() - 7200],
             'new-session' => ['pid' => 88888, 'userId' => 1, 'createdAt' => time()],

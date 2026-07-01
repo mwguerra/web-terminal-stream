@@ -2,17 +2,17 @@
 
 declare(strict_types=1);
 
-namespace MWGuerra\WebTerminal\Livewire;
+namespace MWGuerra\WebTerminalStream\Livewire;
 
 use Illuminate\Support\HtmlString;
 use Livewire\Livewire;
-use MWGuerra\WebTerminal\Concerns\ConfiguresLogging;
-use MWGuerra\WebTerminal\Concerns\ConfiguresScripts;
-use MWGuerra\WebTerminal\Concerns\ConfiguresStreamMode;
-use MWGuerra\WebTerminal\Concerns\ConfiguresTerminalAppearance;
-use MWGuerra\WebTerminal\Concerns\EvaluatesOptions;
-use MWGuerra\WebTerminal\Data\ConnectionConfig;
-use MWGuerra\WebTerminal\Enums\ConnectionType;
+use MWGuerra\WebTerminalStream\Concerns\ConfiguresLogging;
+use MWGuerra\WebTerminalStream\Concerns\ConfiguresScripts;
+use MWGuerra\WebTerminalStream\Concerns\ConfiguresStreamMode;
+use MWGuerra\WebTerminalStream\Concerns\ConfiguresTerminalAppearance;
+use MWGuerra\WebTerminalStream\Concerns\EvaluatesOptions;
+use MWGuerra\WebTerminalStream\Data\ConnectionConfig;
+use MWGuerra\WebTerminalStream\Enums\ConnectionType;
 
 /**
  * Fluent builder for the Stream terminal component.
@@ -143,12 +143,12 @@ class TerminalBuilder
 
         if ($this->key !== null) {
             return new HtmlString(
-                Livewire::mount('stream-terminal', $params, $this->key)
+                Livewire::mount('web-terminal-stream', $params, $this->key)
             );
         }
 
         return new HtmlString(
-            Livewire::mount('stream-terminal', $params)
+            Livewire::mount('web-terminal-stream', $params)
         );
     }
 }

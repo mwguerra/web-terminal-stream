@@ -1,15 +1,16 @@
 <?php
+
 declare(strict_types=1);
 
-use MWGuerra\WebTerminal\Data\ConnectionConfig;
-use MWGuerra\WebTerminal\WebSocket\PtySessionRegistry;
-use MWGuerra\WebTerminal\WebSocket\TerminalPtyBridge;
+use MWGuerra\WebTerminalStream\Data\ConnectionConfig;
+use MWGuerra\WebTerminalStream\WebSocket\PtySessionRegistry;
+use MWGuerra\WebTerminalStream\WebSocket\TerminalPtyBridge;
 
 describe('TerminalPtyBridge', function () {
     describe('local connection', function () {
         it('creates a bridge from local config', function () {
             $config = ConnectionConfig::local(timeout: 10);
-            $registry = new PtySessionRegistry(sys_get_temp_dir() . '/test-' . uniqid());
+            $registry = new PtySessionRegistry(sys_get_temp_dir().'/test-'.uniqid());
             $bridge = new TerminalPtyBridge($config, 'test-session', 1, $registry);
             expect($bridge)->toBeInstanceOf(TerminalPtyBridge::class);
             expect($bridge->getSessionId())->toBe('test-session');
@@ -18,7 +19,7 @@ describe('TerminalPtyBridge', function () {
 
         it('starts a PTY process', function () {
             $config = ConnectionConfig::local(timeout: 10);
-            $registry = new PtySessionRegistry(sys_get_temp_dir() . '/test-' . uniqid());
+            $registry = new PtySessionRegistry(sys_get_temp_dir().'/test-'.uniqid());
             $bridge = new TerminalPtyBridge($config, 'test-session', 1, $registry);
             $bridge->start('/bin/sh');
             expect($bridge->isRunning())->toBeTrue();
@@ -27,7 +28,7 @@ describe('TerminalPtyBridge', function () {
 
         it('reads output from PTY', function () {
             $config = ConnectionConfig::local(timeout: 10);
-            $registry = new PtySessionRegistry(sys_get_temp_dir() . '/test-' . uniqid());
+            $registry = new PtySessionRegistry(sys_get_temp_dir().'/test-'.uniqid());
             $bridge = new TerminalPtyBridge($config, 'test-session', 1, $registry);
             $bridge->start('/bin/sh');
             $bridge->write("echo hello-test-output\n");
@@ -39,7 +40,7 @@ describe('TerminalPtyBridge', function () {
 
         it('terminates the PTY process', function () {
             $config = ConnectionConfig::local(timeout: 10);
-            $registry = new PtySessionRegistry(sys_get_temp_dir() . '/test-' . uniqid());
+            $registry = new PtySessionRegistry(sys_get_temp_dir().'/test-'.uniqid());
             $bridge = new TerminalPtyBridge($config, 'test-session', 1, $registry);
             $bridge->start('/bin/sh');
             expect($bridge->isRunning())->toBeTrue();
@@ -48,7 +49,7 @@ describe('TerminalPtyBridge', function () {
         });
 
         it('registers PID in session registry on start', function () {
-            $registryPath = sys_get_temp_dir() . '/test-' . uniqid();
+            $registryPath = sys_get_temp_dir().'/test-'.uniqid();
             $config = ConnectionConfig::local(timeout: 10);
             $registry = new PtySessionRegistry($registryPath);
             $bridge = new TerminalPtyBridge($config, 'test-session', 1, $registry);
@@ -60,7 +61,7 @@ describe('TerminalPtyBridge', function () {
         });
 
         it('unregisters from registry on terminate', function () {
-            $registryPath = sys_get_temp_dir() . '/test-' . uniqid();
+            $registryPath = sys_get_temp_dir().'/test-'.uniqid();
             $config = ConnectionConfig::local(timeout: 10);
             $registry = new PtySessionRegistry($registryPath);
             $bridge = new TerminalPtyBridge($config, 'test-session', 1, $registry);
@@ -73,7 +74,7 @@ describe('TerminalPtyBridge', function () {
     describe('resize', function () {
         it('accepts resize without error', function () {
             $config = ConnectionConfig::local(timeout: 10);
-            $registry = new PtySessionRegistry(sys_get_temp_dir() . '/test-' . uniqid());
+            $registry = new PtySessionRegistry(sys_get_temp_dir().'/test-'.uniqid());
             $bridge = new TerminalPtyBridge($config, 'test-session', 1, $registry);
             $bridge->start('/bin/sh');
             $bridge->resize(120, 40);

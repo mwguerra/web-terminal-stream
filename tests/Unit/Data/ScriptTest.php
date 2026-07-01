@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-use MWGuerra\WebTerminal\Data\Script;
+use MWGuerra\WebTerminalStream\Data\Script;
 
 describe('Script', function () {
     describe('construction', function () {

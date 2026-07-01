@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace MWGuerra\WebTerminal\Events;
+namespace MWGuerra\WebTerminalStream\Events;
 
 use Illuminate\Broadcasting\InteractsWithSockets;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
-use MWGuerra\WebTerminal\Enums\ConnectionType;
+use MWGuerra\WebTerminalStream\Enums\ConnectionType;
 
 /**
  * Event dispatched when a terminal connection is closed.

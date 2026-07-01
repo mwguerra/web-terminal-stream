@@ -2,8 +2,8 @@
 
 declare(strict_types=1);
 
-use MWGuerra\WebTerminal\Data\ConnectionConfig;
-use MWGuerra\WebTerminal\Enums\ConnectionType;
+use MWGuerra\WebTerminalStream\Data\ConnectionConfig;
+use MWGuerra\WebTerminalStream\Enums\ConnectionType;
 
 describe('ConnectionConfig', function () {
     describe('local connections', function () {
