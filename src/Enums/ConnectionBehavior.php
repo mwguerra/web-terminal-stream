@@ -12,7 +12,7 @@ namespace MWGuerra\WebTerminalStream\Enums;
  */
 enum ConnectionBehavior: string
 {
-    /** User clicks Connect to start. Button visible. Default for Classic mode. */
+    /** User connects explicitly. Default. */
     case Manual = 'manual';
 
     /** Auto-connects on mount. Disconnect button visible; user can end the session. */
@@ -20,7 +20,8 @@ enum ConnectionBehavior: string
 
     /**
      * Auto-connects on mount and hides the connect/disconnect button entirely.
-     * Session persists for the view's lifetime. Default for Stream mode.
+     * Session persists for the view's lifetime. Matches the Stream terminal's
+     * current always-auto-connect behavior.
      */
     case AutoHidden = 'auto_hidden';
 

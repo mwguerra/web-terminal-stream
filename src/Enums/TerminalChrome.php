@@ -20,8 +20,8 @@ enum TerminalChrome: string
     case Minimal = 'minimal';
 
     /**
-     * No chrome: header and footer hidden. Actions (copy, info, scripts) move to a
-     * collapsible floating control in the top-right when `FloatingControls` are enabled.
+     * No chrome: the header bar is hidden. Actions (scripts, copy, info) render
+     * as a floating overlay in the terminal's top-right corner instead.
      */
     case None = 'none';
 

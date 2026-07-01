@@ -57,7 +57,6 @@ return [
     |
     */
     'stream' => [
-        'websocket_provider' => 'ratchet',
         'ratchet_host' => env('WEB_TERMINAL_STREAM_RATCHET_HOST', '127.0.0.1'),
         'ratchet_port' => env('WEB_TERMINAL_STREAM_RATCHET_PORT', 8090),
         'websocket_url' => env('WEB_TERMINAL_STREAM_WEBSOCKET_URL'),
@@ -65,15 +64,8 @@ return [
         'ssl_key' => env('WEB_TERMINAL_STREAM_SSL_KEY'),
         'shell' => env('WEB_TERMINAL_STREAM_SHELL', '/bin/bash'),
         'working_directory' => env('WEB_TERMINAL_STREAM_CWD'),
-        'pty_grace_period' => 30,
         'max_session_lifetime' => 3600,
         'signed_url_ttl' => 300,
-        'allowed_origins' => [env('APP_URL', 'http://localhost')],
-        'theme' => [
-            'background' => '#1a1b26',
-            'foreground' => '#a9b1d6',
-            'fontSize' => 14,
-        ],
     ],
 
     /*
