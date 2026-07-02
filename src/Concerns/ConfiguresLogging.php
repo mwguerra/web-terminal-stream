@@ -16,10 +16,9 @@ use Closure;
  * Nullable fields mean "not explicitly set" — downstream code falls back
  * to the package-wide defaults in `config/web-terminal-stream.logging.*`.
  *
- * The `log()` method accepts three call shapes:
- *   - Named parameters: `log(enabled: true, identifier: 'admin')`
- *   - Array config:     `log(['enabled' => true, 'metadata' => [...]])`
- *   - Closure:          `log(fn () => [...])` — deferred evaluation
+ * Named parameters are the canonical `log()` call shape:
+ * `log(enabled: true, identifier: 'admin')`. Per-parameter Closures
+ * preserve deferred evaluation.
  *
  * @internal Shared trait.
  */
@@ -35,34 +34,14 @@ trait ConfiguresLogging
     protected array|Closure $logMetadata = [];
 
     /**
-     * @param  array<string, mixed>|Closure|bool|null  $enabled  Array/Closure config, or enabled bool when using named params
      * @param  array<string, mixed>|Closure|null  $metadata
      */
     public function log(
-        array|Closure|bool|null $enabled = true,
+        bool|Closure $enabled = true,
         bool|Closure|null $connections = null,
         string|Closure|null $identifier = null,
         array|Closure|null $metadata = null,
     ): static {
-        if (is_array($enabled) || $enabled instanceof Closure) {
-            if ($enabled instanceof Closure) {
-                // Defer each individual value so the Closure is evaluated
-                // only when the consumer reads the field.
-                $configClosure = $enabled;
-                $this->loggingEnabled = fn () => $this->evaluate($configClosure)['enabled'] ?? true;
-                $this->logConnections = fn () => $this->evaluate($configClosure)['connections'] ?? null;
-                $this->logIdentifier = fn () => $this->evaluate($configClosure)['identifier'] ?? null;
-                $this->logMetadata = fn () => $this->evaluate($configClosure)['metadata'] ?? [];
-            } else {
-                $this->loggingEnabled = $enabled['enabled'] ?? true;
-                $this->logConnections = $enabled['connections'] ?? null;
-                $this->logIdentifier = $enabled['identifier'] ?? null;
-                $this->logMetadata = $enabled['metadata'] ?? [];
-            }
-
-            return $this;
-        }
-
         $this->loggingEnabled = $enabled;
 
         if ($connections !== null) {

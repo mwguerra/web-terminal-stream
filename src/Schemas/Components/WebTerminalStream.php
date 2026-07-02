@@ -7,11 +7,11 @@ namespace MWGuerra\WebTerminalStream\Schemas\Components;
 use Closure;
 use Filament\Schemas\Components\Livewire;
 use Illuminate\Support\Str;
+use MWGuerra\WebTerminalStream\Concerns\ConfiguresAppearance;
 use MWGuerra\WebTerminalStream\Concerns\ConfiguresConnection;
+use MWGuerra\WebTerminalStream\Concerns\ConfiguresConnectionLifecycle;
 use MWGuerra\WebTerminalStream\Concerns\ConfiguresLogging;
 use MWGuerra\WebTerminalStream\Concerns\ConfiguresScripts;
-use MWGuerra\WebTerminalStream\Concerns\ConfiguresStreamMode;
-use MWGuerra\WebTerminalStream\Concerns\ConfiguresTerminalAppearance;
 use MWGuerra\WebTerminalStream\Concerns\ResolvesTerminalProperties;
 use MWGuerra\WebTerminalStream\Livewire\StreamTerminal as StreamTerminalComponent;
 
@@ -30,11 +30,11 @@ use MWGuerra\WebTerminalStream\Livewire\StreamTerminal as StreamTerminalComponen
  */
 class WebTerminalStream extends Livewire
 {
+    use ConfiguresAppearance;
     use ConfiguresConnection;
+    use ConfiguresConnectionLifecycle;
     use ConfiguresLogging;
     use ConfiguresScripts;
-    use ConfiguresStreamMode;
-    use ConfiguresTerminalAppearance;
     use ResolvesTerminalProperties;
 
     public static function make(Closure|string|null $component = null, Closure|array $data = []): static

@@ -160,7 +160,7 @@ describe('connectionBehavior forwarding', function () {
             ->connectionBehavior(ConnectionBehavior::Manual)
             ->terminals([$pane]);
 
-        expect($pane->getEffectiveConnectionBehavior())->toBe(ConnectionBehavior::Manual);
+        expect($pane->getConnectionBehavior())->toBe(ConnectionBehavior::Manual);
     });
 
     it('forwards regardless of call order relative to terminals()', function () {
@@ -170,7 +170,7 @@ describe('connectionBehavior forwarding', function () {
             ->terminals([$pane])
             ->connectionBehavior(ConnectionBehavior::Manual);
 
-        expect($pane->getEffectiveConnectionBehavior())->toBe(ConnectionBehavior::Manual);
+        expect($pane->getConnectionBehavior())->toBe(ConnectionBehavior::Manual);
     });
 
     it('keeps a pane\'s explicitly configured behavior', function () {
@@ -182,7 +182,7 @@ describe('connectionBehavior forwarding', function () {
             ->connectionBehavior(ConnectionBehavior::Manual)
             ->terminals([$pane]);
 
-        expect($pane->getEffectiveConnectionBehavior())->toBe(ConnectionBehavior::Auto);
+        expect($pane->getConnectionBehavior())->toBe(ConnectionBehavior::Auto);
     });
 
     it('leaves panes on the default behavior when the grid sets none', function () {
@@ -190,7 +190,7 @@ describe('connectionBehavior forwarding', function () {
 
         TerminalGrid::make()->terminals([$pane]);
 
-        expect($pane->getEffectiveConnectionBehavior())->toBe(ConnectionBehavior::Always);
+        expect($pane->getConnectionBehavior())->toBe(ConnectionBehavior::Always);
     });
 });
 

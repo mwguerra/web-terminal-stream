@@ -15,7 +15,7 @@ describe('StreamTerminal', function () {
             'connectionConfig' => ['type' => 'local'],
             'height' => '400px',
             'title' => 'Test Terminal',
-            'streamTheme' => [],
+            'theme' => [],
             'showWindowControls' => true,
         ])->assertStatus(200);
     });
@@ -25,7 +25,7 @@ describe('StreamTerminal', function () {
             'connectionConfig' => ['type' => 'local'],
             'height' => '400px',
             'title' => 'Test Terminal',
-            'streamTheme' => [],
+            'theme' => [],
             'showWindowControls' => true,
         ]);
 
@@ -38,7 +38,7 @@ describe('StreamTerminal', function () {
             'connectionConfig' => ['type' => 'local'],
             'height' => '400px',
             'title' => 'Test Terminal',
-            'streamTheme' => [],
+            'theme' => [],
             'showWindowControls' => true,
         ])->assertViewIs('web-terminal-stream::stream-terminal');
     });

@@ -3,7 +3,7 @@
         'stream-web-terminal relative font-mono text-[13px] leading-tight text-zinc-800 dark:text-zinc-200 overflow-hidden flex flex-col text-left',
         'rounded-xl shadow-2xl ring-1 ring-slate-200 dark:ring-white/5' => ! ($squareCorners ?? false),
     ])
-    style="height: {{ $height }}; min-height: 200px; background: {{ $streamTheme['background'] ?? '#1a1a2e' }};"
+    style="height: {{ $height }}; min-height: 200px; background: {{ $theme['background'] ?? '#1a1a2e' }};"
     data-connection-behavior="{{ $connectionBehavior }}"
     x-data="{
         isConnected: $wire.entangle('isConnected'),
@@ -47,7 +47,7 @@
                     cursorBlink: true,
                     fontSize: 13,
                     fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
-                    theme: {{ json_encode($streamTheme) }},
+                    theme: {{ json_encode($theme) }},
                 });
 
                 this.fitAddon = new StreamWeb.FitAddon();
@@ -317,7 +317,7 @@
          When chrome === 'none' (frameless), the same action group renders as an
          absolutely-positioned floating overlay on the terminal body. Same Alpine
          state, same event wiring — only the outer container's layout changes,
-         so every existing setting (windowControls, scripts dropdown,
+         so every existing setting (window-control dots, scripts dropdown,
          info panel) continues to work unchanged. --}}
     <div @class([
         'flex items-center px-4 py-3 bg-slate-200/80 dark:bg-black/30 border-b border-slate-300 dark:border-white/5 shrink-0' => $chrome !== 'none',
@@ -325,7 +325,7 @@
     ])
     @if($chrome === 'none') style="position:absolute; top:0.5rem; right:0.5rem; z-index:20;" @endif
     >
-        @if($showWindowControls && $chrome !== 'none')
+        @if($chrome === 'full')
         <div class="flex gap-2 shrink-0">
             <span class="w-3 h-3 rounded-full bg-[#ff5f56] hover:opacity-80 transition-opacity"></span>
             <span class="w-3 h-3 rounded-full bg-[#ffbd2e] hover:opacity-80 transition-opacity"></span>
@@ -518,7 +518,7 @@
             x-ref="streamContainer"
             wire:ignore
             class="absolute inset-0 overflow-hidden p-2"
-            style="background: {{ $streamTheme['background'] ?? '#1a1a2e' }};"
+            style="background: {{ $theme['background'] ?? '#1a1a2e' }};"
         ></div>
 
         {{-- Connect Affordance Overlay.
@@ -533,7 +533,7 @@
             x-cloak
             data-connect-overlay
             class="absolute inset-0 z-10 flex items-center justify-center"
-            style="background: {{ $streamTheme['background'] ?? '#1a1a2e' }}; color: {{ $streamTheme['foreground'] ?? '#e2e8f0' }};"
+            style="background: {{ $theme['background'] ?? '#1a1a2e' }}; color: {{ $theme['foreground'] ?? '#e2e8f0' }};"
         >
             <button
                 type="button"

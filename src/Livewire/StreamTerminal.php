@@ -23,18 +23,14 @@ class StreamTerminal extends Component
 
     public string $title = 'Terminal';
 
-    public bool $showWindowControls = true;
-
     public string $chrome = 'full';
 
     public bool $squareCorners = false;
 
-    public bool $autoConnect = false;
-
     public string $connectionBehavior = 'always';
 
     #[Locked]
-    public array $streamTheme = [];
+    public array $theme = [];
 
     #[Locked]
     public array $connectionConfig = [];
@@ -64,11 +60,9 @@ class StreamTerminal extends Component
         array $connectionConfig = [],
         string $height = '400px',
         string $title = 'Terminal',
-        array $streamTheme = [],
-        bool $showWindowControls = true,
+        array $theme = [],
         string $chrome = 'full',
         bool $squareCorners = false,
-        bool $autoConnect = false,
         string $connectionBehavior = 'always',
         array $scripts = [],
         ?bool $loggingEnabled = null,
@@ -79,11 +73,9 @@ class StreamTerminal extends Component
         $this->connectionConfig = $connectionConfig;
         $this->height = $height;
         $this->title = $title;
-        $this->streamTheme = $streamTheme;
+        $this->theme = $theme;
         $this->chrome = in_array($chrome, ['full', 'minimal', 'none'], true) ? $chrome : 'full';
-        $this->showWindowControls = ($this->chrome === 'full') ? $showWindowControls : false;
         $this->squareCorners = $squareCorners;
-        $this->autoConnect = $autoConnect;
         $this->connectionBehavior = (ConnectionBehavior::tryFrom($connectionBehavior) ?? ConnectionBehavior::Always)->value;
         $this->scripts = $scripts;
         $this->loggingEnabled = $loggingEnabled;

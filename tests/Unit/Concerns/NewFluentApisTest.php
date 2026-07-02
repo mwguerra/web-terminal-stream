@@ -7,8 +7,8 @@ use MWGuerra\WebTerminalStream\Enums\TerminalChrome;
 use MWGuerra\WebTerminalStream\Livewire\TerminalBuilder;
 
 /*
- * Coverage for the appearance-related fluent APIs — `chrome()`,
- * `frameless()`, and `connectionBehavior()`.
+ * Coverage for the appearance and lifecycle fluent APIs — `chrome()`,
+ * `frameless()`, `theme()`, and `connectionBehavior()`.
  *
  * These run against `TerminalBuilder` because it uses the exact same
  * Concerns/Configures* traits as Schemas\Components\WebTerminalStream and
@@ -32,35 +32,47 @@ describe('chrome()', function () {
         expect((new TerminalBuilder)->frameless()->getChrome())->toBe(TerminalChrome::None);
     });
 
-    it('drives the boolean getShowWindowControls accessor', function () {
-        expect((new TerminalBuilder)->chrome(TerminalChrome::Full)->getShowWindowControls())->toBeTrue();
-        expect((new TerminalBuilder)->chrome(TerminalChrome::Minimal)->getShowWindowControls())->toBeFalse();
-        expect((new TerminalBuilder)->chrome(TerminalChrome::None)->getShowWindowControls())->toBeFalse();
+    it('is forwarded as the chrome Livewire parameter', function () {
+        expect((new TerminalBuilder)->local()->frameless()->getParameters()['chrome'])
+            ->toBe('none');
     });
 });
 
-describe('getEffectiveConnectionBehavior()', function () {
-    it('defaults to Always when nothing was configured (extraction-era behavior)', function () {
-        expect((new TerminalBuilder)->getEffectiveConnectionBehavior())
+describe('theme()', function () {
+    it('defaults to an empty array', function () {
+        expect((new TerminalBuilder)->getTheme())->toBe([]);
+    });
+
+    it('accepts an array and a Closure', function () {
+        expect((new TerminalBuilder)->theme(['background' => '#000'])->getTheme())
+            ->toBe(['background' => '#000']);
+
+        expect((new TerminalBuilder)->theme(fn (): array => ['fontSize' => 14])->getTheme())
+            ->toBe(['fontSize' => 14]);
+    });
+
+    it('is forwarded as the theme Livewire parameter', function () {
+        expect((new TerminalBuilder)->local()->theme(['background' => '#000'])->getParameters()['theme'])
+            ->toBe(['background' => '#000']);
+    });
+});
+
+describe('connectionBehavior()', function () {
+    it('defaults to Always when nothing was configured', function () {
+        expect((new TerminalBuilder)->getConnectionBehavior())
             ->toBe(ConnectionBehavior::Always);
     });
 
     it('returns the explicitly declared behavior', function () {
-        expect((new TerminalBuilder)->connectionBehavior(ConnectionBehavior::Manual)->getEffectiveConnectionBehavior())
+        expect((new TerminalBuilder)->connectionBehavior(ConnectionBehavior::Manual)->getConnectionBehavior())
             ->toBe(ConnectionBehavior::Manual);
 
-        expect((new TerminalBuilder)->connectionBehavior(ConnectionBehavior::Auto)->getEffectiveConnectionBehavior())
+        expect((new TerminalBuilder)->connectionBehavior(ConnectionBehavior::Auto)->getConnectionBehavior())
             ->toBe(ConnectionBehavior::Auto);
     });
 
-    it('maps the deprecated flags when they were explicitly set', function () {
-        expect((new TerminalBuilder)->autoConnect(true)->getEffectiveConnectionBehavior())
-            ->toBe(ConnectionBehavior::Always);
-
-        expect((new TerminalBuilder)->startConnected(true)->getEffectiveConnectionBehavior())
-            ->toBe(ConnectionBehavior::Auto);
-
-        expect((new TerminalBuilder)->autoConnect(false)->getEffectiveConnectionBehavior())
+    it('accepts a Closure resolved at read time', function () {
+        expect((new TerminalBuilder)->connectionBehavior(fn (): ConnectionBehavior => ConnectionBehavior::Manual)->getConnectionBehavior())
             ->toBe(ConnectionBehavior::Manual);
     });
 
@@ -68,7 +80,6 @@ describe('getEffectiveConnectionBehavior()', function () {
         expect((new TerminalBuilder)->hasExplicitConnectionBehavior())->toBeFalse();
 
         expect((new TerminalBuilder)->connectionBehavior(ConnectionBehavior::Manual)->hasExplicitConnectionBehavior())->toBeTrue();
-        expect((new TerminalBuilder)->autoConnect(false)->hasExplicitConnectionBehavior())->toBeTrue();
     });
 
     it('is forwarded as the connectionBehavior Livewire parameter', function () {
@@ -83,25 +94,19 @@ describe('getEffectiveConnectionBehavior()', function () {
     });
 });
 
-describe('connectionBehavior()', function () {
-    it('Manual clears both start and auto-connect flags', function () {
-        $b = (new TerminalBuilder)->connectionBehavior(ConnectionBehavior::Manual);
-
-        expect($b->getStartConnected())->toBeFalse();
-        expect($b->getAutoConnect())->toBeFalse();
+describe('removed legacy API', function () {
+    it('no longer exposes the deprecated flag setters', function () {
+        expect(method_exists(TerminalBuilder::class, 'windowControls'))->toBeFalse()
+            ->and(method_exists(TerminalBuilder::class, 'startConnected'))->toBeFalse()
+            ->and(method_exists(TerminalBuilder::class, 'autoConnect'))->toBeFalse()
+            ->and(method_exists(TerminalBuilder::class, 'streamTheme'))->toBeFalse();
     });
 
-    it('Auto sets startConnected but not autoConnect', function () {
-        $b = (new TerminalBuilder)->connectionBehavior(ConnectionBehavior::Auto);
+    it('no longer emits the legacy Livewire parameters', function () {
+        $params = (new TerminalBuilder)->local()->getParameters();
 
-        expect($b->getStartConnected())->toBeTrue();
-        expect($b->getAutoConnect())->toBeFalse();
-    });
-
-    it('Always sets both so the button is hidden but the connection is live', function () {
-        $b = (new TerminalBuilder)->connectionBehavior(ConnectionBehavior::Always);
-
-        expect($b->getStartConnected())->toBeTrue();
-        expect($b->getAutoConnect())->toBeTrue();
+        expect($params)->not->toHaveKey('showWindowControls')
+            ->and($params)->not->toHaveKey('autoConnect')
+            ->and($params)->not->toHaveKey('streamTheme');
     });
 });

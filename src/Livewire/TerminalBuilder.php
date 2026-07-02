@@ -6,11 +6,11 @@ namespace MWGuerra\WebTerminalStream\Livewire;
 
 use Illuminate\Support\HtmlString;
 use Livewire\Livewire;
+use MWGuerra\WebTerminalStream\Concerns\ConfiguresAppearance;
 use MWGuerra\WebTerminalStream\Concerns\ConfiguresConnection;
+use MWGuerra\WebTerminalStream\Concerns\ConfiguresConnectionLifecycle;
 use MWGuerra\WebTerminalStream\Concerns\ConfiguresLogging;
 use MWGuerra\WebTerminalStream\Concerns\ConfiguresScripts;
-use MWGuerra\WebTerminalStream\Concerns\ConfiguresStreamMode;
-use MWGuerra\WebTerminalStream\Concerns\ConfiguresTerminalAppearance;
 use MWGuerra\WebTerminalStream\Concerns\EvaluatesOptions;
 use MWGuerra\WebTerminalStream\Concerns\ResolvesTerminalProperties;
 
@@ -22,11 +22,11 @@ use MWGuerra\WebTerminalStream\Concerns\ResolvesTerminalProperties;
  */
 class TerminalBuilder
 {
+    use ConfiguresAppearance;
     use ConfiguresConnection;
+    use ConfiguresConnectionLifecycle;
     use ConfiguresLogging;
     use ConfiguresScripts;
-    use ConfiguresStreamMode;
-    use ConfiguresTerminalAppearance;
     use EvaluatesOptions;
     use ResolvesTerminalProperties;
 

@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use MWGuerra\WebTerminalStream\Data\ConnectionConfig;
+use MWGuerra\WebTerminalStream\Enums\TerminalChrome;
 use MWGuerra\WebTerminalStream\Livewire\TerminalBuilder;
 
 describe('TerminalBuilder', function () {
@@ -95,13 +96,13 @@ describe('TerminalBuilder', function () {
             expect($params['title'])->toBe('My Terminal');
         });
 
-        it('sets windowControls to false', function () {
+        it('sets chrome to minimal', function () {
             $builder = new TerminalBuilder;
-            $builder->local()->windowControls(false);
+            $builder->local()->chrome(TerminalChrome::Minimal);
 
             $params = $builder->getParameters();
 
-            expect($params['showWindowControls'])->toBeFalse();
+            expect($params['chrome'])->toBe('minimal');
         });
 
         it('sets height', function () {

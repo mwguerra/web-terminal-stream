@@ -4,6 +4,7 @@ use Filament\Schemas\Components\Component;
 use Filament\Schemas\Components\Livewire;
 use MWGuerra\WebTerminalStream\Data\ConnectionConfig;
 use MWGuerra\WebTerminalStream\Enums\ConnectionBehavior;
+use MWGuerra\WebTerminalStream\Enums\TerminalChrome;
 use MWGuerra\WebTerminalStream\Livewire\StreamTerminal as StreamTerminalComponent;
 use MWGuerra\WebTerminalStream\Schemas\Components\WebTerminalStream as WebTerminal;
 
@@ -119,10 +120,10 @@ describe('local', function () {
 });
 
 describe('height', function () {
-    it('has default height of 350px', function () {
+    it('has default height of 400px', function () {
         $component = WebTerminal::make();
 
-        expect($component->getHeight())->toBe('350px');
+        expect($component->getHeight())->toBe('400px');
     });
 
     it('sets custom height', function () {
@@ -205,32 +206,30 @@ describe('title', function () {
     });
 });
 
-describe('windowControls', function () {
-    it('shows window controls by default', function () {
+describe('chrome', function () {
+    it('defaults to full chrome', function () {
         $component = WebTerminal::make();
 
-        expect($component->getShowWindowControls())->toBeTrue();
+        expect($component->getChrome())->toBe(TerminalChrome::Full);
     });
 
-    it('hides window controls when set to false', function () {
+    it('sets minimal chrome', function () {
         $component = WebTerminal::make()
-            ->windowControls(false);
+            ->chrome(TerminalChrome::Minimal);
 
-        expect($component->getShowWindowControls())->toBeFalse();
+        expect($component->getChrome())->toBe(TerminalChrome::Minimal);
     });
 
-    it('shows window controls when set to true', function () {
-        $component = WebTerminal::make()
-            ->windowControls(false)
-            ->windowControls(true);
+    it('frameless() is sugar for chrome none', function () {
+        $component = WebTerminal::make()->frameless();
 
-        expect($component->getShowWindowControls())->toBeTrue();
+        expect($component->getChrome())->toBe(TerminalChrome::None);
     });
 
     it('returns self for method chaining', function () {
         $component = WebTerminal::make();
 
-        expect($component->windowControls(false))->toBe($component);
+        expect($component->chrome(TerminalChrome::Minimal))->toBe($component);
     });
 });
 
@@ -240,7 +239,7 @@ describe('component properties', function () {
             ->local()
             ->height('500px')
             ->title('Console')
-            ->streamTheme(['background' => '#000000'])
+            ->theme(['background' => '#000000'])
             ->log(enabled: true, connections: true, identifier: 'console');
 
         $props = $component->getComponentProperties();
@@ -248,12 +247,13 @@ describe('component properties', function () {
         expect($props['connectionConfig'])->toBe(['type' => 'local'])
             ->and($props['height'])->toBe('500px')
             ->and($props['title'])->toBe('Console')
-            ->and($props['streamTheme'])->toBe(['background' => '#000000'])
+            ->and($props['theme'])->toBe(['background' => '#000000'])
             ->and($props['loggingEnabled'])->toBeTrue()
             ->and($props['logConnections'])->toBeTrue()
             ->and($props['logIdentifier'])->toBe('console')
             ->and($props['chrome'])->toBe('full')
-            ->and($props['autoConnect'])->toBeFalse()
+            ->and($props)->not->toHaveKey('autoConnect')
+            ->and($props)->not->toHaveKey('showWindowControls')
             ->and($props['connectionBehavior'])->toBe('always');
     });
 

@@ -77,19 +77,4 @@ return [
             env('APP_URL', 'http://localhost'),
         ],
     ],
-
-    /*
-    |--------------------------------------------------------------------------
-    | Deprecation Notices
-    |--------------------------------------------------------------------------
-    |
-    | When `emit_notices` is true, deprecated fluent-API methods trigger a
-    | PHP E_USER_DEPRECATED notice when called. Off by default so users
-    | aren't flooded; flip it on in staging to surface usage before the
-    | next major upgrade.
-    |
-    */
-    'deprecations' => [
-        'emit_notices' => env('WEB_TERMINAL_STREAM_DEPRECATIONS_EMIT_NOTICES', false),
-    ],
 ];
