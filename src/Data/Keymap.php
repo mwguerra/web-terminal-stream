@@ -217,9 +217,14 @@ final class Keymap implements Arrayable
         $finalKey = array_pop($parts);
 
         if ($finalKey === '') {
-            // Trailing '+' means the final key IS '+' (e.g. 'ctrl++').
-            $finalKey = '+';
+            // A trailing '+' is only valid when '+' IS the final key
+            // (e.g. 'ctrl++'), i.e. the preceding segment is also empty.
+            if (end($parts) !== '') {
+                throw new InvalidArgumentException("Key binding \"{$key}\" is missing its key.");
+            }
+
             array_pop($parts);
+            $finalKey = '+';
         }
 
         foreach ($parts as $modifier) {
@@ -231,10 +236,6 @@ final class Keymap implements Arrayable
                     implode(', ', self::MODIFIERS),
                 ));
             }
-        }
-
-        if ($finalKey === null || $finalKey === '') {
-            throw new InvalidArgumentException("Key binding \"{$key}\" is missing its key.");
         }
     }
 }

@@ -298,10 +298,10 @@ class TerminalMakePageCommand extends Command
         $this->line('   WebTerminalStreamPlugin::make()');
         $this->line('       ->withoutTerminalPage()');
         $this->newLine();
-        $this->line('   Or use only() to keep just TerminalLogs from the plugin:');
+        $this->line('   Or use components() to keep just TerminalLogs from the plugin:');
         $this->newLine();
         $this->line('   WebTerminalStreamPlugin::make()');
-        $this->line('       ->only([');
+        $this->line('       ->components([');
         $this->line('           \\MWGuerra\\WebTerminalStream\\Filament\\Resources\\TerminalLogResource::class,');
         $this->line('       ])');
         $this->newLine();

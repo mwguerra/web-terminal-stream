@@ -94,6 +94,7 @@ old package's Stream mode (or from an early checkout of this one):
 | `ConnectionBehavior::AutoHidden` / `'auto_hidden'` | `ConnectionBehavior::Always` / `'always'` |
 | `getEffectiveConnectionBehavior()` | `getConnectionBehavior()` (now never null) |
 | `->log(['enabled' => true, 'identifier' => 'x'])` | `->log(enabled: true, identifier: 'x')` (named args only) |
+| `->log(fn () => ['enabled' => ..., ...])` (Closure returning a config array) | `->log(enabled: fn () => ..., identifier: fn () => ...)` — a Closure first argument now resolves the **enabled bool**, not a whole config array |
 | Livewire prop `streamTheme` | `theme` |
 | Livewire props `showWindowControls`, `autoConnect` | Removed — derived from `chrome` / `connectionBehavior` |
 | Plugin `->only([...])` | `->components([...])` |

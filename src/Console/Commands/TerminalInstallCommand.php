@@ -612,17 +612,17 @@ class TerminalInstallCommand extends Command
             $this->line('       ->withoutTerminalPage()');
             $this->line('       ->withoutTerminalLogs()');
             $this->newLine();
-            $this->line('   // Or use empty only() to keep services without pages:');
+            $this->line('   // Or use an empty components() whitelist to keep services without pages:');
             $this->line('   WebTerminalStreamPlugin::make()');
-            $this->line('       ->only([])');
+            $this->line('       ->components([])');
         } elseif ($this->generatedPage) {
             $this->line('   // Disable the default Terminal page:');
             $this->line('   WebTerminalStreamPlugin::make()');
             $this->line('       ->withoutTerminalPage()');
             $this->newLine();
-            $this->line('   // Or use only() to keep just TerminalLogs from the plugin:');
+            $this->line('   // Or use components() to keep just TerminalLogs from the plugin:');
             $this->line('   WebTerminalStreamPlugin::make()');
-            $this->line('       ->only([');
+            $this->line('       ->components([');
             $this->line('           \\MWGuerra\\WebTerminalStream\\Filament\\Resources\\TerminalLogResource::class,');
             $this->line('       ])');
         } elseif ($this->generatedResource) {
@@ -630,9 +630,9 @@ class TerminalInstallCommand extends Command
             $this->line('   WebTerminalStreamPlugin::make()');
             $this->line('       ->withoutTerminalLogs()');
             $this->newLine();
-            $this->line('   // Or use only() to keep just Terminal page from the plugin:');
+            $this->line('   // Or use components() to keep just Terminal page from the plugin:');
             $this->line('   WebTerminalStreamPlugin::make()');
-            $this->line('       ->only([');
+            $this->line('       ->components([');
             $this->line('           \\MWGuerra\\WebTerminalStream\\Filament\\Pages\\Terminal::class,');
             $this->line('       ])');
         }

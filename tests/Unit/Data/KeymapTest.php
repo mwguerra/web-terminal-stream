@@ -84,6 +84,11 @@ describe('Keymap', function () {
 
             expect($keymap->getBindings(PaneAction::ZoomPane))->toBe(['ctrl++']);
         });
+
+        it('rejects bindings with a trailing separator and no key', function (string $binding) {
+            expect(fn () => Keymap::make()->bind(PaneAction::ZoomPane, $binding))
+                ->toThrow(InvalidArgumentException::class, 'missing its key');
+        })->with(['ctrl+', 'x+', 'ctrl+shift+']);
     });
 
     describe('fromArray (config shape)', function () {

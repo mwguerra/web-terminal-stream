@@ -88,6 +88,11 @@ class TerminalGrid extends Grid
 
         $this->panes = array_values($panes);
 
+        // Replacing the pane set invalidates the grid-managed bookkeeping;
+        // stale spl_object_id entries could clobber a fresh pane's explicit
+        // behavior after object-id reuse.
+        $this->gridManagedBehaviorPanes = [];
+
         foreach ($this->panes as $pane) {
             $this->applyPaneDefaults($pane);
         }
