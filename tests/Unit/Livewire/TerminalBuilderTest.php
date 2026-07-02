@@ -7,26 +7,28 @@ use MWGuerra\WebTerminalStream\Livewire\TerminalBuilder;
 
 describe('TerminalBuilder', function () {
     describe('connection configuration', function () {
-        it('defaults to an empty connection config', function () {
+        it('defaults to a local connection config', function () {
             $builder = new TerminalBuilder;
 
             $params = $builder->getParameters();
 
-            expect($params['connectionConfig'])->toBe([]);
+            expect($params['connectionConfig'])->toBe(['type' => 'local']);
         });
 
         it('sets local connection', function () {
             $builder = new TerminalBuilder;
-            $builder->local();
+            $builder->local(workingDirectory: '/srv', environment: ['FOO' => 'bar']);
 
-            $params = $builder->getParameters();
+            $config = $builder->getParameters()['connectionConfig'];
 
-            expect($params['connectionConfig']['type'])->toBe('local');
+            expect($config['type'])->toBe('local')
+                ->and($config['working_directory'])->toBe('/srv')
+                ->and($config['environment'])->toBe(['FOO' => 'bar']);
         });
 
         it('sets SSH connection with password', function () {
             $builder = new TerminalBuilder;
-            $builder->sshWithPassword('example.com', 'deploy', 'secret', 2222);
+            $builder->ssh(host: 'example.com', username: 'deploy', password: 'secret', port: 2222);
 
             $config = $builder->getParameters()['connectionConfig'];
 
@@ -39,7 +41,7 @@ describe('TerminalBuilder', function () {
 
         it('sets SSH connection with key', function () {
             $builder = new TerminalBuilder;
-            $builder->sshWithKey('example.com', 'deploy', 'PRIVATE-KEY', 'phrase');
+            $builder->ssh(host: 'example.com', username: 'deploy', privateKey: 'PRIVATE-KEY', passphrase: 'phrase');
 
             $config = $builder->getParameters()['connectionConfig'];
 
@@ -50,12 +52,36 @@ describe('TerminalBuilder', function () {
 
         it('accepts a ConnectionConfig value object', function () {
             $builder = new TerminalBuilder;
-            $builder->withConfig(ConnectionConfig::local(workingDirectory: '/tmp'));
+            $builder->connection(ConnectionConfig::local(workingDirectory: '/tmp'));
 
             $config = $builder->getParameters()['connectionConfig'];
 
             expect($config['type'])->toBe('local')
                 ->and($config['working_directory'])->toBe('/tmp');
+        });
+
+        it('keeps SSH credentials from a ConnectionConfig value object', function () {
+            // Regression: the old withConfig() path went through toArray(),
+            // which strips credentials — SSH could never authenticate.
+            $builder = new TerminalBuilder;
+            $builder->connection(ConnectionConfig::sshWithKey(
+                host: 'example.com',
+                username: 'deploy',
+                privateKey: 'PEM-CONTENT',
+                passphrase: 'phrase',
+            ));
+
+            $config = $builder->getParameters()['connectionConfig'];
+
+            expect($config['private_key'])->toBe('PEM-CONTENT')
+                ->and($config['passphrase'])->toBe('phrase');
+        });
+
+        it('applies workingDirectory() when the connection config has none', function () {
+            $builder = new TerminalBuilder;
+            $builder->local()->workingDirectory('/var/www');
+
+            expect($builder->getParameters()['connectionConfig']['working_directory'])->toBe('/var/www');
         });
     });
 

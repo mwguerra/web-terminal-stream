@@ -1,15 +1,17 @@
 <?php
 
+declare(strict_types=1);
+
 namespace MWGuerra\WebTerminalStream\Schemas\Components;
 
 use Closure;
 use Filament\Schemas\Components\Livewire;
 use Illuminate\Support\Str;
+use MWGuerra\WebTerminalStream\Concerns\ConfiguresConnection;
 use MWGuerra\WebTerminalStream\Concerns\ConfiguresLogging;
 use MWGuerra\WebTerminalStream\Concerns\ConfiguresScripts;
 use MWGuerra\WebTerminalStream\Concerns\ConfiguresStreamMode;
 use MWGuerra\WebTerminalStream\Concerns\ConfiguresTerminalAppearance;
-use MWGuerra\WebTerminalStream\Data\ConnectionConfig;
 use MWGuerra\WebTerminalStream\Livewire\StreamTerminal as StreamTerminalComponent;
 
 /**
@@ -27,14 +29,11 @@ use MWGuerra\WebTerminalStream\Livewire\StreamTerminal as StreamTerminalComponen
  */
 class WebTerminalStream extends Livewire
 {
+    use ConfiguresConnection;
     use ConfiguresLogging;
     use ConfiguresScripts;
     use ConfiguresStreamMode;
     use ConfiguresTerminalAppearance;
-
-    protected array|Closure $connectionConfig = ['type' => 'local'];
-
-    protected ?string $workingDirectory = null;
 
     public static function make(Closure|string|null $component = null, Closure|array $data = []): static
     {
@@ -69,15 +68,8 @@ class WebTerminalStream extends Livewire
      */
     public function getComponentProperties(): array
     {
-        $config = $this->getConnectionConfig();
-
-        // Add working directory if set
-        if ($this->workingDirectory !== null) {
-            $config['working_directory'] = $this->workingDirectory;
-        }
-
         return [
-            'connectionConfig' => $config,
+            'connectionConfig' => $this->getConnectionConfig(),
             'height' => $this->getHeight(),
             'title' => $this->getTitle(),
             'streamTheme' => $this->getStreamTheme(),
@@ -92,133 +84,5 @@ class WebTerminalStream extends Livewire
             'logIdentifier' => $this->getLogIdentifier(),
             'logMetadata' => $this->getLogMetadata(),
         ];
-    }
-
-    // ========================================
-    // Connection Configuration
-    // ========================================
-
-    /**
-     * Set the connection configuration.
-     */
-    public function connection(array|Closure|ConnectionConfig $config): static
-    {
-        if ($config instanceof ConnectionConfig) {
-            $this->connectionConfig = [
-                'type' => $config->type->value,
-                'host' => $config->host,
-                'username' => $config->username,
-                'password' => $config->password,
-                'private_key' => $config->privateKey,
-                'passphrase' => $config->passphrase,
-                'port' => $config->port,
-                'timeout' => $config->timeout,
-                'working_directory' => $config->workingDirectory,
-                'environment' => $config->environment,
-            ];
-        } else {
-            $this->connectionConfig = $config;
-        }
-
-        return $this;
-    }
-
-    /**
-     * Configure for local connection.
-     */
-    public function local(): static
-    {
-        $this->connectionConfig = ['type' => 'local'];
-
-        return $this;
-    }
-
-    /**
-     * Configure for SSH connection.
-     *
-     * Supports both password and key-based authentication:
-     * - Password auth: provide `password` parameter
-     * - Key auth: provide `key` parameter with the private key content
-     *
-     * Can be called with named parameters or an array/Closure:
-     *
-     * @example Named parameters:
-     * ->ssh(host: 'example.com', username: 'user', password: 'pass')
-     * @example Array configuration:
-     * ->ssh(['host' => 'example.com', 'username' => 'user', 'password' => 'pass'])
-     * @example Closure (evaluated at render time):
-     * ->ssh(fn () => [
-     *     'host' => config('ssh.host'),
-     *     'username' => config('ssh.username'),
-     *     'private_key' => Storage::get('ssh/key'),
-     * ])
-     *
-     * @param  array|Closure|string  $host  SSH host (when using named params), or a full array/Closure config
-     * @param  string|null  $username  SSH username (when using named params)
-     * @param  string|null  $password  Password for password-based auth
-     * @param  string|null  $key  Private key content for key-based auth
-     * @param  string|null  $passphrase  Passphrase for encrypted private keys
-     * @param  int  $port  SSH port (default: 22)
-     */
-    public function ssh(
-        array|Closure|string $host,
-        ?string $username = null,
-        ?string $password = null,
-        ?string $key = null,
-        ?string $passphrase = null,
-        int $port = 22
-    ): static {
-        // If the first argument is an array or Closure, it is the full config
-        if (is_array($host) || $host instanceof Closure) {
-            $config = $host;
-            $this->connectionConfig = $config instanceof Closure
-                ? fn () => array_merge(['type' => 'ssh'], $this->evaluate($config))
-                : array_merge(['type' => 'ssh'], $config);
-
-            return $this;
-        }
-
-        // Named parameters style
-        $this->connectionConfig = [
-            'type' => 'ssh',
-            'host' => $host,
-            'username' => $username,
-            'password' => $password,
-            'private_key' => $key,
-            'passphrase' => $passphrase,
-            'port' => $port,
-        ];
-
-        return $this;
-    }
-
-    /**
-     * Get the connection configuration.
-     */
-    public function getConnectionConfig(): array
-    {
-        return $this->evaluate($this->connectionConfig);
-    }
-
-    // ========================================
-    // Terminal Settings
-    // ========================================
-
-    /**
-     * Set the initial working directory.
-     */
-    public function workingDirectory(?string $directory): static
-    {
-        $this->workingDirectory = $directory;
-
-        return $this;
-    }
-
-    /**
-     * Get the working directory.
-     */
-    public function getWorkingDirectory(): ?string
-    {
-        return $this->workingDirectory;
     }
 }

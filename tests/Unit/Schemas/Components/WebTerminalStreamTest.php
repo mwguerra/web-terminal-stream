@@ -2,6 +2,7 @@
 
 use Filament\Schemas\Components\Component;
 use Filament\Schemas\Components\Livewire;
+use MWGuerra\WebTerminalStream\Data\ConnectionConfig;
 use MWGuerra\WebTerminalStream\Enums\ConnectionBehavior;
 use MWGuerra\WebTerminalStream\Livewire\StreamTerminal as StreamTerminalComponent;
 use MWGuerra\WebTerminalStream\Schemas\Components\WebTerminalStream as WebTerminal;
@@ -48,7 +49,7 @@ test-key-content
             ->ssh(
                 host: '192.168.1.100',
                 username: 'admin',
-                key: $keyContent,
+                privateKey: $keyContent,
                 port: 2222
             );
 
@@ -70,7 +71,7 @@ encrypted-key
             ->ssh(
                 host: 'localhost',
                 username: 'root',
-                key: $keyContent,
+                privateKey: $keyContent,
                 passphrase: 'my-secret-passphrase',
                 port: 22
             );
@@ -80,7 +81,7 @@ encrypted-key
         expect($config['passphrase'])->toBe('my-secret-passphrase');
     });
 
-    it('uses default port 22 when not specified', function () {
+    it('leaves port null when not specified so the SSH default (22) applies', function () {
         $component = WebTerminal::make()
             ->ssh(
                 host: 'localhost',
@@ -89,7 +90,8 @@ encrypted-key
 
         $config = $component->getConnectionConfig();
 
-        expect($config['port'])->toBe(22);
+        expect($config['port'])->toBeNull()
+            ->and(ConnectionConfig::fromArray([...$config, 'password' => 'x'])->effectivePort())->toBe(22);
     });
 
     it('returns self for method chaining', function () {
