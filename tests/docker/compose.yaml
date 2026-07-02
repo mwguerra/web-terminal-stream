@@ -1,0 +1,29 @@
+services:
+  # Throwaway SSH target for the Integration + e2e suites. Loopback-only.
+  sshd:
+    build:
+      context: .
+      dockerfile: sshd/Dockerfile
+    ports:
+      - "127.0.0.1:2299:22"
+    healthcheck:
+      test: ["CMD", "nc", "-z", "127.0.0.1", "22"]
+      interval: 2s
+      timeout: 2s
+      retries: 15
+
+  # Linux PHP runner for the linux-pty group (composer test:integration:linux).
+  php-tests:
+    build:
+      context: .
+      dockerfile: php/Dockerfile
+    profiles: ["php"]
+    volumes:
+      - ../..:/app
+    working_dir: /app
+    environment:
+      WTS_SSH_HOST: sshd
+      WTS_SSH_PORT: "22"
+    depends_on:
+      sshd:
+        condition: service_healthy
