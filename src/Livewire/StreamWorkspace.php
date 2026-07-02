@@ -87,7 +87,8 @@ class StreamWorkspace extends Component
         $this->keymap = $keymap !== []
             ? $keymap
             : Keymap::fromArray(config('web-terminal-stream.workspace.shortcuts', []) ?: [])->toArray();
-        $this->shortcutsEnabled = $shortcutsEnabled;
+        $this->shortcutsEnabled = $shortcutsEnabled
+            && (bool) config('web-terminal-stream.workspace.shortcuts.enabled', true);
         $this->maxPanes = max(1, $maxPanes ?? (int) config('web-terminal-stream.workspace.max_panes', 9));
         $this->minPaneRatio = (float) config('web-terminal-stream.workspace.min_pane_ratio', 0.1);
         $this->resizeStep = (float) config('web-terminal-stream.workspace.resize_step', 0.03);
@@ -140,6 +141,10 @@ class StreamWorkspace extends Component
      */
     public function closePane(string $paneId): array
     {
+        if (! $this->userMayUseTerminal()) {
+            return ['error' => 'Unauthorized'];
+        }
+
         if (! isset($this->panes[$paneId]) || $this->tree === null) {
             return ['error' => 'Unknown pane'];
         }
@@ -186,6 +191,10 @@ class StreamWorkspace extends Component
      */
     public function updateRatios(array $ratios): array
     {
+        if (! $this->userMayUseTerminal()) {
+            return ['error' => 'Unauthorized'];
+        }
+
         if ($this->tree === null) {
             return ['tree' => null];
         }

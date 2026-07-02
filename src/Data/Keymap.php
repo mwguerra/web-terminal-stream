@@ -121,6 +121,11 @@ final class Keymap implements Arrayable
 
     /**
      * The leader key, or null for prefix-less direct chords.
+     *
+     * WARNING: with a null prefix, every binding fires directly on its
+     * key. Keep the default single-character bindings (x, z, %, ") and
+     * ordinary typing will trigger pane actions — rebind everything to
+     * modified chords (e.g. 'alt+x') before going prefix-less.
      */
     public function prefix(?string $keys): self
     {
