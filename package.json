@@ -4,12 +4,14 @@
     "scripts": {
         "build": "npx @tailwindcss/cli -i resources/css/index.css -o resources/dist/web-terminal-stream.css --minify",
         "build:js": "npx esbuild resources/js/stream-terminal.js --bundle --minify --format=iife --global-name=StreamWeb --outfile=resources/dist/stream-terminal.js",
-        "build:all": "npm run build && npm run build:js"
+        "build:all": "npm run build && npm run build:js",
+        "test:e2e": "bash scripts/e2e/run.sh"
     },
     "dependencies": {
         "ghostty-web": "^0.4.0"
     },
     "devDependencies": {
+        "@playwright/test": "^1.53",
         "@tailwindcss/cli": "^4.1.0",
         "esbuild": "^0.25.0",
         "tailwindcss": "^4.1.0"
