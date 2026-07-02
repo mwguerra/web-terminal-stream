@@ -59,3 +59,60 @@
     outline: 2px solid var(--wts-grid-focus-ring, rgba(96, 165, 250, 0.7));
     outline-offset: -2px;
 }
+
+/* Terminal Workspace (tmux-style dynamic tiling)
+   Panes are absolutely-positioned siblings whose rects Alpine computes
+   from the split tree; dividers are zero-layout-space overlay strips. */
+.wts-workspace {
+    background-color: var(--wts-grid-divider, rgba(148, 163, 184, 0.25));
+}
+
+.wts-workspace .wts-pane {
+    min-width: 0;
+    min-height: 0;
+    outline: none;
+}
+
+.wts-workspace .wts-pane > * {
+    height: 100%;
+}
+
+.wts-workspace .stream-web-terminal:focus-within {
+    outline: 2px solid var(--wts-grid-focus-ring, rgba(96, 165, 250, 0.7));
+    outline-offset: -2px;
+}
+
+/* Divider hit areas: 8px wide strips centered on the pane boundary.
+   The visible 1px line is drawn by the workspace background showing
+   through the pane edges; the strip itself is invisible until hover. */
+.wts-divider {
+    z-index: 20;
+    touch-action: none;
+}
+
+.wts-divider-vertical {
+    width: 8px;
+    margin-left: -4px;
+    cursor: col-resize;
+}
+
+.wts-divider-horizontal {
+    height: 8px;
+    margin-top: -4px;
+    cursor: row-resize;
+}
+
+.wts-divider:hover,
+.wts-divider:active {
+    background: var(--wts-grid-focus-ring, rgba(96, 165, 250, 0.35));
+}
+
+/* Armed tmux prefix: subtle ring on the whole workspace. */
+.wts-workspace.wts-prefix-armed {
+    outline: 2px solid var(--wts-grid-focus-ring, rgba(96, 165, 250, 0.7));
+    outline-offset: -2px;
+}
+
+.wts-workspace .wts-workspace-empty {
+    background: #1a1a2e;
+}

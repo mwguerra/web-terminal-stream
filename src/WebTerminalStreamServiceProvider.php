@@ -16,6 +16,7 @@ use MWGuerra\WebTerminalStream\Console\Commands\TerminalMakePageCommand;
 use MWGuerra\WebTerminalStream\Console\Commands\TerminalServeCommand;
 use MWGuerra\WebTerminalStream\Http\Controllers\TerminalWebSocketController;
 use MWGuerra\WebTerminalStream\Livewire\StreamTerminal;
+use MWGuerra\WebTerminalStream\Livewire\StreamWorkspace;
 use MWGuerra\WebTerminalStream\Services\TerminalLogger;
 
 class WebTerminalStreamServiceProvider extends ServiceProvider
@@ -38,6 +39,7 @@ class WebTerminalStreamServiceProvider extends ServiceProvider
         $this->registerAssets();
 
         Livewire::component('web-terminal-stream', StreamTerminal::class);
+        Livewire::component('web-terminal-workspace', StreamWorkspace::class);
 
         Route::post('terminal-stream/ws-token', [
             TerminalWebSocketController::class,

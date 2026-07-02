@@ -5,6 +5,8 @@
     ])
     style="height: {{ $height }}; min-height: 200px; background: {{ $theme['background'] ?? '#1a1a2e' }};"
     data-connection-behavior="{{ $connectionBehavior }}"
+    {{-- Byte-injection channel for the workspace (literal prefix passthrough). --}}
+    x-on:wts-pane-send="ws && ws.readyState === WebSocket.OPEN && ws.send($event.detail.data)"
     x-data="{
         isConnected: $wire.entangle('isConnected'),
         // 'manual' | 'auto' | 'always' — see ConnectionBehavior.
