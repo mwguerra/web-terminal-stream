@@ -28,7 +28,7 @@ use MWGuerra\WebTerminalStream\Enums\ConnectionBehavior;
  *     ->columns(2)
  *     ->height('600px')
  *     ->connectionBehavior(ConnectionBehavior::Manual)
- *     ->terminals([
+ *     ->panes([
  *         WebTerminalStream::make()->key('pane-1')->local(),
  *         WebTerminalStream::make()->key('pane-2')->local(),
  *     ])
@@ -36,7 +36,7 @@ use MWGuerra\WebTerminalStream\Enums\ConnectionBehavior;
 class TerminalGrid extends Grid
 {
     /** @var array<int, WebTerminalStream> */
-    protected array $terminals = [];
+    protected array $panes = [];
 
     protected int $paneGap = 0;
 
@@ -58,7 +58,7 @@ class TerminalGrid extends Grid
         parent::setUp();
 
         // Filament's own schema gap (gap-6) is off — flush panes are the
-        // point. Pixel gaps come back through ->gap(), rendered as dividers.
+        // point. Pixel gaps come back through ->paneGap(), rendered as dividers.
         $this->gap(false);
 
         $this->extraAttributes(fn (): array => [
@@ -72,27 +72,27 @@ class TerminalGrid extends Grid
      * inherits the grid defaults (frameless, square corners, grid-level
      * connection behavior and height) unless it configured its own.
      *
-     * @param  array<int, WebTerminalStream>  $terminals
+     * @param  array<int, WebTerminalStream>  $panes
      */
-    public function terminals(array $terminals): static
+    public function panes(array $panes): static
     {
-        foreach ($terminals as $terminal) {
-            if (! $terminal instanceof WebTerminalStream) {
+        foreach ($panes as $pane) {
+            if (! $pane instanceof WebTerminalStream) {
                 throw new InvalidArgumentException(sprintf(
-                    'TerminalGrid::terminals() only accepts %s instances, %s given.',
+                    'TerminalGrid::panes() only accepts %s instances, %s given.',
                     WebTerminalStream::class,
-                    get_debug_type($terminal),
+                    get_debug_type($pane),
                 ));
             }
         }
 
-        $this->terminals = array_values($terminals);
+        $this->panes = array_values($panes);
 
-        foreach ($this->terminals as $terminal) {
-            $this->applyPaneDefaults($terminal);
+        foreach ($this->panes as $pane) {
+            $this->applyPaneDefaults($pane);
         }
 
-        $this->schema($this->terminals);
+        $this->schema($this->panes);
 
         return $this;
     }
@@ -100,22 +100,15 @@ class TerminalGrid extends Grid
     /**
      * Gap between panes in pixels. Default 0 (flush tmux look); a positive
      * gap shows as pane dividers via the grid container's background.
-     *
-     * Also accepts Filament's boolean gap() signature (inherited from the
-     * schema layer) and passes it through untouched.
      */
-    public function gap(bool|int|Closure|null $gap = 0): static
+    public function paneGap(int|Closure $pixels): static
     {
-        if (is_int($gap)) {
-            $this->paneGap = max(0, $gap);
+        $this->paneGap = max(0, (int) $this->evaluate($pixels));
 
-            return $this;
-        }
-
-        return parent::gap($gap);
+        return $this;
     }
 
-    public function getGap(): int
+    public function getPaneGap(): int
     {
         return $this->paneGap;
     }
@@ -128,7 +121,7 @@ class TerminalGrid extends Grid
     {
         $this->gridHeight = $height;
 
-        foreach ($this->terminals as $terminal) {
+        foreach ($this->panes as $terminal) {
             $this->applyPaneHeight($terminal);
         }
 
@@ -148,7 +141,7 @@ class TerminalGrid extends Grid
     {
         $this->paneConnectionBehavior = $behavior;
 
-        foreach ($this->terminals as $terminal) {
+        foreach ($this->panes as $terminal) {
             $this->forwardConnectionBehavior($terminal);
         }
 

@@ -33,13 +33,13 @@ describe('terminals', function () {
             WebTerminalStream::make()->local(),
         ];
 
-        $grid = TerminalGrid::make()->terminals($panes);
+        $grid = TerminalGrid::make()->panes($panes);
 
         expect($grid->getDefaultChildComponents())->toBe($panes);
     });
 
     it('rejects children that are not WebTerminalStream components', function () {
-        TerminalGrid::make()->terminals([
+        TerminalGrid::make()->panes([
             WebTerminalStream::make()->local(),
             Grid::make(),
         ]);
@@ -48,7 +48,7 @@ describe('terminals', function () {
     it('auto-applies frameless and squareCorners to each pane', function () {
         $pane = WebTerminalStream::make()->local();
 
-        TerminalGrid::make()->terminals([$pane]);
+        TerminalGrid::make()->panes([$pane]);
 
         expect($pane->getChrome())->toBe(TerminalChrome::None);
         expect($pane->getSquareCorners())->toBeTrue();
@@ -60,7 +60,7 @@ describe('terminals', function () {
             ->chrome(TerminalChrome::Minimal)
             ->squareCorners(false);
 
-        TerminalGrid::make()->terminals([$pane]);
+        TerminalGrid::make()->panes([$pane]);
 
         expect($pane->getChrome())->toBe(TerminalChrome::Minimal);
         expect($pane->getSquareCorners())->toBeFalse();
@@ -72,7 +72,7 @@ describe('terminals', function () {
             WebTerminalStream::make()->local(),
         ];
 
-        TerminalGrid::make()->container(Schema::make())->terminals($panes);
+        TerminalGrid::make()->container(Schema::make())->panes($panes);
 
         $keys = array_map(
             fn (WebTerminalStream $pane) => $pane->container(Schema::make())->getKey(),
@@ -86,9 +86,9 @@ describe('terminals', function () {
 
 describe('gap', function () {
     it('defaults to a flush 0px gap with no divider background', function () {
-        $grid = TerminalGrid::make()->terminals([WebTerminalStream::make()->local()]);
+        $grid = TerminalGrid::make()->panes([WebTerminalStream::make()->local()]);
 
-        expect($grid->getGap())->toBe(0);
+        expect($grid->getPaneGap())->toBe(0);
 
         $style = $grid->getExtraAttributes()['style'];
 
@@ -97,9 +97,9 @@ describe('gap', function () {
     });
 
     it('renders a positive gap with the divider background variable', function () {
-        $grid = TerminalGrid::make()->gap(1)->terminals([WebTerminalStream::make()->local()]);
+        $grid = TerminalGrid::make()->paneGap(1)->panes([WebTerminalStream::make()->local()]);
 
-        expect($grid->getGap())->toBe(1);
+        expect($grid->getPaneGap())->toBe(1);
 
         $style = $grid->getExtraAttributes()['style'];
 
@@ -130,7 +130,7 @@ describe('height', function () {
     it('stretches panes without an explicit height to fill their row', function () {
         $pane = WebTerminalStream::make()->local();
 
-        TerminalGrid::make()->height('600px')->terminals([$pane]);
+        TerminalGrid::make()->height('600px')->panes([$pane]);
 
         expect($pane->getHeight())->toBe('100%');
     });
@@ -138,7 +138,7 @@ describe('height', function () {
     it('applies regardless of call order relative to terminals()', function () {
         $pane = WebTerminalStream::make()->local();
 
-        TerminalGrid::make()->terminals([$pane])->height('600px');
+        TerminalGrid::make()->panes([$pane])->height('600px');
 
         expect($pane->getHeight())->toBe('100%');
     });
@@ -146,7 +146,7 @@ describe('height', function () {
     it('keeps a pane\'s explicitly configured height', function () {
         $pane = WebTerminalStream::make()->local()->height('300px');
 
-        TerminalGrid::make()->height('600px')->terminals([$pane]);
+        TerminalGrid::make()->height('600px')->panes([$pane]);
 
         expect($pane->getHeight())->toBe('300px');
     });
@@ -158,7 +158,7 @@ describe('connectionBehavior forwarding', function () {
 
         TerminalGrid::make()
             ->connectionBehavior(ConnectionBehavior::Manual)
-            ->terminals([$pane]);
+            ->panes([$pane]);
 
         expect($pane->getConnectionBehavior())->toBe(ConnectionBehavior::Manual);
     });
@@ -167,7 +167,7 @@ describe('connectionBehavior forwarding', function () {
         $pane = WebTerminalStream::make()->local();
 
         TerminalGrid::make()
-            ->terminals([$pane])
+            ->panes([$pane])
             ->connectionBehavior(ConnectionBehavior::Manual);
 
         expect($pane->getConnectionBehavior())->toBe(ConnectionBehavior::Manual);
@@ -180,7 +180,7 @@ describe('connectionBehavior forwarding', function () {
 
         TerminalGrid::make()
             ->connectionBehavior(ConnectionBehavior::Manual)
-            ->terminals([$pane]);
+            ->panes([$pane]);
 
         expect($pane->getConnectionBehavior())->toBe(ConnectionBehavior::Auto);
     });
@@ -188,7 +188,7 @@ describe('connectionBehavior forwarding', function () {
     it('leaves panes on the default behavior when the grid sets none', function () {
         $pane = WebTerminalStream::make()->local();
 
-        TerminalGrid::make()->terminals([$pane]);
+        TerminalGrid::make()->panes([$pane]);
 
         expect($pane->getConnectionBehavior())->toBe(ConnectionBehavior::Always);
     });
