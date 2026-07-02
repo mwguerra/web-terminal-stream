@@ -31,7 +31,7 @@ class StreamTerminal extends Component
 
     public bool $autoConnect = false;
 
-    public string $connectionBehavior = 'auto_hidden';
+    public string $connectionBehavior = 'always';
 
     #[Locked]
     public array $streamTheme = [];
@@ -69,7 +69,7 @@ class StreamTerminal extends Component
         string $chrome = 'full',
         bool $squareCorners = false,
         bool $autoConnect = false,
-        string $connectionBehavior = 'auto_hidden',
+        string $connectionBehavior = 'always',
         array $scripts = [],
         ?bool $loggingEnabled = null,
         ?bool $logConnections = null,
@@ -84,7 +84,7 @@ class StreamTerminal extends Component
         $this->showWindowControls = ($this->chrome === 'full') ? $showWindowControls : false;
         $this->squareCorners = $squareCorners;
         $this->autoConnect = $autoConnect;
-        $this->connectionBehavior = (ConnectionBehavior::tryFrom($connectionBehavior) ?? ConnectionBehavior::AutoHidden)->value;
+        $this->connectionBehavior = (ConnectionBehavior::tryFrom($connectionBehavior) ?? ConnectionBehavior::Always)->value;
         $this->scripts = $scripts;
         $this->loggingEnabled = $loggingEnabled;
         $this->logConnections = $logConnections;

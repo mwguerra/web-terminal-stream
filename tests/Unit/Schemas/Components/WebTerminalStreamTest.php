@@ -254,7 +254,7 @@ describe('component properties', function () {
             ->and($props['logIdentifier'])->toBe('console')
             ->and($props['chrome'])->toBe('full')
             ->and($props['autoConnect'])->toBeFalse()
-            ->and($props['connectionBehavior'])->toBe('auto_hidden');
+            ->and($props['connectionBehavior'])->toBe('always');
     });
 
     it('forwards an explicit connection behavior to the Livewire component', function () {
@@ -266,10 +266,10 @@ describe('component properties', function () {
         expect($props['connectionBehavior'])->toBe('manual');
     });
 
-    it('defaults the connection behavior prop to auto_hidden (no breaking change)', function () {
+    it('defaults the connection behavior prop to always (no breaking change)', function () {
         $props = WebTerminal::make()->local()->getComponentProperties();
 
-        expect($props['connectionBehavior'])->toBe('auto_hidden');
+        expect($props['connectionBehavior'])->toBe('always');
     });
 });
 

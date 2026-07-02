@@ -41,7 +41,7 @@ trait ConfiguresTerminalAppearance
     /**
      * Whether the deprecated startConnected()/autoConnect() setters were
      * called. Lets getEffectiveConnectionBehavior() distinguish "legacy flags
-     * explicitly set" from "nothing configured" (which defaults to AutoHidden,
+     * explicitly set" from "nothing configured" (which defaults to Always,
      * the extraction-era always-auto-connect behavior).
      */
     protected bool $connectionFlagsTouched = false;
@@ -206,7 +206,7 @@ trait ConfiguresTerminalAppearance
      * The behavior the rendered terminal actually uses.
      *
      * Resolution order: explicit connectionBehavior() > deprecated
-     * startConnected()/autoConnect() flags > AutoHidden (the default —
+     * startConnected()/autoConnect() flags > Always (the default —
      * matches the extraction-era always-auto-connect behavior, so adding
      * the manual-connect UI is not a breaking change).
      */
@@ -218,22 +218,22 @@ trait ConfiguresTerminalAppearance
 
         if ($this->connectionFlagsTouched) {
             return match (true) {
-                $this->getAutoConnect() => ConnectionBehavior::AutoHidden,
-                $this->getStartConnected() => ConnectionBehavior::AutoWithButton,
+                $this->getAutoConnect() => ConnectionBehavior::Always,
+                $this->getStartConnected() => ConnectionBehavior::Auto,
                 default => ConnectionBehavior::Manual,
             };
         }
 
-        return ConnectionBehavior::AutoHidden;
+        return ConnectionBehavior::Always;
     }
 
     /**
      * @deprecated since 2.x, will be removed in 3.0.
-     *             Use `->connectionBehavior(ConnectionBehavior::AutoWithButton|Manual)` instead.
+     *             Use `->connectionBehavior(ConnectionBehavior::Auto|Manual)` instead.
      */
     public function startConnected(bool|Closure $startConnected = true): static
     {
-        $this->emitDeprecationNotice('startConnected()', 'connectionBehavior(ConnectionBehavior::AutoWithButton)');
+        $this->emitDeprecationNotice('startConnected()', 'connectionBehavior(ConnectionBehavior::Auto)');
         $this->startConnected = $startConnected;
         $this->connectionFlagsTouched = true;
 
@@ -247,11 +247,11 @@ trait ConfiguresTerminalAppearance
 
     /**
      * @deprecated since 2.x, will be removed in 3.0.
-     *             Use `->connectionBehavior(ConnectionBehavior::AutoHidden)` instead.
+     *             Use `->connectionBehavior(ConnectionBehavior::Always)` instead.
      */
     public function autoConnect(bool|Closure $autoConnect = true): static
     {
-        $this->emitDeprecationNotice('autoConnect()', 'connectionBehavior(ConnectionBehavior::AutoHidden)');
+        $this->emitDeprecationNotice('autoConnect()', 'connectionBehavior(ConnectionBehavior::Always)');
         $this->autoConnect = $autoConnect;
         $this->connectionFlagsTouched = true;
 

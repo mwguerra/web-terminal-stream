@@ -176,13 +176,13 @@ describe('connectionBehavior forwarding', function () {
     it('keeps a pane\'s explicitly configured behavior', function () {
         $pane = WebTerminalStream::make()
             ->local()
-            ->connectionBehavior(ConnectionBehavior::AutoWithButton);
+            ->connectionBehavior(ConnectionBehavior::Auto);
 
         TerminalGrid::make()
             ->connectionBehavior(ConnectionBehavior::Manual)
             ->terminals([$pane]);
 
-        expect($pane->getEffectiveConnectionBehavior())->toBe(ConnectionBehavior::AutoWithButton);
+        expect($pane->getEffectiveConnectionBehavior())->toBe(ConnectionBehavior::Auto);
     });
 
     it('leaves panes on the default behavior when the grid sets none', function () {
@@ -190,7 +190,7 @@ describe('connectionBehavior forwarding', function () {
 
         TerminalGrid::make()->terminals([$pane]);
 
-        expect($pane->getEffectiveConnectionBehavior())->toBe(ConnectionBehavior::AutoHidden);
+        expect($pane->getEffectiveConnectionBehavior())->toBe(ConnectionBehavior::Always);
     });
 });
 

@@ -16,14 +16,14 @@ enum ConnectionBehavior: string
     case Manual = 'manual';
 
     /** Auto-connects on mount. Disconnect button visible; user can end the session. */
-    case AutoWithButton = 'auto_with_button';
+    case Auto = 'auto';
 
     /**
      * Auto-connects on mount and hides the connect/disconnect button entirely.
      * Session persists for the view's lifetime. Matches the Stream terminal's
      * current always-auto-connect behavior.
      */
-    case AutoHidden = 'auto_hidden';
+    case Always = 'always';
 
     /**
      * Map to the underlying start/auto flags the Livewire component consumes.
@@ -34,8 +34,8 @@ enum ConnectionBehavior: string
     {
         return match ($this) {
             self::Manual => ['startConnected' => false, 'autoConnect' => false],
-            self::AutoWithButton => ['startConnected' => true, 'autoConnect' => false],
-            self::AutoHidden => ['startConnected' => true, 'autoConnect' => true],
+            self::Auto => ['startConnected' => true, 'autoConnect' => false],
+            self::Always => ['startConnected' => true, 'autoConnect' => true],
         };
     }
 }

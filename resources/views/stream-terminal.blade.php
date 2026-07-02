@@ -7,7 +7,7 @@
     data-connection-behavior="{{ $connectionBehavior }}"
     x-data="{
         isConnected: $wire.entangle('isConnected'),
-        // 'manual' | 'auto_with_button' | 'auto_hidden' — see ConnectionBehavior.
+        // 'manual' | 'auto' | 'always' — see ConnectionBehavior.
         behavior: '{{ $connectionBehavior }}',
         // Client-side connection state machine:
         // idle → connecting → connected → disconnected (→ connecting → …)
@@ -80,15 +80,15 @@
         },
 
         // The centered Connect/Reconnect affordance over the canvas. Manual
-        // panes show it whenever no session is live; AutoWithButton only
+        // panes show it whenever no session is live; Auto only
         // offers it after a disconnect (it auto-connected to begin with);
-        // AutoHidden never shows any connection UI.
+        // Always never shows any connection UI.
         get overlayVisible() {
             if (this.behavior === 'manual') {
                 return this.state !== 'connected';
             }
 
-            if (this.behavior === 'auto_with_button') {
+            if (this.behavior === 'auto') {
                 return this.state === 'disconnected';
             }
 
@@ -423,10 +423,10 @@
             @endif
 
             {{-- Connect / Disconnect Toggle.
-                 Hidden for AutoHidden (today's chromeless auto-connect look).
+                 Hidden for Always (today's chromeless auto-connect look).
                  Placement follows TerminalChrome automatically: header action
                  when a header exists, floating overlay button when frameless. --}}
-            @if($connectionBehavior !== 'auto_hidden')
+            @if($connectionBehavior !== 'always')
             <button
                 type="button"
                 @click="handleToggle()"
@@ -525,9 +525,9 @@
 
              Sits over the canvas (outside the wire:ignore container so
              initStream()'s replaceChildren() can never wipe it). Manual panes
-             show it until a session is live; AutoWithButton shows it after a
-             disconnect; AutoHidden never renders it at all. --}}
-        @if($connectionBehavior !== 'auto_hidden')
+             show it until a session is live; Auto shows it after a
+             disconnect; Always never renders it at all. --}}
+        @if($connectionBehavior !== 'always')
         <div
             x-show="overlayVisible"
             x-cloak
