@@ -77,4 +77,50 @@ return [
             env('APP_URL', 'http://localhost'),
         ],
     ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Terminal Workspace (tmux-style tiling)
+    |--------------------------------------------------------------------------
+    |
+    | Defaults for the TerminalWorkspace component: keyboard shortcuts and
+    | pane limits. Every value can be overridden per component through the
+    | fluent API (->keymap(), ->maxPanes(), ...); fluent wins over config.
+    |
+    | Shortcut bindings are keyed by the PaneAction backed values. Key
+    | strings are lowercase, '+'-joined modifiers (ctrl|alt|shift|meta)
+    | followed by a KeyboardEvent.key value. Omitted actions keep the
+    | tmux preset; bind an action to [] to disable it.
+    |
+    */
+    'workspace' => [
+        'shortcuts' => [
+            'enabled' => env('WEB_TERMINAL_STREAM_SHORTCUTS', true),
+            'prefix' => 'ctrl+b',
+            'prefix_timeout' => 1500,
+            'bindings' => [
+                // 'split_horizontal' => ['%'],
+                // 'split_vertical'   => ['"'],
+                // 'close_pane'       => ['x'],
+                // 'zoom_pane'        => ['z'],
+                // 'focus_left'       => ['arrowleft', 'h'],
+                // 'focus_right'      => ['arrowright', 'l'],
+                // 'focus_up'         => ['arrowup', 'k'],
+                // 'focus_down'       => ['arrowdown', 'j'],
+                // 'resize_left'      => ['ctrl+arrowleft'],
+                // 'resize_right'     => ['ctrl+arrowright'],
+                // 'resize_up'        => ['ctrl+arrowup'],
+                // 'resize_down'      => ['ctrl+arrowdown'],
+            ],
+        ],
+
+        // Hard ceiling on panes per workspace, enforced server-side.
+        'max_panes' => 9,
+
+        // A pane can never be dragged/resized below this share of its split.
+        'min_pane_ratio' => 0.10,
+
+        // Ratio nudge applied by each keyboard resize step.
+        'resize_step' => 0.03,
+    ],
 ];
