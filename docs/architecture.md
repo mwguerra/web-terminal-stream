@@ -32,10 +32,10 @@ On `init()` the Alpine component:
 - binds a single teardown handler to `beforeunload`, `pagehide`, and `livewire:navigating` (the last one is what makes SPA navigation clean up — see §6);
 - registers an `IntersectionObserver`. For the auto behaviors, when the terminal first scrolls into view it calls `initStream()` (loads the ghostty-web WASM module, creates the `Terminal` + `FitAddon`, mounts the canvas into the `wire:ignore` container) and then `connect()`.
 
-Connection timing is governed by the `connectionBehavior` prop (`Enums\ConnectionBehavior`, default `AutoHidden`) and a client-side state machine (`idle → connecting → connected → disconnected`):
+Connection timing is governed by the `connectionBehavior` prop (`Enums\ConnectionBehavior`, default `Always`) and a client-side state machine (`idle → connecting → connected → disconnected`):
 
-- `AutoHidden` — auto-connect on visibility, no connection UI (the original behavior).
-- `AutoWithButton` — auto-connect on visibility, plus a connect/disconnect toggle (header action, or floating overlay control when frameless) and a centered Reconnect affordance after a disconnect.
+- `Always` — auto-connect on visibility, no connection UI (the original behavior).
+- `Auto` — auto-connect on visibility, plus a connect/disconnect toggle (header action, or floating overlay control when frameless) and a centered Reconnect affordance after a disconnect.
 - `Manual` — the IntersectionObserver deliberately does **not** boot anything; a centered Connect affordance triggers `initStream()` + `connect()` on click. A never-opened Manual pane costs no canvas, no WebSocket, no PTY, and writes no log rows (server-side `connect()` only fires from `ws.onopen`).
 
 A user-initiated disconnect closes the WebSocket with a clean client close (code 1000); the server-side close event terminates the PTY as usual (§6).
@@ -106,6 +106,41 @@ Server-side, the WebSocket close event terminates the bridge (kills the PTY) and
 
 There is deliberately **no command-level logging**: the stream is a raw byte pipe with no command boundaries to record.
 
-## 8. Security model in one paragraph
+## 8. The workspace: dynamic tiling on top of the same path
+
+`Schemas\Components\TerminalWorkspace` mounts `Livewire\StreamWorkspace` — a tmux-style container of N `StreamTerminal` children. Nothing in §§1–7 changes for a pane inside a workspace; the workspace only decides **which panes exist and where they sit**.
+
+### Ownership contract
+
+| Concern | Owner | Mechanism |
+|---|---|---|
+| Pane roster (paneId → server-held terminal props incl. connection config) | Livewire, `#[Locked]` | Mutated only by `splitPane()`/`closePane()`/`spawnPane()` |
+| Split-tree topology + persisted ratios | Livewire, `#[Locked]`, authoritative | Same methods + `updateRatios()` (validated, clamped) |
+| Live geometry, focus, zoom, prefix state machine, drag | Alpine (`Alpine.data('wtsWorkspace')` in the bundle) | Pure style updates; zero Livewire on any keystroke |
+| Token issuance, PTY session, keystrokes | Each pane's own `StreamTerminal` | Untouched — exactly §§2–7 |
+
+### The split tree
+
+`Data\Layout\LayoutTree` holds pure array operations over the binary split tree (`{type: 'pane'|'split', id, orientation, ratio, first, second}`; `ratio` is the first child's share). tmux semantics live entirely here: a split replaces a pane leaf with an even split (old pane first), a close collapses the parent split into the sibling subtree. Split ids derive from the new pane id (`s-<paneId>`), so operations are deterministic and exhaustively unit-tested. Persistence later is `json_encode($tree)` — nothing else.
+
+### Morph safety (the load-bearing design decision)
+
+Panes render as a **flat list of absolutely-positioned keyed siblings**, never nested DOM. Splits append one sibling; closes remove one. Livewire skips keyed matched children on parent re-renders, so an existing pane's canvas and WebSocket are never re-rendered when a sibling splits or closes — a streaming `top` must not blink. Pane rects (`left/top/width/height` %) are Alpine-bound (`x-bind:style`), never server-rendered; dividers live in a `wire:ignore` overlay that Alpine owns via `x-for`.
+
+Corollary rule: **every `x-*` attribute string on morphed elements must be render-stable.** The Alpine component is registered as `Alpine.data('wtsWorkspace')` with a static `x-data` attribute and reads its initial state from `$wire` in `init()`. Inlining server state (`@js($tree)`) into `x-data` would make each morph rewrite the attribute, which Alpine treats as remove+add — destroying and re-initializing the component and orphaning bindings on a dead scope.
+
+### Keyboard interception above ghostty-web
+
+ghostty-web consumes keys through a hidden textarea, so the workspace registers **one document-level capture-phase keydown listener** (guarded by `$el.contains(e.target)`) — the only interception point guaranteed to run first. The tmux state machine: prefix key arms (visual ring + badge, configurable timeout), the next key is matched against the `Data\Keymap` bindings (`split_horizontal`, `close_pane`, `zoom_pane`, `focus_*`, `resize_*`), prefix-prefix sends the literal control byte to the focused pane through a `wts-pane-send` CustomEvent that `stream-terminal.blade.php` forwards to its WebSocket, and unbound armed keys are swallowed. Nothing else is ever intercepted — typing latency is untouched.
+
+### Resize and zoom
+
+Divider drags and `resize_*` keys change one split's ratio client-side (rAF-throttled), then a 400ms-debounced `updateRatios()` persists it (server validates ids against its own tree and clamps to `workspace.min_pane_ratio`). Container→PTY size propagation is the pre-existing pipeline: FitAddon's ResizeObserver → `onResize` → WS `{type:'resize',cols,rows}` → `SIGWINCH`. Zoom sets the focused pane to `inset:0` and hides siblings with `visibility: hidden` — never `display:none`, which would collapse their dimensions and refit their PTYs; hidden panes keep streaming into scrollback.
+
+### Workspace security invariant
+
+The client can only ever send a pane id, an orientation string, and ratio floats. A new pane's connection config is derived server-side — a clone of the split-source pane's `#[Locked]` roster entry, or the `defaultPane()` template evaluated once at schema build — never from client input. Every mutating method re-checks the `useStreamTerminal` Gate, and `maxPanes` is enforced server-side. Each child pane then goes through the normal single-use token flow of §2.
+
+## 9. Security model in one paragraph
 
 There is no command whitelist — a PTY cannot be meaningfully whitelisted, so the package does not pretend to. The boundaries are: (1) who can render a page containing the component (your authz), (2) the optional `useStreamTerminal` Gate checked at token issuance, (3) the encrypted, expiring, single-use token required to open a WebSocket, (4) the `stream.allowed_origins` Origin allow-list enforced on the handshake (rejects cross-origin browser pages before they can consume a token — CSRF-shaped defense in depth), and (5) network reachability of the WebSocket port (bind to `127.0.0.1` and proxy, or firewall it). Anyone past those boundaries has a real shell with the privileges of the PHP/SSH user.

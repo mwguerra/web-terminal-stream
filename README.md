@@ -16,6 +16,8 @@ This package was extracted from [`mwguerra/web-terminal`](https://github.com/mwg
 - **ghostty-web canvas rendering** — proper terminal emulation in the browser: colors, cursor addressing, alternate screen, resize (`SIGWINCH`), full-screen TUI apps
 - **Local and SSH connections** — SSH supports password and private-key auth (with optional passphrase), custom port, working directory, and environment variables
 - **Frameless chrome and square corners** — `frameless()` drops the header (actions float over the canvas) and `squareCorners()` drops the outer radius, so terminals can tile edge-to-edge in grid layouts
+- **tmux-style workspaces** — `TerminalWorkspace` splits into arbitrarily nested panes at runtime with configurable keyboard shortcuts (prefix `Ctrl+B` by default): split, close, zoom, directional focus, keyboard + drag resize; every pane is an isolated PTY
+- **Static terminal grids** — `TerminalGrid` composes fixed multi-terminal dashboards in a flush CSS grid
 - **Scripts** — reusable command sequences in a header dropdown, with optional `confirmBeforeRun` confirmation gates
 - **Connection lifecycle auditing** — `TerminalConnectedEvent`/`TerminalDisconnectedEvent`, database logging, and a ready-made Filament Terminal Logs resource with stats widgets
 - **Multi-tenant logging** — optional tenant column + resolver for SaaS applications
@@ -205,7 +207,7 @@ Because this is an array, it is **config-file-only** — there is no `WEB_TERMIN
 | `WEB_TERMINAL_STREAM_LOG_ERRORS` | `logging.log_errors` | `true` |
 | `WEB_TERMINAL_STREAM_MAX_OUTPUT_LOG` | `logging.max_output_length` | `10000` |
 | `WEB_TERMINAL_STREAM_LOG_RETENTION` | `logging.retention_days` | `90` |
-| `WEB_TERMINAL_STREAM_DEPRECATIONS_EMIT_NOTICES` | `deprecations.emit_notices` | `false` |
+| `WEB_TERMINAL_STREAM_SHORTCUTS` | `workspace.shortcuts.enabled` | `true` |
 
 Non-env config keys: `stream.max_session_lifetime` (default `3600` — stale PTYs older than this are killed by the server's cleanup pass), `stream.signed_url_ttl` (default `300` — lifetime of a WebSocket auth token), and `stream.allowed_origins` (default `[env('APP_URL', 'http://localhost')]` — see the Origin allow-list section; it's an array, so config-file-only).
 
@@ -238,7 +240,7 @@ WebTerminalStreamPlugin::make()
     ->withoutTerminalLogs()
 
     // Or register only specific components
-    ->only([
+    ->components([
         \MWGuerra\WebTerminalStream\Filament\Resources\TerminalLogResource::class,
     ]);
 ```
@@ -296,7 +298,7 @@ use MWGuerra\WebTerminalStream\Livewire\TerminalBuilder;
     ->render() !!}
 ```
 
-`TerminalBuilder` also offers `sshWithPassword(...)`, `sshWithKey(...)`, `connection(ConnectionType|string, array)`, `withConfig(ConnectionConfig)`, and `key(string)`.
+`TerminalBuilder` shares the exact same fluent API as the schema component (same traits) plus `key(string)` for a stable Livewire key.
 
 ### Connections
 
@@ -316,7 +318,7 @@ WebTerminalStream::make()->ssh(
 WebTerminalStream::make()->ssh(
     host: 'prod.example.com',
     username: 'deploy',
-    key: file_get_contents('/path/to/id_ed25519'),
+    privateKey: file_get_contents('/path/to/id_ed25519'),
     passphrase: 'optional-passphrase',
 )
 
@@ -355,19 +357,17 @@ WebTerminalStream::make()->connection(
 | `local()` | Local shell connection | this is the default |
 | `ssh(...)` | SSH connection — named params, array, or Closure | — |
 | `connection(array\|Closure\|ConnectionConfig)` | Set the raw connection config | `['type' => 'local']` |
-| `workingDirectory(?string)` | Initial working directory for the shell | `null` |
-| `height(string\|Closure)` | Terminal height (CSS value) | `'350px'` |
+| `workingDirectory(string\|Closure\|null)` | Initial working directory for the shell | `null` |
+| `height(string\|Closure)` | Terminal height (CSS value) | `'400px'` |
 | `title(string\|Closure)` | Header title | `'Terminal'` |
 | `chrome(TerminalChrome\|Closure)` | `Full`, `Minimal` (no window dots), or `None` (no header) | `Full` |
 | `frameless()` | Shorthand for `chrome(TerminalChrome::None)` | — |
 | `squareCorners(bool\|Closure)` | Drop outer border-radius for flush grid tiling | `false` |
-| `streamTheme(array\|Closure)` | ghostty-web theme (`background`, `foreground`, `fontSize`, palette…) | `[]` |
+| `theme(array\|Closure)` | ghostty-web theme (`background`, `foreground`, `fontSize`, palette…) | `[]` |
 | `scripts(array\|Closure)` | Script definitions for the header dropdown | `[]` |
-| `log(...)` | Per-terminal logging overrides (see Logging) | config defaults |
+| `log(enabled:, connections:, identifier:, metadata:)` | Per-terminal logging overrides (see Logging) | config defaults |
 | `logMetadata(array\|Closure)` | Metadata attached to every log entry | `[]` |
-| `connectionBehavior(ConnectionBehavior)` | `Manual`, `AutoWithButton`, or `AutoHidden` — see Connection behavior | `AutoHidden` |
-
-Deprecated aliases kept for source compatibility with the parent package: `windowControls(bool)` (use `chrome()`), `startConnected()` and `autoConnect()` (use `connectionBehavior()`). Opt into runtime deprecation notices with `WEB_TERMINAL_STREAM_DEPRECATIONS_EMIT_NOTICES=true`.
+| `connectionBehavior(ConnectionBehavior\|Closure)` | `Manual`, `Auto`, or `Always` — see Connection behavior | `Always` |
 
 ### Connection behavior
 
@@ -381,8 +381,8 @@ WebTerminalStream::make()
     ->connectionBehavior(ConnectionBehavior::Manual)
 ```
 
-- **`AutoHidden`** (default) — auto-connects when the terminal scrolls into view; no connection controls. This matches the package's original always-auto-connect behavior, so existing code is unaffected.
-- **`AutoWithButton`** — auto-connects on visibility and shows a connect/disconnect toggle. After a disconnect, a centered Reconnect affordance appears over the canvas.
+- **`Always`** (default) — auto-connects when the terminal scrolls into view; no connection controls. This matches the package's original always-auto-connect behavior, so existing code is unaffected.
+- **`Auto`** — auto-connects on visibility and shows a connect/disconnect toggle. After a disconnect, a centered Reconnect affordance appears over the canvas.
 - **`Manual`** — nothing happens on mount: no canvas boot, no WebSocket, no PTY, and no connection log rows. A centered, theme-colored Connect affordance sits in the terminal body; clicking it fetches a token, opens the socket, and swaps in the live canvas. A dashboard full of `Manual` panes costs zero server processes until someone actually opens one.
 
 The connect/disconnect toggle follows `TerminalChrome`: it renders as a header action when a header exists (`Full`/`Minimal`) and joins the floating overlay controls when `frameless()`. Disconnecting closes the WebSocket cleanly from the client (close code 1000); the server terminates the PTY on the socket close, exactly as it does for navigation teardown.
@@ -410,10 +410,10 @@ TerminalGrid::make()
     ->columns(2)                                        // Filament-style, responsive arrays work too
     ->height('600px')                                   // rows share it equally
     ->connectionBehavior(ConnectionBehavior::Manual)    // panes connect on click, not on load
-    ->terminals([
+    ->panes([
         WebTerminalStream::make()->key('pane-1')->local(),
         WebTerminalStream::make()->key('pane-2')->local(),
-        WebTerminalStream::make()->key('pane-3')->ssh(host: 'staging', username: 'deploy', key: $key),
+        WebTerminalStream::make()->key('pane-3')->ssh(host: 'staging', username: 'deploy', privateKey: $key),
         WebTerminalStream::make()->key('pane-4')->local(),
     ])
 ```
@@ -422,15 +422,88 @@ What the grid does for you:
 
 - **Flush panes by default** — every pane gets `frameless()` + `squareCorners()` automatically. A pane that explicitly set its own `chrome()`/`squareCorners()` keeps its setting.
 - **`columns(int|array)`** — Filament-style responsive columns (default `2`), e.g. `->columns(['md' => 2, 'xl' => 3])`.
-- **`gap(int $px = 0)`** — pixel gap between panes. `0` (default) is the flush tmux look; `->gap(1)` renders 1px dividers via the grid container background (override the color with the `--wts-grid-divider` CSS variable).
+- **`paneGap(int $px)`** — pixel gap between panes. `0` (default) is the flush tmux look; `->paneGap(1)` renders 1px dividers via the grid container background (override the color with the `--wts-grid-divider` CSS variable).
 - **`height(string)`** — grid height; rows share it equally and panes without an explicit `height()` stretch to fill their row.
 - **`connectionBehavior(...)`** — forwarded to every pane that didn't set its own, so a dashboard of `Manual` panes doesn't spawn N PTYs on page load.
 - **Focused-pane ring** — the pane owning keyboard focus gets a subtle ring (pure CSS `:focus-within`; color via `--wts-grid-focus-ring`).
 - **Key isolation** — every pane keeps its unique auto-generated wire:key. Give panes explicit `->key()`s when you need stable identities.
 
-Manual composition still works — `TerminalGrid` is sugar; arranging `frameless()->squareCorners()` terminals inside your own `Filament\Schemas\Components\Grid` (or any layout) remains fully supported.
+Manual composition still works — `TerminalGrid` is sugar; arranging `frameless()->squareCorners()` terminals inside your own `Filament\Schemas\Components\Grid` (or any layout) remains fully supported. For runtime splitting (the real tmux experience), use `TerminalWorkspace` below.
 
-Planned next tiling increments (not in this release): drag-to-resize dividers, tmux-style keyboard pane navigation, dynamic split/close, and layout presets.
+### tmux-style workspaces — `TerminalWorkspace`
+
+`TerminalWorkspace` is one terminal that splits into arbitrarily nested panes at runtime, driven by configurable keyboard shortcuts — a tmux session in your Filament panel. Every pane is a fully isolated terminal: its own WebSocket, its own PTY, zero interference with siblings.
+
+```php
+use MWGuerra\WebTerminalStream\Data\Keymap;
+use MWGuerra\WebTerminalStream\Schemas\Components\TerminalWorkspace;
+
+TerminalWorkspace::make()
+    ->ssh(host: 'staging', username: 'deploy', privateKey: $key)
+    ->height('70vh')
+    ->maxPanes(6)
+```
+
+The workspace starts with a single pane described by the same fluent API as `WebTerminalStream` (connection, `theme()`, `scripts()`, `log()`, `connectionBehavior()`). New panes **clone the pane they were split from** (tmux semantics) — or use a template:
+
+```php
+TerminalWorkspace::make()
+    ->ssh(host: 'prod', username: 'deploy', privateKey: $key)   // first pane
+    ->defaultPane(fn (TerminalBuilder $pane) => $pane->local()->title('Scratch'))  // every split
+```
+
+#### Default shortcuts (tmux preset)
+
+Press the **prefix** (`Ctrl+B`), then:
+
+| Key | Action |
+|---|---|
+| `%` | Split side-by-side |
+| `"` | Split stacked |
+| `x` | Close the focused pane |
+| `z` | Zoom the focused pane fullscreen (toggle; siblings stay live) |
+| arrows / `h` `j` `k` `l` | Move focus between panes |
+| `Ctrl`+arrows | Resize the focused pane |
+| prefix again | Send a literal prefix byte to the shell |
+
+While the prefix is armed, the workspace shows a badge and a ring; unbound keys are swallowed (tmux fidelity) and the armed state times out after 1.5s. Dividers between panes are also **drag-resizable** with the pointer.
+
+#### Customizing the keymap
+
+Fluent (wins) → `config/web-terminal-stream.php` `workspace.shortcuts` → tmux preset:
+
+```php
+use MWGuerra\WebTerminalStream\Data\Keymap;
+use MWGuerra\WebTerminalStream\Enums\PaneAction;
+
+TerminalWorkspace::make()
+    ->local()
+    ->keymap(
+        Keymap::tmux()
+            ->prefix('ctrl+a')                          // screen-style leader
+            ->bind(PaneAction::SplitVertical, '|', 'v') // multiple keys per action
+            ->unbind(PaneAction::ClosePane)             // disable an action
+    )
+    ->shortcuts(false)  // or kill all shortcuts without losing the map
+```
+
+Key strings are lowercase, `+`-joined modifiers (`ctrl`, `alt`, `shift`, `meta`) plus a [`KeyboardEvent.key`](https://developer.mozilla.org/en-US/docs/Web/API/KeyboardEvent/key) value: `'ctrl+b'`, `'shift+arrowleft'`, `'%'`. The same shape works in the config file, keyed by the `PaneAction` values.
+
+#### Workspace fluent reference
+
+| Method | Description | Default |
+|---|---|---|
+| `local()` / `ssh(...)` / `connection(...)` | Connection of the first pane (and the clone base) | local |
+| `height(string\|Closure)` | Workspace height; panes fill their computed rects | `'600px'` |
+| `theme()` / `scripts()` / `log()` / `connectionBehavior()` | Forwarded to every pane | — |
+| `maxPanes(int\|Closure)` | Hard pane ceiling, enforced server-side on every split | `workspace.max_panes` (9) |
+| `keymap(Keymap\|array\|Closure)` | Shortcut map | config → tmux preset |
+| `shortcuts(bool\|Closure)` | Enable/disable all shortcuts | `true` |
+| `defaultPane(Closure)` | Template for newly split panes (receives a fresh `TerminalBuilder`) | clone split source |
+
+Security model: the browser can only ever send a pane id, an orientation, and divider ratios. A new pane's connection config is derived **server-side** from Livewire-locked state (the split source or the build-time template) — never from client input — and every split re-checks the `useStreamTerminal` gate. Config knobs: `workspace.max_panes`, `workspace.min_pane_ratio` (a pane can't shrink below this share), `workspace.resize_step` (keyboard resize increment).
+
+Planned next increments (not in this release): layout presets (even-horizontal, main-vertical…) and per-user layout persistence.
 
 ### Theming
 
@@ -439,7 +512,7 @@ The theme array is passed straight to the ghostty-web `Terminal` constructor:
 ```php
 WebTerminalStream::make()
     ->local()
-    ->streamTheme([
+    ->theme([
         'background' => '#1a1b26',
         'foreground' => '#a9b1d6',
         'fontSize' => 14,
@@ -517,9 +590,8 @@ WebTerminalStream::make()
         metadata: ['server' => 'web-01'],  // merged into every entry
     )
 
-// Array or Closure forms also work
-->log(['enabled' => true, 'identifier' => 'admin-console'])
-->log(fn () => ['enabled' => auth()->user()->isAuditable()])
+// Every parameter accepts a Closure for deferred evaluation
+->log(enabled: fn () => auth()->user()->isAuditable())
 
 // Metadata alone
 ->logMetadata(['environment' => app()->environment()])
@@ -605,13 +677,28 @@ Install the tenant-aware migration with `php artisan terminal-stream:install --w
 
 ## Testing
 
+Three layers, from fast to full-stack:
+
 ```bash
-composer test              # Pest, Unit suite
+# Unit (Pest on Orchestra Testbench — no external services)
+composer test
 composer test:parallel
 composer test:coverage
+
+# Integration (real SSH + PTY against local Docker containers)
+composer test:integration          # boots tests/docker sshd, runs tests/Integration
+composer test:integration:linux    # Linux-only PTY resize tests inside the php container
+composer test:integration:down     # tear the containers down
+
+# End-to-end (Playwright against a dedicated Laravel 13 + Filament 5 app)
+npm run test:e2e                   # scaffolds tests/e2e-app (gitignored), boots app +
+                                   # WebSocket server + sshd container, runs tests/e2e
+
 composer analyse           # PHPStan
 composer format            # Laravel Pint
 ```
+
+Integration tests skip automatically when Docker isn't running (and hard-fail on CI). The e2e app is scaffolded by the committed `scripts/e2e/setup.sh` and connects its terminals **only** to the throwaway SSH container — never to a shell on your machine. All commands typed by tests are readonly (`echo`, `pwd`, `stty size`, …).
 
 ## Contributing
 

@@ -30,6 +30,14 @@ composer test:coverage:html   # writes to tests/coverage/
 vendor/bin/pest tests/Unit/Livewire/StreamTerminalTest.php
 vendor/bin/pest --filter="dispatches TerminalConnectedEvent"
 
+# Integration tests (real SSH/PTY against local Docker containers)
+composer test:integration          # boots tests/docker sshd + runs tests/Integration
+composer test:integration:linux    # Linux-only PTY tests inside the php container
+composer test:integration:down
+
+# E2E (Playwright against the scaffolded Laravel 13 + Filament 5 app)
+npm run test:e2e                   # scripts/e2e/run.sh: scaffold + app + WS server + specs
+
 # Static analysis and formatting
 composer analyse        # PHPStan
 composer format         # Laravel Pint
@@ -44,7 +52,7 @@ composer release        # bash scripts/release.sh
 composer bench          # advisory; currently no registered benchmarks (see docs/benchmarks/README.md)
 ```
 
-PHPUnit is configured with `failOnRisky=true` and `failOnWarning=true` — risky/warning tests break the build. Tests live only under `tests/Unit/` (no `Feature` dir, even though `Pest.php` references one). Filament is in require-dev (dev-only — production installs still bring their own), so the Filament-dependent tests (Schemas, Plugin) run for real; no test in the suite skips. `composer.lock` is gitignored (library convention — CI and contributors resolve fresh).
+PHPUnit is configured with `failOnRisky=true` and `failOnWarning=true` — risky/warning tests break the build. Unit tests live under `tests/Unit/` (no `Feature` dir, even though `Pest.php` references one); Docker-backed tests under `tests/Integration/` (skip when Docker is down, hard-fail when `CI`/`WTS_REQUIRE_DOCKER` is set); Playwright specs under `tests/e2e/` against the gitignored `tests/e2e-app/` scaffolded by `scripts/e2e/setup.sh`. Filament is in require-dev (dev-only — production installs still bring their own), so the Filament-dependent tests (Schemas, Plugin) run for real. `composer.lock` is gitignored (library convention — CI and contributors resolve fresh). E2E/integration terminals connect only to the throwaway sshd container in `tests/docker/`, and only ever run readonly commands.
 
 ## How to Test Changes Against a Real Filament App
 
@@ -65,10 +73,11 @@ One rendering path. Configuration flows Schema component → Livewire props → 
 ### 1. Public API → Livewire component
 
 - `Schemas\Components\WebTerminalStream` — the public fluent API (`WebTerminalStream::make()->local()/->ssh()/->frameless()/...`), a `Filament\Schemas\Components\Livewire` subclass. It always mounts `Livewire\StreamTerminal` and translates the fluent config into its props. Every `make()` gets a unique auto wire:key (`web-terminal-stream-XXXXXXXX`) so multiple terminals per page stay isolated.
-- `Schemas\Components\TerminalGrid` — the tiling layout (`TerminalGrid::make()->terminals([...])`), a `Filament\Schemas\Components\Grid` subclass rendering panes in a flush CSS grid (see Roadmap Direction).
+- `Schemas\Components\TerminalGrid` — static tiling (`TerminalGrid::make()->panes([...])->paneGap(1)`), a `Filament\Schemas\Components\Grid` subclass rendering panes in a flush CSS grid.
+- `Schemas\Components\TerminalWorkspace` — **dynamic tmux-style tiling** (`TerminalWorkspace::make()->ssh(...)->keymap(...)->maxPanes(...)`), mounting `Livewire\StreamWorkspace`, which owns the pane roster + binary split tree (`Data\Layout\LayoutTree`, pure array ops) as `#[Locked]` props. Split/close/zoom/focus/resize run through a configurable prefix-key keymap (`Data\Keymap`, `Enums\PaneAction`, config `workspace.shortcuts`). Panes render as a flat keyed list of absolutely-positioned siblings — NEVER nested DOM — so morphs can't touch live panes; geometry is Alpine-bound. The Alpine component is `Alpine.data('wtsWorkspace')` in the bundle with a static `x-data` attribute: **every `x-*` attribute string on morphed elements must stay render-stable** (inlining `@js($state)` into `x-data` destroys/re-inits the component on every morph).
 - `Livewire\StreamTerminal` — thin Livewire wrapper. Issues WebSocket auth tokens (`getWebSocketUrl()`, gated by an optional `useStreamTerminal` Gate), tracks `isConnected`, dispatches `TerminalConnectedEvent`/`TerminalDisconnectedEvent` and direct-logs connections via `TerminalLogger`. Keystrokes never round-trip through Livewire.
-- `Livewire\TerminalBuilder` — server-side fluent builder for non-Filament Blade usage (`->render()` mounts the `web-terminal-stream` Livewire component).
-- `resources/views/stream-terminal.blade.php` — one large Alpine component: boots ghostty-web (`resources/js/stream-terminal.js`, bundled as global `StreamWeb`), opens the WebSocket, wires data/resize/teardown. The canvas container is `wire:ignore`.
+- `Livewire\TerminalBuilder` — server-side fluent builder for non-Filament Blade usage (`->render()` mounts the `web-terminal-stream` Livewire component). Identical fluent surface to the schema component (same traits).
+- `resources/views/stream-terminal.blade.php` — one large Alpine component: boots ghostty-web (`resources/js/stream-terminal.js`, bundled as global `StreamWeb`), opens the WebSocket, wires data/resize/teardown. The canvas container is `wire:ignore`. Listens for `wts-pane-send` CustomEvents (workspace literal-prefix passthrough).
 
 ### 2. WebSocket / PTY server (`src/WebSocket/`)
 
@@ -79,7 +88,7 @@ One rendering path. Configuration flows Schema component → Livewire props → 
 
 ### 3. Fluent config lives in `src/Concerns/`
 
-`Schemas\Components\WebTerminalStream` and `Livewire\TerminalBuilder` share their fluent API by composing traits: `ConfiguresTerminalAppearance` (height/title/chrome/squareCorners/connectionBehavior), `ConfiguresStreamMode` (streamTheme), `ConfiguresScripts`, `ConfiguresLogging`. New fluent knobs belong in the matching trait — never duplicated across the two classes. `EvaluatesOptions` gives the Builder a Closure-aware `evaluate()` matching the one the Schema component inherits from Filament. `EmitsDeprecationNotices` backs the deprecated aliases (`windowControls()`, `startConnected()`, `autoConnect()`).
+`Schemas\Components\WebTerminalStream`, `Schemas\Components\TerminalWorkspace`, and `Livewire\TerminalBuilder` share their fluent API by composing traits: `ConfiguresConnection` (connection/local/ssh/workingDirectory — `ssh()` named args are canonical, `privateKey:` not `key:`), `ConfiguresAppearance` (height/title/theme/chrome/frameless/squareCorners + `hasExplicit*()` guards used by containers), `ConfiguresConnectionLifecycle` (connectionBehavior, non-null `getConnectionBehavior()` defaulting to `Always`), `ConfiguresScripts`, `ConfiguresLogging` (named-args `log()`), and `ResolvesTerminalProperties` (the ONE author of the StreamTerminal prop contract). New fluent knobs belong in the matching trait — never duplicated across classes. `EvaluatesOptions` gives the Builder a Closure-aware `evaluate()` matching the one the Schema components inherit from Filament. There are no deprecated aliases — the API had a pre-1.0 clean break (see UPGRADING §4b).
 
 ### 4. Security model
 
@@ -89,7 +98,7 @@ There is **no command whitelist** — Stream is a raw PTY byte-pipe and cannot b
 
 - `Services\TerminalLogger` writes `Models\TerminalLog` rows (table `terminal_stream_logs`); config `web-terminal-stream.logging.*`, per-terminal overrides via `->log()`. Connection lifecycle only — command-level logging does not exist here.
 - `Events\TerminalConnectedEvent` / `TerminalDisconnectedEvent` are dispatched by `StreamTerminal`; `Listeners\TerminalLogListener` is an opt-in subscriber (would duplicate the built-in direct logging if registered).
-- `WebTerminalStreamPlugin` — Filament plugin: Terminal page + `TerminalLogResource` (+ Pages/Schemas/Tables/Widgets), navigation config, `withoutTerminalPage()`/`withoutTerminalLogs()`/`only()`. Use `WebTerminalStreamPlugin::current()` to read runtime config.
+- `WebTerminalStreamPlugin` — Filament plugin: Terminal page + `TerminalLogResource` (+ Pages/Schemas/Tables/Widgets), navigation config, `components()` whitelist, `withoutTerminalPage()`/`withoutTerminalLogs()` (these subtract from the whitelist too). Use `WebTerminalStreamPlugin::current()` to read runtime config.
 - `Filament\Pages\Terminal` — the default demo page; users extend it and override `schema()`, disabling the default via `->withoutTerminalPage()`.
 
 ### 6. Artisan Commands (`src/Console/Commands/`)
@@ -103,8 +112,7 @@ There is **no command whitelist** — Stream is a raw PTY byte-pipe and cannot b
 
 - **Filament 5 namespaces must be exact** (`Filament\Schemas\*` for layout + `form()`/`schema()`, `Filament\Forms\Components\*` for fields, `Filament\Actions\*` for all actions, `Filament\Tables\*` unchanged). Several classes exist with identical names across v4 and v5 namespaces; the wrong import silently breaks the page.
 - **`declare(strict_types=1);`** across `src/` — keep it on new files.
-- **Enums everywhere** — `ConnectionType`, `TerminalChrome`, `ConnectionBehavior`. Never raw strings for these concepts in new code.
-- **Deprecations** — `EmitsDeprecationNotices` trait + `@deprecated` PHPDoc. The opt-in `web-terminal-stream.deprecations.emit_notices` flag stays off by default. Every deprecation must have its replacement available in the same release.
+- **Enums everywhere** — `ConnectionType`, `TerminalChrome`, `ConnectionBehavior` (`Manual`/`Auto`/`Always`), `SplitOrientation`, `PaneAction`. Never raw strings for these concepts in new code.
 - **No `Feature` test directory** despite the `Pest.php` `uses(...)->in('Feature', 'Unit')` line. Add new tests under `tests/Unit/<AreaMirroringSrc>/`.
 - **Assets are committed built files.** `resources/dist/web-terminal-stream.css` and `resources/dist/stream-terminal.js` are consumed by host apps — rebuild and commit them alongside source changes, or the host sees stale styles/JS.
 - **Side-by-side isolation is a feature.** Everything host-visible is namespaced `web-terminal-stream`/`terminal-stream` (config file, view/translation namespaces, Livewire alias, artisan commands, route, cache key prefix `terminal-stream-pty:`, storage dir, `terminal_stream_logs` table, `WEB_TERMINAL_STREAM_*` env vars). Never introduce a host-visible identifier that collides with `mwguerra/web-terminal`.
@@ -112,14 +120,15 @@ There is **no command whitelist** — Stream is a raw PTY byte-pipe and cannot b
 
 ## Roadmap Direction
 
-The feature area is **terminal tiling** — tmux-like multi-pane layouts composed of many terminals on one page. The composition layer has landed: `Schemas\Components\TerminalGrid` (extends Filament's Grid) lays out N `WebTerminalStream` panes in a flush CSS grid — auto-applied `frameless()` + `squareCorners()` (overridable per pane), `columns()`/`gap()`/`height()`, grid-level `connectionBehavior()` forwarding, and a CSS `:focus-within` focused-pane ring (styling lives in `resources/css/index.css` via `--wts-grid-*` custom properties).
+The feature area is **terminal tiling**. Both layers have landed:
+
+- **Static**: `TerminalGrid` — flush CSS grid of fixed panes (`panes()`, `columns()`, `paneGap()`, `height()`, behavior forwarding, `:focus-within` ring via `--wts-grid-*` custom properties in `resources/css/index.css`).
+- **Dynamic**: `TerminalWorkspace`/`StreamWorkspace` — tmux-style runtime splits with prefix-key shortcuts, drag + keyboard resize, zoom, and directional focus (see Architecture §1 and `docs/architecture.md` §8).
 
 Deferred increments, in likely order:
 
-1. Drag-to-resize dividers between panes.
-2. Keyboard pane navigation (tmux-style prefix keys) + active-pane state in Livewire.
-3. Dynamic split/close (add/remove panes at runtime without full re-render).
-4. Layout presets (even-horizontal, even-vertical, main-vertical…).
+1. Layout presets (even-horizontal, even-vertical, main-vertical…).
+2. Per-user layout persistence (design-ready: the split tree is one `json_encode($tree)` away; a `LayoutRepository` seam is reserved).
 
 ## Key Reference Docs in This Repo
 
