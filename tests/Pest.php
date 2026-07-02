@@ -2,7 +2,9 @@
 
 declare(strict_types=1);
 
+use MWGuerra\WebTerminalStream\Tests\IntegrationTestCase;
 use MWGuerra\WebTerminalStream\Tests\TestCase;
+use MWGuerra\WebTerminalStream\WebSocket\TerminalPtyBridge;
 
 /*
 |--------------------------------------------------------------------------
@@ -15,7 +17,11 @@ use MWGuerra\WebTerminalStream\Tests\TestCase;
 |
 */
 
-uses(TestCase::class)->in('Feature', 'Unit', 'Integration');
+uses(TestCase::class)->in('Feature', 'Unit', 'Integration/Ssh', 'Integration/LocalPty');
+
+// The full-stack WebSocket tests spawn the server as a second process and
+// need the fixed APP_KEY + file cache store contract.
+uses(IntegrationTestCase::class)->in('Integration/WebSocket');
 
 /*
 |--------------------------------------------------------------------------
@@ -69,6 +75,52 @@ function sshTestConfig(): array
         'key_pw_path' => getenv('WTS_SSH_KEY_PW_PATH') ?: $keysDir.'/wts_test_key_pw',
         'key_passphrase' => 'wts-passphrase',
     ];
+}
+
+/**
+ * Guard for Integration tests: skip gracefully when the sshd container is
+ * down on a dev machine, but hard-fail where the container is mandatory
+ * (CI, or WTS_REQUIRE_DOCKER=1).
+ */
+function requireSshTarget(): void
+{
+    if (sshTargetReachable()) {
+        return;
+    }
+
+    $config = sshTestConfig();
+    $target = "{$config['host']}:{$config['port']}";
+
+    if (getenv('CI') || getenv('WTS_REQUIRE_DOCKER')) {
+        test()->fail("sshd test container unreachable at {$target} and CI/WTS_REQUIRE_DOCKER demands it. Run: composer test:integration:up");
+    }
+
+    test()->markTestSkipped("sshd test container not running at {$target} (composer test:integration:up)");
+}
+
+/**
+ * Poll a PTY bridge's non-blocking read() until $needle appears in the
+ * accumulated output or the timeout elapses. Returns everything read.
+ */
+function pollPtyOutput(
+    TerminalPtyBridge $bridge,
+    string $needle,
+    float $timeoutSeconds = 10.0,
+): string {
+    $output = '';
+    $deadline = microtime(true) + $timeoutSeconds;
+
+    while (microtime(true) < $deadline) {
+        $output .= $bridge->read();
+
+        if (str_contains($output, $needle)) {
+            return $output;
+        }
+
+        usleep(50_000);
+    }
+
+    return $output;
 }
 
 /**

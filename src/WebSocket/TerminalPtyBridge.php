@@ -94,7 +94,7 @@ class TerminalPtyBridge
 
     private function startSsh(): void
     {
-        $ssh = new SSH2(
+        $ssh = new InteractiveSsh(
             $this->config->host,
             $this->config->port ?? 22,
             $this->config->timeout
@@ -185,7 +185,13 @@ class TerminalPtyBridge
         }
 
         if ($this->sshShell !== null) {
-            $this->sshShell->setWindowSize($cols, $rows);
+            // window-change channel request: setWindowSize() alone never
+            // reaches an already-open shell (see InteractiveSsh).
+            if ($this->sshShell instanceof InteractiveSsh) {
+                $this->sshShell->sendWindowChange($cols, $rows);
+            } else {
+                $this->sshShell->setWindowSize($cols, $rows);
+            }
 
             return;
         }
