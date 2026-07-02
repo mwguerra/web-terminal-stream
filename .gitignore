@@ -17,8 +17,6 @@ coverage.txt
 /screenshots/
 /test-results/
 /tests/screenshots/
-/tests/e2e/
-playwright.config.js
 test-scripts.mjs
 debug-csrf.mjs
 

@@ -15,7 +15,7 @@ use MWGuerra\WebTerminalStream\Tests\TestCase;
 |
 */
 
-uses(TestCase::class)->in('Feature', 'Unit');
+uses(TestCase::class)->in('Feature', 'Unit', 'Integration');
 
 /*
 |--------------------------------------------------------------------------
@@ -46,4 +46,46 @@ expect()->extend('toBeOne', function () {
 function something(): void
 {
     // ...
+}
+
+/**
+ * Connection details for the throwaway sshd container used by the
+ * Integration suite (tests/docker/compose.yaml). Overridable via env
+ * so the same tests run inside the php-tests container (WTS_SSH_HOST=sshd)
+ * and in CI.
+ *
+ * @return array{host: string, port: int, username: string, password: string, key_path: string, key_pw_path: string, key_passphrase: string}
+ */
+function sshTestConfig(): array
+{
+    $keysDir = __DIR__.'/docker/keys';
+
+    return [
+        'host' => getenv('WTS_SSH_HOST') ?: '127.0.0.1',
+        'port' => (int) (getenv('WTS_SSH_PORT') ?: 2299),
+        'username' => 'wts',
+        'password' => 'wts-secret',
+        'key_path' => getenv('WTS_SSH_KEY_PATH') ?: $keysDir.'/wts_test_key',
+        'key_pw_path' => getenv('WTS_SSH_KEY_PW_PATH') ?: $keysDir.'/wts_test_key_pw',
+        'key_passphrase' => 'wts-passphrase',
+    ];
+}
+
+/**
+ * Quick TCP probe for the sshd test container. Integration tests skip
+ * gracefully when it is down (unless CI / WTS_REQUIRE_DOCKER demand it).
+ */
+function sshTargetReachable(): bool
+{
+    $config = sshTestConfig();
+
+    $socket = @fsockopen($config['host'], $config['port'], $errno, $errstr, 0.5);
+
+    if ($socket === false) {
+        return false;
+    }
+
+    fclose($socket);
+
+    return true;
 }

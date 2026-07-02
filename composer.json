@@ -34,8 +34,9 @@
         "filament/filament": "^5.0",
         "laravel/pint": "^1.0",
         "nunomaduro/collision": "^8.4",
-        "orchestra/testbench": "^10.0",
+        "orchestra/testbench": "^10.0|^11.0",
         "pestphp/pest": "^3.0",
+        "phrity/websocket": "^3.0",
         "pestphp/pest-plugin-laravel": "^3.0"
     },
     "suggest": {
@@ -59,6 +60,13 @@
         "test:coverage": "XDEBUG_MODE=coverage vendor/bin/pest --testsuite=Unit --coverage",
         "test:coverage:html": "XDEBUG_MODE=coverage vendor/bin/pest --testsuite=Unit --coverage-html tests/coverage",
         "test:parallel:coverage": "XDEBUG_MODE=coverage vendor/bin/pest --testsuite=Unit --parallel --coverage",
+        "test:integration:up": "docker compose -f tests/docker/compose.yaml up -d --wait sshd",
+        "test:integration": [
+            "@test:integration:up",
+            "vendor/bin/pest --testsuite=Integration"
+        ],
+        "test:integration:linux": "docker compose -f tests/docker/compose.yaml run --rm php-tests vendor/bin/pest --testsuite=Integration --group=linux-pty",
+        "test:integration:down": "docker compose -f tests/docker/compose.yaml down -v",
         "format": "vendor/bin/pint",
         "build": "npm run build",
         "release": "bash scripts/release.sh",
