@@ -26,7 +26,7 @@ use MWGuerra\WebTerminalStream\WebTerminalStreamPlugin;
 $panel->plugins([WebTerminalStreamPlugin::make()]);
 ```
 
-Plugin id changes from `web-terminal` to `web-terminal-stream`. The fluent toggles are unchanged: `terminalNavigation()`, `terminalLogsNavigation()`, `withoutTerminalPage()`, `withoutTerminalLogs()`, `only()`, `WebTerminalStreamPlugin::current()`.
+Plugin id changes from `web-terminal` to `web-terminal-stream`. Most fluent toggles are unchanged: `terminalNavigation()`, `terminalLogsNavigation()`, `withoutTerminalPage()`, `withoutTerminalLogs()`, `WebTerminalStreamPlugin::current()`. The `only()` alias was removed — use `components()` (same signature; `without*()` now subtracts from that whitelist instead of being silently ignored).
 
 ## 3. The schema component
 
@@ -45,7 +45,7 @@ use MWGuerra\WebTerminalStream\Schemas\Components\WebTerminalStream;
 
 WebTerminalStream::make()
     ->local()
-    ->streamTheme([...])
+    ->theme([...])
 ```
 
 Custom pages extending `MWGuerra\WebTerminal\Filament\Pages\Terminal` should extend `MWGuerra\WebTerminalStream\Filament\Pages\Terminal` instead (or be regenerated with `php artisan terminal-stream:make-page`).
@@ -67,9 +67,39 @@ Everything that only configured Classic mode is gone. What to do instead:
 | `TerminalBuilder::toHtml()` / `__toString()` | Use `TerminalBuilder::render()` |
 | `WebTerminalEmbed` class alias | Use `WebTerminalStream` |
 
-Still available (unchanged semantics): `local()`, `ssh()`, `connection()`, `workingDirectory()`, `height()`, `title()`, `chrome()`/`frameless()`, `squareCorners()`, `streamTheme()`, `scripts()`, `log()`, `logMetadata()`, `key()`, and the deprecated `windowControls()`/`startConnected()`/`autoConnect()` aliases.
+Still available (unchanged semantics): `local()`, `ssh()`, `connection()`, `workingDirectory()`, `height()`, `title()`, `chrome()`/`frameless()`, `squareCorners()`, `scripts()`, `log()`, `logMetadata()`, `key()`.
 
-`connectionBehavior()` is not just accepted anymore — it is now fully implemented (`Manual` connect affordance, `AutoWithButton` disconnect/reconnect toggle, `AutoHidden` chromeless auto-connect). The default stays `AutoHidden`, which matches the old package's always-auto-connect Stream behavior, so nothing changes unless you opt in.
+`connectionBehavior()` is not just accepted anymore — it is now fully implemented (`Manual` connect affordance, `Auto` disconnect/reconnect toggle, `Always` chromeless auto-connect). The default stays `Always`, which matches the old package's always-auto-connect Stream behavior, so nothing changes unless you opt in.
+
+## 4b. Fluent API changes in this package (pre-1.0 clean break)
+
+This package unified its API before its first tag. If you are coming from the
+old package's Stream mode (or from an early checkout of this one):
+
+| Old | New |
+|---|---|
+| `->windowControls(true)` | `->chrome(TerminalChrome::Full)` |
+| `->windowControls(false)` | `->chrome(TerminalChrome::Minimal)` |
+| `->startConnected()` | `->connectionBehavior(ConnectionBehavior::Auto)` |
+| `->autoConnect()` | `->connectionBehavior(ConnectionBehavior::Always)` (the default — usually just delete the call) |
+| `->streamTheme([...])` | `->theme([...])` |
+| `TerminalBuilder::sshWithPassword($host, $user, $pass, $port)` | `->ssh(host: $host, username: $user, password: $pass, port: $port)` |
+| `TerminalBuilder::sshWithKey($host, $user, $key, $pp, $port)` | `->ssh(host: $host, username: $user, privateKey: $key, passphrase: $pp, port: $port)` |
+| `TerminalBuilder::withConfig($connectionConfig)` | `->connection($connectionConfig)` — SSH credentials now actually reach the terminal (bug fix) |
+| `TerminalBuilder::connection(ConnectionType::SSH, [...])` | `->ssh([...])` or `->connection([...])` |
+| `->ssh(key: $pem)` | `->ssh(privateKey: $pem)` |
+| `TerminalGrid::terminals([...])` | `TerminalGrid::panes([...])` |
+| `TerminalGrid::gap(8)` | `TerminalGrid::paneGap(8)` (boolean `gap()` is Filament's own again) |
+| `ConnectionBehavior::AutoWithButton` / `'auto_with_button'` | `ConnectionBehavior::Auto` / `'auto'` |
+| `ConnectionBehavior::AutoHidden` / `'auto_hidden'` | `ConnectionBehavior::Always` / `'always'` |
+| `getEffectiveConnectionBehavior()` | `getConnectionBehavior()` (now never null) |
+| `->log(['enabled' => true, 'identifier' => 'x'])` | `->log(enabled: true, identifier: 'x')` (named args only) |
+| Livewire prop `streamTheme` | `theme` |
+| Livewire props `showWindowControls`, `autoConnect` | Removed — derived from `chrome` / `connectionBehavior` |
+| Plugin `->only([...])` | `->components([...])` |
+| config `deprecations.emit_notices` / `WEB_TERMINAL_STREAM_DEPRECATIONS_EMIT_NOTICES` | Removed — nothing is deprecated anymore |
+| Default height `350px` (fluent builders) | `400px` everywhere |
+| `workingDirectory()` (schema component only) | Available on `TerminalBuilder` too |
 
 ## 5. Artisan commands
 
@@ -84,7 +114,7 @@ Update supervisor/systemd units and scheduled tasks accordingly. If both package
 
 ## 6. Config file and env vars
 
-- Config file: `config/web-terminal.php` → `config/web-terminal-stream.php` (publish tag `web-terminal-stream-config`). Only `logging`, `stream`, and `deprecations` sections exist — all Classic keys (`allowed_commands`, `blocked_characters`, `rate_limit`, `session`, `ssh`, `ui`, `auditing`, `timeout`, `default_connection`) are gone, as are `stream.enabled` (always on) and the unconsumed `stream.websocket_provider`/`pty_grace_period`/`theme` keys.
+- Config file: `config/web-terminal.php` → `config/web-terminal-stream.php` (publish tag `web-terminal-stream-config`). Only `logging`, `stream`, and `workspace` sections exist — all Classic keys (`allowed_commands`, `blocked_characters`, `rate_limit`, `session`, `ssh`, `ui`, `auditing`, `timeout`, `default_connection`) are gone, as are `stream.enabled` (always on) and the unconsumed `stream.websocket_provider`/`pty_grace_period`/`theme` keys.
 - `stream.allowed_origins` exists again — and unlike in the old package it is now actually **enforced** on the WebSocket handshake (default `[env('APP_URL', 'http://localhost')]`; a literal `'*'` or an empty list disables the check). If your app serves terminals from more than one origin, list them all; see the README's "Origin allow-list" section.
 - Env prefix: `WEB_TERMINAL_*` → `WEB_TERMINAL_STREAM_*`. Full mapping of the survivors:
 
@@ -96,7 +126,6 @@ Update supervisor/systemd units and scheduled tasks accordingly. If both package
 | `WEB_TERMINAL_SSL_CERT` / `_SSL_KEY` | `WEB_TERMINAL_STREAM_SSL_CERT` / `_SSL_KEY` |
 | `WEB_TERMINAL_STREAM_CWD` | unchanged |
 | `WEB_TERMINAL_LOGGING`, `_LOG_CONNECTIONS`, `_LOG_DISCONNECTIONS`, `_LOG_ERRORS`, `_MAX_OUTPUT_LOG`, `_LOG_RETENTION` | same names with `WEB_TERMINAL_STREAM_` prefix |
-| `WEB_TERMINAL_DEPRECATIONS_EMIT_NOTICES` | `WEB_TERMINAL_STREAM_DEPRECATIONS_EMIT_NOTICES` |
 
 ## 7. Database
 
