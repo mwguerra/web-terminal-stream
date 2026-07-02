@@ -12,6 +12,7 @@ use MWGuerra\WebTerminalStream\Concerns\ConfiguresLogging;
 use MWGuerra\WebTerminalStream\Concerns\ConfiguresScripts;
 use MWGuerra\WebTerminalStream\Concerns\ConfiguresStreamMode;
 use MWGuerra\WebTerminalStream\Concerns\ConfiguresTerminalAppearance;
+use MWGuerra\WebTerminalStream\Concerns\ResolvesTerminalProperties;
 use MWGuerra\WebTerminalStream\Livewire\StreamTerminal as StreamTerminalComponent;
 
 /**
@@ -34,6 +35,7 @@ class WebTerminalStream extends Livewire
     use ConfiguresScripts;
     use ConfiguresStreamMode;
     use ConfiguresTerminalAppearance;
+    use ResolvesTerminalProperties;
 
     public static function make(Closure|string|null $component = null, Closure|array $data = []): static
     {
@@ -68,21 +70,6 @@ class WebTerminalStream extends Livewire
      */
     public function getComponentProperties(): array
     {
-        return [
-            'connectionConfig' => $this->getConnectionConfig(),
-            'height' => $this->getHeight(),
-            'title' => $this->getTitle(),
-            'streamTheme' => $this->getStreamTheme(),
-            'showWindowControls' => $this->getShowWindowControls(),
-            'chrome' => $this->getChrome()->value,
-            'squareCorners' => $this->getSquareCorners(),
-            'scripts' => $this->getScripts(),
-            'autoConnect' => $this->getAutoConnect(),
-            'connectionBehavior' => $this->getEffectiveConnectionBehavior()->value,
-            'loggingEnabled' => $this->getLoggingEnabled(),
-            'logConnections' => $this->getLogConnections(),
-            'logIdentifier' => $this->getLogIdentifier(),
-            'logMetadata' => $this->getLogMetadata(),
-        ];
+        return $this->resolveTerminalProperties();
     }
 }

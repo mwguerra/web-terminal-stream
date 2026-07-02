@@ -12,6 +12,7 @@ use MWGuerra\WebTerminalStream\Concerns\ConfiguresScripts;
 use MWGuerra\WebTerminalStream\Concerns\ConfiguresStreamMode;
 use MWGuerra\WebTerminalStream\Concerns\ConfiguresTerminalAppearance;
 use MWGuerra\WebTerminalStream\Concerns\EvaluatesOptions;
+use MWGuerra\WebTerminalStream\Concerns\ResolvesTerminalProperties;
 
 /**
  * Fluent builder for the Stream terminal component.
@@ -27,6 +28,7 @@ class TerminalBuilder
     use ConfiguresStreamMode;
     use ConfiguresTerminalAppearance;
     use EvaluatesOptions;
+    use ResolvesTerminalProperties;
 
     protected ?string $key = null;
 
@@ -48,22 +50,7 @@ class TerminalBuilder
     /** @return array<string, mixed> */
     public function getParameters(): array
     {
-        return [
-            'connectionConfig' => $this->getConnectionConfig(),
-            'height' => $this->getHeight(),
-            'title' => $this->getTitle(),
-            'streamTheme' => $this->getStreamTheme(),
-            'showWindowControls' => $this->getShowWindowControls(),
-            'chrome' => $this->getChrome()->value,
-            'squareCorners' => $this->getSquareCorners(),
-            'scripts' => $this->getScripts(),
-            'autoConnect' => $this->getAutoConnect(),
-            'connectionBehavior' => $this->getEffectiveConnectionBehavior()->value,
-            'loggingEnabled' => $this->getLoggingEnabled(),
-            'logConnections' => $this->getLogConnections(),
-            'logIdentifier' => $this->getLogIdentifier(),
-            'logMetadata' => $this->getLogMetadata(),
-        ];
+        return $this->resolveTerminalProperties();
     }
 
     public function render(): HtmlString
