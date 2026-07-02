@@ -90,12 +90,18 @@ class WebTerminalStreamPlugin implements Plugin
         $resources = [];
 
         if ($this->components !== null) {
-            // Register only specified components
+            // Register only specified components. The withoutTerminalPage()/
+            // withoutTerminalLogs() flags still subtract from the whitelist,
+            // so mixing the two styles never silently re-enables something.
             foreach ($this->components as $component) {
                 if (in_array($component, $this->availablePages, true)) {
-                    $pages[] = $component;
+                    if ($component !== Terminal::class || $this->terminalPageEnabled) {
+                        $pages[] = $component;
+                    }
                 } elseif (in_array($component, $this->availableResources, true)) {
-                    $resources[] = $component;
+                    if ($component !== TerminalLogResource::class || $this->terminalLogsEnabled) {
+                        $resources[] = $component;
+                    }
                 }
             }
         } else {
@@ -187,18 +193,6 @@ class WebTerminalStreamPlugin implements Plugin
     public function components(array $components): static
     {
         $this->components = $components;
-
-        return $this;
-    }
-
-    /**
-     * Register only the specified pages/resources.
-     *
-     * @param  array<class-string>  $pages
-     */
-    public function only(array $pages): static
-    {
-        $this->components = $pages;
 
         return $this;
     }

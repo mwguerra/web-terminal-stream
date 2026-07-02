@@ -94,17 +94,6 @@ describe('WebTerminalStreamPlugin', function () {
     });
 
     describe('component selection', function () {
-        it('only() restricts registration to the given components', function () {
-            $panel = Panel::make()->id('test');
-
-            WebTerminalStreamPlugin::make()
-                ->only([TerminalLogResource::class])
-                ->register($panel);
-
-            expect($panel->getPages())->not->toContain(Terminal::class);
-            expect($panel->getResources())->toContain(TerminalLogResource::class);
-        });
-
         it('components() restricts registration to the given components', function () {
             $panel = Panel::make()->id('test');
 
@@ -129,10 +118,34 @@ describe('WebTerminalStreamPlugin', function () {
             $panel = Panel::make()->id('test');
 
             WebTerminalStreamPlugin::make()
-                ->only([stdClass::class])
+                ->components([stdClass::class])
                 ->register($panel);
 
             expect($panel->getPages())->not->toContain(Terminal::class);
+            expect($panel->getResources())->not->toContain(TerminalLogResource::class);
+        });
+
+        it('withoutTerminalPage() subtracts from the components() whitelist', function () {
+            $panel = Panel::make()->id('test');
+
+            WebTerminalStreamPlugin::make()
+                ->components([Terminal::class, TerminalLogResource::class])
+                ->withoutTerminalPage()
+                ->register($panel);
+
+            expect($panel->getPages())->not->toContain(Terminal::class);
+            expect($panel->getResources())->toContain(TerminalLogResource::class);
+        });
+
+        it('withoutTerminalLogs() subtracts from the components() whitelist', function () {
+            $panel = Panel::make()->id('test');
+
+            WebTerminalStreamPlugin::make()
+                ->components([Terminal::class, TerminalLogResource::class])
+                ->withoutTerminalLogs()
+                ->register($panel);
+
+            expect($panel->getPages())->toContain(Terminal::class);
             expect($panel->getResources())->not->toContain(TerminalLogResource::class);
         });
     });
