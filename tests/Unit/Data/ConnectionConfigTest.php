@@ -170,6 +170,56 @@ describe('ConnectionConfig', function () {
         });
     });
 
+    describe('toTransportArray', function () {
+        it('includes credentials and environment for the wire format', function () {
+            $config = ConnectionConfig::sshWithKey(
+                host: 'example.com',
+                username: 'admin',
+                privateKey: 'PEM-CONTENT',
+                passphrase: 'keypass',
+                port: 2222,
+                workingDirectory: '/srv',
+                environment: ['FOO' => 'bar'],
+            );
+
+            expect($config->toTransportArray())->toBe([
+                'type' => 'ssh',
+                'host' => 'example.com',
+                'username' => 'admin',
+                'password' => null,
+                'private_key' => 'PEM-CONTENT',
+                'passphrase' => 'keypass',
+                'port' => 2222,
+                'timeout' => 10,
+                'working_directory' => '/srv',
+                'environment' => ['FOO' => 'bar'],
+            ]);
+        });
+
+        it('round-trips through fromArray', function () {
+            $config = ConnectionConfig::sshWithPassword(
+                host: 'example.com',
+                username: 'admin',
+                password: 'secret',
+            );
+
+            $rebuilt = ConnectionConfig::fromArray($config->toTransportArray());
+
+            expect($rebuilt->toTransportArray())->toBe($config->toTransportArray());
+        });
+
+        it('includes the password for password-auth configs', function () {
+            $config = ConnectionConfig::sshWithPassword(
+                host: 'example.com',
+                username: 'admin',
+                password: 'secret',
+            );
+
+            expect($config->toTransportArray()['password'])->toBe('secret')
+                ->and($config->toArray())->not->toHaveKey('password');
+        });
+    });
+
     describe('validation', function () {
         it('throws exception for invalid timeout', function () {
             new ConnectionConfig(

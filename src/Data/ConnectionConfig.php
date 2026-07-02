@@ -178,6 +178,29 @@ readonly class ConnectionConfig
     }
 
     /**
+     * Convert to the full wire-format array handed to the PTY bridge
+     * and Livewire connection props. Includes credentials — never log
+     * or display this; use toArray() for anything user-facing.
+     *
+     * @return array<string, mixed>
+     */
+    public function toTransportArray(): array
+    {
+        return [
+            'type' => $this->type->value,
+            'host' => $this->host,
+            'username' => $this->username,
+            'password' => $this->password,
+            'private_key' => $this->privateKey,
+            'passphrase' => $this->passphrase,
+            'port' => $this->port,
+            'timeout' => $this->timeout,
+            'working_directory' => $this->workingDirectory,
+            'environment' => $this->environment,
+        ];
+    }
+
+    /**
      * Validate the configuration.
      *
      * @throws InvalidArgumentException
