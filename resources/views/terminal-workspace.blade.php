@@ -10,7 +10,7 @@
 --}}
 <div
     class="wts-workspace relative overflow-hidden"
-    style="height: {{ $height }}; min-height: 200px;"
+    style="height: {{ $height }}; min-height: 200px;@foreach ($themeCss as $property => $value) {{ $property }}: {{ $value }};@endforeach"
     data-wts-workspace="{{ $componentId }}"
     x-data="wtsWorkspace"
     x-bind:class="{ 'wts-prefix-armed': prefixArmed }"

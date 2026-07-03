@@ -22,6 +22,8 @@ trait ResolvesTerminalProperties
             'height' => $this->getHeight(),
             'title' => $this->getTitle(),
             'theme' => $this->getTheme(),
+            'fontFamily' => $this->getFontFamily(),
+            'fontSize' => $this->getFontSize(),
             'chrome' => $this->getChrome()->value,
             'squareCorners' => $this->getSquareCorners(),
             'scripts' => $this->getScripts(),

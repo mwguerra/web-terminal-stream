@@ -7,6 +7,7 @@ use MWGuerra\WebTerminalStream\Enums\ConnectionBehavior;
 use MWGuerra\WebTerminalStream\Enums\TerminalChrome;
 use MWGuerra\WebTerminalStream\Livewire\StreamTerminal as StreamTerminalComponent;
 use MWGuerra\WebTerminalStream\Schemas\Components\WebTerminalStream as WebTerminal;
+use MWGuerra\WebTerminalStream\Themes\TokyoNight;
 
 describe('make', function () {
     it('creates instance with default component', function () {
@@ -264,6 +265,29 @@ describe('component properties', function () {
             ->getComponentProperties();
 
         expect($props['connectionBehavior'])->toBe('manual');
+    });
+
+    it('splits a TerminalTheme into colors + font props', function () {
+        $props = WebTerminal::make()
+            ->local()
+            ->theme(
+                TokyoNight::make()
+                    ->fontFamily('JetBrains Mono')
+                    ->fontSize(16)
+            )
+            ->getComponentProperties();
+
+        expect($props['theme']['background'])->toBe('#1a1b26')   // preset color kept
+            ->and($props['fontFamily'])->toBe('JetBrains Mono')
+            ->and($props['fontSize'])->toBe(16);
+    });
+
+    it('leaves font props null for a raw colors array (view falls back)', function () {
+        $props = WebTerminal::make()->local()->theme(['background' => '#000'])->getComponentProperties();
+
+        expect($props['theme'])->toBe(['background' => '#000'])
+            ->and($props['fontFamily'])->toBeNull()
+            ->and($props['fontSize'])->toBeNull();
     });
 
     it('defaults the connection behavior prop to always (no breaking change)', function () {

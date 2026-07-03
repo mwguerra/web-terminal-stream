@@ -175,6 +175,7 @@ class TerminalWorkspace extends Livewire
             'shortcutsEnabled' => $this->getShortcutsEnabled(),
             'maxPanes' => $this->getMaxPanes(),
             'height' => $this->getHeight(),
+            'themeCss' => $this->getThemeObject()?->toCssVariables() ?? [],
         ];
     }
 

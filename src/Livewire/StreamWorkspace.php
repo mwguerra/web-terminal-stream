@@ -55,6 +55,10 @@ class StreamWorkspace extends Component
     #[Locked]
     public bool $shortcutsEnabled = true;
 
+    /** @var array<string, string> Divider/theme CSS custom properties for the container. */
+    #[Locked]
+    public array $themeCss = [];
+
     #[Locked]
     public int $maxPanes = 9;
 
@@ -79,9 +83,11 @@ class StreamWorkspace extends Component
         bool $shortcutsEnabled = true,
         ?int $maxPanes = null,
         string $height = '600px',
+        array $themeCss = [],
     ): void {
         $this->componentId = 'wts-'.Str::random(8);
         $this->height = $height;
+        $this->themeCss = $themeCss;
         $this->paneDefaults = $this->normalizePaneConfig($paneDefaults);
         $this->paneTemplate = $paneTemplate === null ? null : $this->normalizePaneConfig($paneTemplate);
         $this->keymap = $keymap !== []

@@ -8,6 +8,7 @@ use Closure;
 use Filament\Schemas\Components\Grid;
 use InvalidArgumentException;
 use MWGuerra\WebTerminalStream\Enums\ConnectionBehavior;
+use MWGuerra\WebTerminalStream\Themes\TerminalTheme;
 
 /**
  * A flush CSS grid of Stream terminals — the first increment of the
@@ -43,6 +44,8 @@ class TerminalGrid extends Grid
     protected string|Closure|null $gridHeight = null;
 
     protected ?ConnectionBehavior $paneConnectionBehavior = null;
+
+    protected ?TerminalTheme $paneTheme = null;
 
     /**
      * Object IDs of panes whose connection behavior was set by this grid
@@ -158,6 +161,26 @@ class TerminalGrid extends Grid
         return $this->paneConnectionBehavior;
     }
 
+    /**
+     * Theme forwarded to every pane that didn't set its own (font + colors),
+     * plus divider styling emitted as CSS custom properties on the container.
+     */
+    public function theme(TerminalTheme $theme): static
+    {
+        $this->paneTheme = $theme;
+
+        foreach ($this->panes as $terminal) {
+            $this->forwardTheme($terminal);
+        }
+
+        return $this;
+    }
+
+    public function getTheme(): ?TerminalTheme
+    {
+        return $this->paneTheme;
+    }
+
     protected function applyPaneDefaults(WebTerminalStream $terminal): void
     {
         if (! $terminal->hasExplicitChrome()) {
@@ -169,7 +192,18 @@ class TerminalGrid extends Grid
         }
 
         $this->forwardConnectionBehavior($terminal);
+        $this->forwardTheme($terminal);
         $this->applyPaneHeight($terminal);
+    }
+
+    protected function forwardTheme(WebTerminalStream $terminal): void
+    {
+        // Only fill in panes that didn't choose their own theme.
+        if ($this->paneTheme === null || $terminal->getThemeObject() !== null || $terminal->getTheme() !== []) {
+            return;
+        }
+
+        $terminal->theme($this->paneTheme);
     }
 
     protected function forwardConnectionBehavior(WebTerminalStream $terminal): void
@@ -205,11 +239,16 @@ class TerminalGrid extends Grid
         $style = "--wts-grid-gap: {$this->paneGap}px;";
 
         if ($this->paneGap > 0) {
-            $style .= ' --wts-grid-divider: rgba(148, 163, 184, 0.4);';
+            $dividerColor = $this->paneTheme?->toCssVariables()['--wts-divider-color'] ?? 'rgba(148, 163, 184, 0.4)';
+            $style .= " --wts-grid-divider: {$dividerColor};";
         }
 
         if (($height = $this->getHeight()) !== null) {
             $style .= " --wts-grid-height: {$height};";
+        }
+
+        if ($this->paneTheme !== null) {
+            $style .= ' '.$this->paneTheme->toCssVariableString();
         }
 
         return $style;

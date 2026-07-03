@@ -507,19 +507,67 @@ Planned next increments (not in this release): layout presets (even-horizontal, 
 
 ### Theming
 
-The theme array is passed straight to the ghostty-web `Terminal` constructor:
+`theme()` accepts a **`TerminalTheme`** object (recommended) or a raw ghostty colors array. The theme object controls the terminal **font**, **colors**, and the **pane divider** styling in one place, with fluent partial overrides that keep every other default:
 
 ```php
+use MWGuerra\WebTerminalStream\Themes\TerminalTheme;
+
 WebTerminalStream::make()
     ->local()
-    ->theme([
-        'background' => '#1a1b26',
-        'foreground' => '#a9b1d6',
-        'fontSize' => 14,
-    ])
+    ->theme(
+        TerminalTheme::make()
+            ->fontFamily('JetBrains Mono, monospace')
+            ->fontSize(14)
+            ->background('#1a1b26')
+            ->foreground('#a9b1d6')
+    )
 ```
 
-The `background` value is also used for the component's own surface, so the canvas and its padding match.
+**Shipped presets** — start from one and tweak only what you need:
+
+```php
+use MWGuerra\WebTerminalStream\Themes\TokyoNight;
+
+TerminalWorkspace::make()
+    ->local()
+    ->theme(TokyoNight::make()->fontSize(15)->dividerWidth(2))   // keeps every other TokyoNight default
+```
+
+`Themes\TokyoNight` and `Themes\Dracula` are included.
+
+**Ship your own theme** as a subclass — override the defaults you care about, inherit the rest; it stays fluently tweakable:
+
+```php
+namespace App\Terminal;
+
+use MWGuerra\WebTerminalStream\Themes\TerminalTheme;
+
+final class BrandTheme extends TerminalTheme
+{
+    protected string $fontFamily = 'Berkeley Mono, monospace';
+    protected string $background = '#0b1021';
+    protected string $foreground = '#c7d2fe';
+    protected string $dividerColor = '#312e81';
+}
+
+// then: ->theme(BrandTheme::make())  — or BrandTheme::make()->fontSize(16)
+```
+
+**What the theme controls**
+
+| Fluent method | Applies to | Default |
+|---|---|---|
+| `fontFamily(string)` | terminal font | `ui-monospace, …` |
+| `fontSize(int)` | terminal font size (px) | `13` |
+| `background(string)` / `foreground(string)` | terminal + surface | `#1a1a2e` / `#e2e8f0` |
+| `cursor(?string)` / `selectionBackground(?string)` | terminal | none |
+| `palette(array)` | extra ghostty theme keys (ANSI palette) | `[]` |
+| `dividerWidth(int)` | pane divider line thickness (px) | `1` |
+| `dividerStyle(string)` | divider line style (`solid`, `dashed`, …) | `solid` |
+| `dividerColor(string)` | pane divider line | slate |
+| `dividerFocusColor(string)` | focused-pane ring + hovered/dragged divider | blue |
+
+On `TerminalWorkspace` and `TerminalGrid`, the terminal look is forwarded to every pane that didn't set its own, and the divider styling is emitted as CSS custom properties (`--wts-divider-width/-style/-color/-focus`, `--wts-terminal-bg`) on the container — so app-side CSS can override them too. A raw colors array (`->theme(['background' => '#000'])`) still works for just the ghostty terminal theme.
 
 ### Scripts
 

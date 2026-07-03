@@ -6,6 +6,7 @@ namespace MWGuerra\WebTerminalStream\Concerns;
 
 use Closure;
 use MWGuerra\WebTerminalStream\Enums\TerminalChrome;
+use MWGuerra\WebTerminalStream\Themes\TerminalTheme;
 
 /**
  * Fluent configuration for a terminal's visual shell: size, title,
@@ -25,8 +26,8 @@ trait ConfiguresAppearance
 
     protected string|Closure $title = 'Terminal';
 
-    /** @var array<string, mixed>|Closure */
-    protected array|Closure $theme = [];
+    /** @var TerminalTheme|array<string, mixed>|Closure */
+    protected TerminalTheme|array|Closure $theme = [];
 
     protected TerminalChrome|Closure $chrome = TerminalChrome::Full;
 
@@ -74,12 +75,13 @@ trait ConfiguresAppearance
     }
 
     /**
-     * Visual theme handed to the ghostty-web Terminal constructor
-     * (background, foreground, fontSize, palette, ...).
+     * The terminal look. Pass a `TerminalTheme` (or a preset/subclass) for
+     * font + colors + divider styling, or a raw colors array for just the
+     * ghostty-web `Terminal` theme.
      *
-     * @param  array<string, mixed>|Closure  $theme
+     * @param  TerminalTheme|array<string, mixed>|Closure  $theme
      */
-    public function theme(array|Closure $theme): static
+    public function theme(TerminalTheme|array|Closure $theme): static
     {
         $this->theme = $theme;
 
@@ -87,11 +89,43 @@ trait ConfiguresAppearance
     }
 
     /**
+     * The resolved theme as a `TerminalTheme`, or null when only a raw
+     * colors array (or nothing) was configured. Containers read this for
+     * divider CSS variables.
+     */
+    public function getThemeObject(): ?TerminalTheme
+    {
+        $theme = $this->evaluate($this->theme);
+
+        return $theme instanceof TerminalTheme ? $theme : null;
+    }
+
+    /**
+     * The ghostty-web `Terminal` theme (colors only).
+     *
      * @return array<string, mixed>
      */
     public function getTheme(): array
     {
-        return $this->evaluate($this->theme);
+        $theme = $this->evaluate($this->theme);
+
+        return $theme instanceof TerminalTheme ? $theme->toColors() : $theme;
+    }
+
+    /**
+     * Terminal font family — null falls back to the view default.
+     */
+    public function getFontFamily(): ?string
+    {
+        return $this->getThemeObject()?->getFontFamily();
+    }
+
+    /**
+     * Terminal font size in px — null falls back to the view default.
+     */
+    public function getFontSize(): ?int
+    {
+        return $this->getThemeObject()?->getFontSize();
     }
 
     /**

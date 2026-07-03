@@ -47,8 +47,8 @@
 
                 this.terminal = new StreamWeb.Terminal({
                     cursorBlink: true,
-                    fontSize: 13,
-                    fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
+                    fontSize: {{ $fontSize ?? 13 }},
+                    fontFamily: @js($fontFamily ?? 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace'),
                     theme: {{ json_encode($theme) }},
                 });
 

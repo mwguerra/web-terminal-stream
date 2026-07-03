@@ -8,6 +8,8 @@ use MWGuerra\WebTerminalStream\Enums\ConnectionBehavior;
 use MWGuerra\WebTerminalStream\Enums\TerminalChrome;
 use MWGuerra\WebTerminalStream\Schemas\Components\TerminalGrid;
 use MWGuerra\WebTerminalStream\Schemas\Components\WebTerminalStream;
+use MWGuerra\WebTerminalStream\Themes\Dracula;
+use MWGuerra\WebTerminalStream\Themes\TokyoNight;
 
 describe('make', function () {
     it('composes Filament\'s Grid with 2 columns by default', function () {
@@ -199,5 +201,35 @@ describe('container attributes', function () {
         $grid = TerminalGrid::make();
 
         expect($grid->getExtraAttributes()['class'])->toContain('wts-terminal-grid');
+    });
+
+    it('emits the theme divider CSS variables into the container style', function () {
+        $grid = TerminalGrid::make()
+            ->panes([WebTerminalStream::make()->local()])
+            ->theme(Dracula::make()->dividerWidth(4));
+
+        $style = $grid->getExtraAttributes()['style'];
+
+        expect($style)->toContain('--wts-divider-width: 4px;')
+            ->and($style)->toContain('--wts-divider-color:');
+    });
+});
+
+describe('theme forwarding', function () {
+    it('forwards the grid theme to panes that have none', function () {
+        $pane = WebTerminalStream::make()->local();
+
+        TerminalGrid::make()->panes([$pane])->theme(TokyoNight::make());
+
+        expect($pane->getTheme()['background'])->toBe('#1a1b26')
+            ->and($pane->getFontFamily())->toContain('monospace');
+    });
+
+    it('leaves a pane that set its own theme alone', function () {
+        $pane = WebTerminalStream::make()->local()->theme(['background' => '#abcdef']);
+
+        TerminalGrid::make()->panes([$pane])->theme(TokyoNight::make());
+
+        expect($pane->getTheme())->toBe(['background' => '#abcdef']);
     });
 });

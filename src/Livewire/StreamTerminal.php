@@ -33,6 +33,12 @@ class StreamTerminal extends Component
     public array $theme = [];
 
     #[Locked]
+    public ?string $fontFamily = null;
+
+    #[Locked]
+    public ?int $fontSize = null;
+
+    #[Locked]
     public array $connectionConfig = [];
 
     #[Locked]
@@ -61,6 +67,8 @@ class StreamTerminal extends Component
         string $height = '400px',
         string $title = 'Terminal',
         array $theme = [],
+        ?string $fontFamily = null,
+        ?int $fontSize = null,
         string $chrome = 'full',
         bool $squareCorners = false,
         string $connectionBehavior = 'always',
@@ -74,6 +82,8 @@ class StreamTerminal extends Component
         $this->height = $height;
         $this->title = $title;
         $this->theme = $theme;
+        $this->fontFamily = $fontFamily;
+        $this->fontSize = $fontSize;
         $this->chrome = in_array($chrome, ['full', 'minimal', 'none'], true) ? $chrome : 'full';
         $this->squareCorners = $squareCorners;
         $this->connectionBehavior = (ConnectionBehavior::tryFrom($connectionBehavior) ?? ConnectionBehavior::Always)->value;

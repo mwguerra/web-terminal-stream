@@ -56,7 +56,7 @@
    the canvas container's opaque background would cover) so it stays visible
    over the pane content. Override the color per app via --wts-grid-focus-ring. */
 .wts-terminal-grid .stream-web-terminal:focus-within {
-    outline: 2px solid var(--wts-grid-focus-ring, rgba(96, 165, 250, 0.7));
+    outline: 2px solid var(--wts-divider-focus, var(--wts-grid-focus-ring, rgba(96, 165, 250, 0.7)));
     outline-offset: -2px;
 }
 
@@ -64,7 +64,7 @@
    Panes are absolutely-positioned siblings whose rects Alpine computes
    from the split tree; dividers are zero-layout-space overlay strips. */
 .wts-workspace {
-    background-color: var(--wts-grid-divider, rgba(148, 163, 184, 0.25));
+    background-color: var(--wts-terminal-bg, var(--wts-grid-divider, rgba(148, 163, 184, 0.25)));
 }
 
 .wts-workspace .wts-pane {
@@ -78,7 +78,7 @@
 }
 
 .wts-workspace .stream-web-terminal:focus-within {
-    outline: 2px solid var(--wts-grid-focus-ring, rgba(96, 165, 250, 0.7));
+    outline: 2px solid var(--wts-divider-focus, var(--wts-grid-focus-ring, rgba(96, 165, 250, 0.7)));
     outline-offset: -2px;
 }
 
@@ -115,12 +115,23 @@
     box-shadow: inset 0 0 0 1px rgba(248, 113, 113, 0.9);
 }
 
-/* Divider hit areas: 8px wide strips centered on the pane boundary.
-   The visible 1px line is drawn by the workspace background showing
-   through the pane edges; the strip itself is invisible until hover. */
+/* Divider hit areas: 8px wide strips centered on the pane boundary. The
+   visible line is a ::before rendered from theme custom properties
+   (--wts-divider-width / -style / -color), highlighting to
+   --wts-divider-focus on hover/drag. */
 .wts-divider {
     z-index: 20;
     touch-action: none;
+}
+
+.wts-divider::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    border-color: var(--wts-divider-color, rgba(148, 163, 184, 0.4));
+    border-style: var(--wts-divider-style, solid);
+    transition: border-color 0.12s ease;
 }
 
 .wts-divider-vertical {
@@ -129,20 +140,36 @@
     cursor: col-resize;
 }
 
+.wts-divider-vertical::before {
+    left: 50%;
+    transform: translateX(-50%);
+    width: 0;
+    height: 100%;
+    border-left-width: var(--wts-divider-width, 1px);
+}
+
 .wts-divider-horizontal {
     height: 8px;
     margin-top: -4px;
     cursor: row-resize;
 }
 
-.wts-divider:hover,
-.wts-divider:active {
-    background: var(--wts-grid-focus-ring, rgba(96, 165, 250, 0.35));
+.wts-divider-horizontal::before {
+    top: 50%;
+    transform: translateY(-50%);
+    width: 100%;
+    height: 0;
+    border-top-width: var(--wts-divider-width, 1px);
+}
+
+.wts-divider:hover::before,
+.wts-divider:active::before {
+    border-color: var(--wts-divider-focus, var(--wts-grid-focus-ring, rgba(96, 165, 250, 0.7)));
 }
 
 /* Armed tmux prefix: subtle ring on the whole workspace. */
 .wts-workspace.wts-prefix-armed {
-    outline: 2px solid var(--wts-grid-focus-ring, rgba(96, 165, 250, 0.7));
+    outline: 2px solid var(--wts-divider-focus, var(--wts-grid-focus-ring, rgba(96, 165, 250, 0.7)));
     outline-offset: -2px;
 }
 
