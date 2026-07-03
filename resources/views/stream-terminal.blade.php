@@ -484,6 +484,30 @@
         </div>
     </div>
 
+    {{-- Frameless title-bar filler.
+
+         With no header, the info panel (which sits at top:49px) would leave
+         the top strip showing bare terminal, with the floating action buttons
+         hovering over it. When the panel is open, fill that strip with the
+         panel's own colour so it reads as one surface — no window dots. The
+         floating buttons (z-20) stay above this (z-10). --}}
+    @if($chrome === 'none')
+    <div
+        x-show="showInfoPanel"
+        x-cloak
+        x-transition:enter="transition ease-out duration-150"
+        x-transition:enter-start="opacity-0"
+        x-transition:enter-end="opacity-100"
+        x-transition:leave="transition ease-in duration-100"
+        x-transition:leave-start="opacity-100"
+        x-transition:leave-end="opacity-0"
+        class="absolute inset-x-0 top-0 z-10 bg-white/95 dark:bg-gray-900/95 backdrop-blur-sm"
+        style="height:49px;"
+        data-wts-frameless-fill
+        aria-hidden="true"
+    ></div>
+    @endif
+
     {{-- Info Panel Overlay --}}
     <div
         x-show="showInfoPanel"

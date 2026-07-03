@@ -43,6 +43,22 @@ describe('StreamTerminal', function () {
         ])->assertViewIs('web-terminal-stream::stream-terminal');
     });
 
+    describe('frameless info-panel fill', function () {
+        it('renders the title-bar fill strip only when frameless (chrome none)', function () {
+            Livewire::test(StreamTerminal::class, [
+                'connectionConfig' => ['type' => 'local'],
+                'chrome' => 'none',
+            ])->assertSeeHtml('data-wts-frameless-fill');
+        });
+
+        it('omits the fill strip when a header is shown', function () {
+            Livewire::test(StreamTerminal::class, [
+                'connectionConfig' => ['type' => 'local'],
+                'chrome' => 'full',
+            ])->assertDontSeeHtml('data-wts-frameless-fill');
+        });
+    });
+
     describe('connection lifecycle events', function () {
         it('dispatches TerminalConnectedEvent on connect', function () {
             Event::fake([TerminalConnectedEvent::class]);
