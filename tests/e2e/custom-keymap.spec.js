@@ -5,8 +5,8 @@ const { focusPane } = require('./helpers/terminal');
 
 // READONLY commands only — see helpers/terminal.js safety note.
 
-// This page rebinds the workspace: prefix Ctrl+D, Ctrl+arrows add a pane in
-// that direction, Ctrl+Q closes the current pane (never the last).
+// This page rebinds the workspace: prefix Ctrl+D, then plain arrows add a
+// pane in that direction, Ctrl+Q closes the current pane (never the last).
 async function prefix(page) {
     await page.keyboard.press('Control+d');
     await page.waitForTimeout(150);
@@ -27,7 +27,7 @@ function paneOrder(page) {
     });
 }
 
-test('custom keymap: Ctrl+D prefix, Ctrl+arrows add directional panes, Ctrl+Q closes but keeps the last', async ({ page }) => {
+test('custom keymap: Ctrl+D prefix, arrows add directional panes, Ctrl+Q closes but keeps the last', async ({ page }) => {
     const recorder = new WsRecorder(page);
 
     await page.goto('/admin/e2e-custom-keymap');
@@ -38,10 +38,10 @@ test('custom keymap: Ctrl+D prefix, Ctrl+arrows add directional panes, Ctrl+Q cl
 
     const firstId = (await paneOrder(page))[0];
 
-    // Ctrl+D, then Ctrl+Right → new pane to the RIGHT (appended after source).
+    // Ctrl+D, then Right → new pane to the RIGHT (appended after source).
     await focusPane(page, 0);
     await prefix(page);
-    await page.keyboard.press('Control+ArrowRight');
+    await page.keyboard.press('ArrowRight');
 
     await expect(page.locator('[data-wts-pane]')).toHaveCount(2);
     await recorder.waitForSocketCount(2);
@@ -49,10 +49,10 @@ test('custom keymap: Ctrl+D prefix, Ctrl+arrows add directional panes, Ctrl+Q cl
     expect(order[0]).toBe(firstId); // original stays on the left
     const rightId = order[1];
 
-    // Focus the original (left) pane, Ctrl+D then Ctrl+Left → new pane to its LEFT.
+    // Focus the original (left) pane, Ctrl+D then Left → new pane to its LEFT.
     await focusPane(page, 0);
     await prefix(page);
-    await page.keyboard.press('Control+ArrowLeft');
+    await page.keyboard.press('ArrowLeft');
 
     await expect(page.locator('[data-wts-pane]')).toHaveCount(3);
     order = await paneOrder(page);

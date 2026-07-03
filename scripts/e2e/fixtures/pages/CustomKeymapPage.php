@@ -25,11 +25,27 @@ class CustomKeymapPage extends Terminal
 
     public function getSubheading(): string|Htmlable|null
     {
+        $rows = [
+            ['<kbd>Ctrl</kbd>+<kbd>D</kbd>', 'Prefix — press first, then a key below'],
+            ['<kbd>&larr;</kbd> <kbd>&rarr;</kbd> <kbd>&uarr;</kbd> <kbd>&darr;</kbd>', 'Add a pane in that direction'],
+            ['<kbd>h</kbd> <kbd>j</kbd> <kbd>k</kbd> <kbd>l</kbd>', 'Move focus between panes'],
+            ['<kbd>Ctrl</kbd>+<kbd>Q</kbd>', 'Close the current pane (never the last)'],
+            ['<kbd>z</kbd>', 'Zoom the focused pane'],
+            ['<kbd>Ctrl</kbd>+<kbd>arrows</kbd>', 'Resize the focused pane'],
+        ];
+
+        // Inline styles (not Tailwind utilities) — this HTML is injected into
+        // the subheading and never scanned by the app's Tailwind build, so
+        // utility classes would be stripped/absent.
+        $keyStyle = 'padding: 2px 24px 2px 0; white-space: nowrap; vertical-align: top;';
+        $descStyle = 'padding: 2px 0;';
+
+        $body = collect($rows)
+            ->map(fn (array $r): string => "<tr><td style=\"{$keyStyle}\">{$r[0]}</td><td style=\"{$descStyle}\">{$r[1]}</td></tr>")
+            ->implode('');
+
         return new HtmlString(
-            'Custom keymap. Press the prefix <kbd>Ctrl</kbd>+<kbd>D</kbd>, then: '
-            .'<kbd>Ctrl</kbd>+<kbd>&larr;/&rarr;/&uarr;/&darr;</kbd> add a pane in that direction · '
-            .'<kbd>Ctrl</kbd>+<kbd>Q</kbd> close the current pane (never the last) · '
-            .'<kbd>z</kbd> zoom · <kbd>arrows</kbd> move focus.'
+            '<table style="font-size: 0.875rem; border-collapse: collapse;"><tbody>'.$body.'</tbody></table>'
         );
     }
 
@@ -47,17 +63,19 @@ class CustomKeymapPage extends Terminal
                         Keymap::default()
                             // ...change the prefix Ctrl+B → Ctrl+D...
                             ->prefix('ctrl+d')
-                            // ...free Ctrl+arrows (default: resize) for creating panes...
-                            ->unbind(PaneAction::ResizeLeft)
-                            ->unbind(PaneAction::ResizeRight)
-                            ->unbind(PaneAction::ResizeUp)
-                            ->unbind(PaneAction::ResizeDown)
-                            // ...add a pane in the arrow's direction from the current one...
-                            ->bind(PaneAction::SplitLeft, 'ctrl+arrowleft')
-                            ->bind(PaneAction::SplitRight, 'ctrl+arrowright')
-                            ->bind(PaneAction::SplitUp, 'ctrl+arrowup')
-                            ->bind(PaneAction::SplitDown, 'ctrl+arrowdown')
+                            // ...move focus off the arrows onto hjkl so the
+                            // arrows are free to create panes...
+                            ->bind(PaneAction::FocusLeft, 'h')
+                            ->bind(PaneAction::FocusRight, 'l')
+                            ->bind(PaneAction::FocusUp, 'k')
+                            ->bind(PaneAction::FocusDown, 'j')
+                            // ...plain arrows add a pane in that direction...
+                            ->bind(PaneAction::SplitLeft, 'arrowleft')
+                            ->bind(PaneAction::SplitRight, 'arrowright')
+                            ->bind(PaneAction::SplitUp, 'arrowup')
+                            ->bind(PaneAction::SplitDown, 'arrowdown')
                             // ...and close the current pane with Ctrl+Q.
+                            // (Ctrl+arrows keep the default resize binding.)
                             ->bind(PaneAction::ClosePane, 'ctrl+q')
                     ),
             ]);
