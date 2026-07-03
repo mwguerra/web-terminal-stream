@@ -202,6 +202,71 @@ export function withRatio(tree, splitId, ratio, minRatio) {
 }
 
 /**
+ * The Alpine component behind the toggle-driven dashboard
+ * (<x-data="wtsDashboard">). Buttons toggle sources; the server returns
+ * the re-arranged tree, which drives the pane geometry. Much simpler than
+ * the workspace — no keymap, drag, zoom, or focus machinery.
+ *
+ * Same render-stability rule: initial state is read from $wire in init(),
+ * never inlined into the x-data attribute.
+ */
+export function dashboard() {
+    return {
+        tree: null,
+        open: [],
+        rects: {},
+        dividers: [],
+        busy: false,
+
+        init() {
+            this.tree = JSON.parse(JSON.stringify(this.$wire.tree ?? null));
+            this.open = [...(this.$wire.openOrder ?? [])];
+            this.recompute();
+        },
+
+        recompute() {
+            const layout = computeRects(this.tree);
+            this.rects = layout.panes;
+            this.dividers = layout.dividers;
+        },
+
+        isOpen(sourceId) {
+            return this.open.includes(sourceId);
+        },
+
+        paneStyle(paneId) {
+            const rect = this.rects[paneId];
+
+            if (!rect) {
+                return 'visibility:hidden;';
+            }
+
+            return `left:${rect.x}%;top:${rect.y}%;width:${rect.w}%;height:${rect.h}%;`;
+        },
+
+        async toggle(sourceId) {
+            if (this.busy) {
+                return;
+            }
+
+            this.busy = true;
+
+            try {
+                const result = await this.$wire.toggle(sourceId);
+
+                if (result && !result.error) {
+                    this.tree = result.tree;
+                    this.open = result.open;
+                    this.recompute();
+                }
+            } finally {
+                this.busy = false;
+            }
+        },
+    };
+}
+
+/**
  * The Alpine component behind <x-data="wtsWorkspace">, registered as
  * Alpine.data('wtsWorkspace') by the bundle entrypoint. Initial state
  * is read from $wire in init() — NEVER inlined into the x-data

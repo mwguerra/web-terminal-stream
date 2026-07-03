@@ -503,7 +503,38 @@ Key strings are lowercase, `+`-joined modifiers (`ctrl`, `alt`, `shift`, `meta`)
 
 Security model: the browser can only ever send a pane id, an orientation, and divider ratios. A new pane's connection config is derived **server-side** from Livewire-locked state (the split source or the build-time template) — never from client input — and every split re-checks the `useStreamTerminal` gate. Config knobs: `workspace.max_panes`, `workspace.min_pane_ratio` (a pane can't shrink below this share), `workspace.resize_step` (keyboard resize increment).
 
-Planned next increments (not in this release): layout presets (even-horizontal, main-vertical…) and per-user layout persistence.
+Planned next increments (not in this release): per-user layout persistence.
+
+### Toggle dashboards — `TerminalDashboard`
+
+`TerminalDashboard` is a roster of named terminal **sources** (each a distinct connection), each opened or closed by a button. The open panes are **auto-arranged** by how many are open — you choose the layout per count:
+
+```php
+use MWGuerra\WebTerminalStream\Schemas\Components\TerminalDashboard;
+use MWGuerra\WebTerminalStream\Schemas\Components\WebTerminalStream;
+
+TerminalDashboard::make()
+    ->maxOpen(4)
+    ->sources([
+        'web'   => WebTerminalStream::make()->title('Web')->ssh(host: 'web-01', username: 'deploy', privateKey: $key),
+        'db'    => WebTerminalStream::make()->title('Database')->ssh(host: 'db-01', username: 'deploy', privateKey: $key),
+        'cache' => WebTerminalStream::make()->title('Cache')->ssh(host: 'cache-01', username: 'deploy', privateKey: $key),
+        'queue' => WebTerminalStream::make()->title('Queue')->ssh(host: 'queue-01', username: 'deploy', privateKey: $key),
+    ])
+    ->defaultOpen(['web'])                           // which start open (default: the first)
+    ->arrangement([                                  // how the space splits, per open-pane count
+        2 => 'columns',
+        3 => 'main-left',
+        4 => 'tiled',
+    ], default: 'tiled')
+    ->theme(TokyoNight::make())                      // optional: forwarded to panes + dividers
+```
+
+- Clicking a button **opens** that source's terminal, or **closes** it — closing destroys the pane, its WebSocket, and its PTY.
+- **Layout presets** (from `LayoutTree::arrange()`): `tiled` (2 = columns; 3 = one tall left + two stacked right; 4 = even 2×2 grid), `columns` (even side-by-side), `rows` (even stacked), `main-left` (big left + stacked right), `main-top`. All produce even ratios. The `arrangement` map picks a preset per count; anything unlisted uses the `default`.
+- `maxOpen` is capped at 4 and enforced server-side; opening re-checks the `useStreamTerminal` gate. Each source's connection config stays server-side (Locked) — the browser only ever sends a source id.
+
+Planned next increment (not in this release): per-user layout persistence, shared with the workspace.
 
 ### Theming
 

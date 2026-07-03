@@ -11,6 +11,7 @@ const registerWorkspaceComponent = () => {
     if (window.Alpine && !window.Alpine.__wtsWorkspaceRegistered) {
         window.Alpine.__wtsWorkspaceRegistered = true;
         window.Alpine.data('wtsWorkspace', workspace.component);
+        window.Alpine.data('wtsDashboard', workspace.dashboard);
     }
 };
 

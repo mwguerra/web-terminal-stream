@@ -55,15 +55,15 @@
     "scripts": {
         "post-autoload-dump": "@php ./vendor/bin/testbench package:discover --ansi",
         "analyse": "vendor/bin/phpstan analyse",
-        "test": "vendor/bin/pest --testsuite=Unit",
-        "test:parallel": "vendor/bin/pest --testsuite=Unit --parallel",
-        "test:coverage": "XDEBUG_MODE=coverage vendor/bin/pest --testsuite=Unit --coverage",
-        "test:coverage:html": "XDEBUG_MODE=coverage vendor/bin/pest --testsuite=Unit --coverage-html tests/coverage",
-        "test:parallel:coverage": "XDEBUG_MODE=coverage vendor/bin/pest --testsuite=Unit --parallel --coverage",
+        "test": "@php -d memory_limit=-1 vendor/bin/pest --testsuite=Unit",
+        "test:parallel": "@php -d memory_limit=-1 vendor/bin/pest --testsuite=Unit --parallel",
+        "test:coverage": "XDEBUG_MODE=coverage @php -d memory_limit=-1 vendor/bin/pest --testsuite=Unit --coverage",
+        "test:coverage:html": "XDEBUG_MODE=coverage @php -d memory_limit=-1 vendor/bin/pest --testsuite=Unit --coverage-html tests/coverage",
+        "test:parallel:coverage": "XDEBUG_MODE=coverage @php -d memory_limit=-1 vendor/bin/pest --testsuite=Unit --parallel --coverage",
         "test:integration:up": "docker compose -f tests/docker/compose.yaml up -d --wait sshd",
         "test:integration": [
             "@test:integration:up",
-            "vendor/bin/pest --testsuite=Integration"
+            "@php -d memory_limit=-1 vendor/bin/pest --testsuite=Integration"
         ],
         "test:integration:linux": "docker compose -f tests/docker/compose.yaml run --rm php-tests vendor/bin/pest --testsuite=Integration --group=linux-pty",
         "test:integration:down": "docker compose -f tests/docker/compose.yaml down -v",

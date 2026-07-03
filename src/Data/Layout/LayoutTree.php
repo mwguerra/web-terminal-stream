@@ -33,6 +33,131 @@ final class LayoutTree
     }
 
     /**
+     * Build a split tree that arranges the given ordered pane ids per a
+     * named preset. Null for an empty list; a bare pane for a single id.
+     * All splits get even ratios.
+     *
+     * Presets:
+     *  - `tiled` (default): 2 = side-by-side; 3 = one tall left + two stacked
+     *    right; 4 = even 2×2 grid; 5+ = even columns.
+     *  - `columns`: even side-by-side columns.
+     *  - `rows`: even stacked rows.
+     *  - `main-left`: first pane large on the left, the rest stacked on the right.
+     *  - `main-top`: first pane large on top, the rest side-by-side below.
+     *
+     * @param  list<string>  $paneIds
+     */
+    public static function arrange(array $paneIds, string $preset = 'tiled'): ?array
+    {
+        $paneIds = array_values($paneIds);
+        $count = count($paneIds);
+
+        if ($count === 0) {
+            return null;
+        }
+
+        if ($count === 1) {
+            return self::pane($paneIds[0]);
+        }
+
+        $counter = 0;
+
+        return match ($preset) {
+            'columns' => self::evenChain($paneIds, SplitOrientation::Horizontal, $counter),
+            'rows' => self::evenChain($paneIds, SplitOrientation::Vertical, $counter),
+            'main-left' => self::main($paneIds, SplitOrientation::Horizontal, SplitOrientation::Vertical, $counter),
+            'main-top' => self::main($paneIds, SplitOrientation::Vertical, SplitOrientation::Horizontal, $counter),
+            default => self::tiled($paneIds, $counter),
+        };
+    }
+
+    /**
+     * An even split chain along one orientation (equal-sized panes).
+     *
+     * @param  list<string>  $paneIds
+     */
+    private static function evenChain(array $paneIds, SplitOrientation $orientation, int &$counter): array
+    {
+        if (count($paneIds) === 1) {
+            return self::pane($paneIds[0]);
+        }
+
+        $first = $paneIds[0];
+        $rest = array_slice($paneIds, 1);
+
+        return self::split(
+            $orientation,
+            self::pane($first),
+            self::evenChain($rest, $orientation, $counter),
+            1 / count($paneIds),
+            $counter,
+        );
+    }
+
+    /**
+     * A "main" pane along the primary axis, with the remaining panes evenly
+     * arranged along the secondary axis.
+     *
+     * @param  list<string>  $paneIds
+     */
+    private static function main(array $paneIds, SplitOrientation $primary, SplitOrientation $secondary, int &$counter): array
+    {
+        $main = $paneIds[0];
+        $rest = array_slice($paneIds, 1);
+
+        if ($rest === []) {
+            return self::pane($main);
+        }
+
+        return self::split(
+            $primary,
+            self::pane($main),
+            self::evenChain($rest, $secondary, $counter),
+            0.5,
+            $counter,
+        );
+    }
+
+    /**
+     * tmux "tiled" feel for 2–4 panes; even columns beyond that.
+     *
+     * @param  list<string>  $paneIds
+     */
+    private static function tiled(array $paneIds, int &$counter): array
+    {
+        return match (count($paneIds)) {
+            2 => self::split(SplitOrientation::Horizontal, self::pane($paneIds[0]), self::pane($paneIds[1]), 0.5, $counter),
+            3 => self::split(
+                SplitOrientation::Horizontal,
+                self::pane($paneIds[0]),
+                self::evenChain([$paneIds[1], $paneIds[2]], SplitOrientation::Vertical, $counter),
+                0.5,
+                $counter,
+            ),
+            4 => self::split(
+                SplitOrientation::Vertical,
+                self::split(SplitOrientation::Horizontal, self::pane($paneIds[0]), self::pane($paneIds[1]), 0.5, $counter),
+                self::split(SplitOrientation::Horizontal, self::pane($paneIds[2]), self::pane($paneIds[3]), 0.5, $counter),
+                0.5,
+                $counter,
+            ),
+            default => self::evenChain($paneIds, SplitOrientation::Horizontal, $counter),
+        };
+    }
+
+    private static function split(SplitOrientation $orientation, array $first, array $second, float $ratio, int &$counter): array
+    {
+        return [
+            'type' => 'split',
+            'id' => 's-arr-'.($counter++),
+            'orientation' => $orientation->value,
+            'ratio' => $ratio,
+            'first' => $first,
+            'second' => $second,
+        ];
+    }
+
+    /**
      * Replace the pane leaf with a split holding the old and new panes at an
      * even ratio — tmux split semantics. By default the new pane is second
      * (right/below); `$before` puts it first (left/above).

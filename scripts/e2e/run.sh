@@ -10,7 +10,8 @@ APP_DIR="$ROOT/tests/e2e-app"
 
 bash "$ROOT/scripts/e2e/setup.sh"
 
-docker compose -f "$ROOT/tests/docker/compose.yaml" up -d --wait sshd
+# sshd is the primary target; sshd-2/3/4 back the dashboard demo page.
+docker compose -f "$ROOT/tests/docker/compose.yaml" up -d --wait sshd sshd-2 sshd-3 sshd-4
 
 SERVE_PID=""
 WS_PID=""

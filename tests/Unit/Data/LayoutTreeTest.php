@@ -115,6 +115,83 @@ describe('LayoutTree', function () {
         })->throws(InvalidArgumentException::class, 'not in the layout tree');
     });
 
+    describe('arrange', function () {
+        it('returns null for no panes and a bare pane for one', function () {
+            expect(LayoutTree::arrange([]))->toBeNull()
+                ->and(LayoutTree::arrange(['a']))->toBe(['type' => 'pane', 'paneId' => 'a']);
+        });
+
+        it('preserves pane order and keeps ids unique/valid', function () {
+            $tree = LayoutTree::arrange(['a', 'b', 'c', 'd'], 'tiled');
+
+            expect(LayoutTree::paneIds($tree))->toBe(['a', 'b', 'c', 'd']);
+            LayoutTree::validate($tree); // unique split ids, well-formed
+        });
+
+        it('tiled: 2 side-by-side', function () {
+            $tree = LayoutTree::arrange(['a', 'b'], 'tiled');
+
+            expect($tree['type'])->toBe('split')
+                ->and($tree['orientation'])->toBe('horizontal')
+                ->and($tree['ratio'])->toBe(0.5)
+                ->and($tree['first'])->toBe(['type' => 'pane', 'paneId' => 'a'])
+                ->and($tree['second'])->toBe(['type' => 'pane', 'paneId' => 'b']);
+        });
+
+        it('tiled: 3 = one tall left + two stacked right', function () {
+            $tree = LayoutTree::arrange(['a', 'b', 'c'], 'tiled');
+
+            expect($tree['orientation'])->toBe('horizontal')
+                ->and($tree['first']['paneId'])->toBe('a')
+                ->and($tree['second']['orientation'])->toBe('vertical')
+                ->and(LayoutTree::paneIds($tree['second']))->toBe(['b', 'c']);
+        });
+
+        it('tiled: 4 = even 2x2 grid', function () {
+            $tree = LayoutTree::arrange(['a', 'b', 'c', 'd'], 'tiled');
+
+            expect($tree['orientation'])->toBe('vertical')      // top row / bottom row
+                ->and($tree['ratio'])->toBe(0.5)
+                ->and($tree['first']['orientation'])->toBe('horizontal')
+                ->and(LayoutTree::paneIds($tree['first']))->toBe(['a', 'b'])
+                ->and(LayoutTree::paneIds($tree['second']))->toBe(['c', 'd']);
+        });
+
+        it('columns: even ratios so every pane is equal width', function () {
+            $tree = LayoutTree::arrange(['a', 'b', 'c', 'd'], 'columns');
+
+            // 1/4, then 1/3, then 1/2 → 25% each.
+            expect($tree['ratio'])->toBe(0.25)
+                ->and($tree['second']['ratio'])->toBe(1 / 3)
+                ->and($tree['second']['second']['ratio'])->toBe(0.5)
+                ->and(collect(LayoutTree::paneIds($tree)))->toHaveCount(4);
+        });
+
+        it('main-left: big first pane, rest stacked on the right', function () {
+            $tree = LayoutTree::arrange(['a', 'b', 'c', 'd'], 'main-left');
+
+            expect($tree['orientation'])->toBe('horizontal')
+                ->and($tree['ratio'])->toBe(0.5)
+                ->and($tree['first']['paneId'])->toBe('a')
+                ->and($tree['second']['orientation'])->toBe('vertical')
+                ->and(LayoutTree::paneIds($tree['second']))->toBe(['b', 'c', 'd']);
+        });
+
+        it('rows: even stacked rows', function () {
+            $tree = LayoutTree::arrange(['a', 'b', 'c'], 'rows');
+
+            expect($tree['orientation'])->toBe('vertical')
+                ->and($tree['ratio'])->toBe(1 / 3);
+        });
+
+        it('falls back to even columns for an unknown preset', function () {
+            $tree = LayoutTree::arrange(['a', 'b'], 'nonsense');
+
+            expect($tree['orientation'])->toBe('horizontal')
+                ->and(LayoutTree::paneIds($tree))->toBe(['a', 'b']);
+        });
+    });
+
     describe('paneIds', function () {
         it('collects ids in layout order', function () {
             $tree = LayoutTree::pane('p-a');

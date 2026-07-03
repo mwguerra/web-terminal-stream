@@ -176,3 +176,58 @@
 .wts-workspace .wts-workspace-empty {
     background: #1a1a2e;
 }
+
+/* Terminal Dashboard: a toggle bar above an auto-arranged pane area. */
+.wts-dashboard-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
+}
+
+.wts-dashboard-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.4rem 0.85rem;
+    border-radius: 0.5rem;
+    font-size: 0.8rem;
+    font-weight: 500;
+    cursor: pointer;
+    color: rgb(51 65 85);
+    background: rgb(226 232 240);
+    box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.35);
+    transition: background-color 0.12s ease, color 0.12s ease, box-shadow 0.12s ease;
+}
+
+:where(.dark) .wts-dashboard-toggle {
+    color: rgb(203 213 225);
+    background: rgba(30, 41, 59, 0.7);
+}
+
+.wts-dashboard-toggle:hover {
+    box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.6);
+}
+
+.wts-dashboard-toggle-open {
+    color: #fff;
+    background: var(--wts-divider-focus, rgb(37 99 235));
+    box-shadow: inset 0 0 0 1px transparent;
+}
+
+.wts-dashboard-dot {
+    width: 0.5rem;
+    height: 0.5rem;
+    border-radius: 9999px;
+    background: currentColor;
+    opacity: 0.45;
+}
+
+.wts-dashboard-toggle-open .wts-dashboard-dot {
+    opacity: 1;
+}
+
+/* Dashboard dividers are decorative only — the arrangement is automatic. */
+.wts-divider-static {
+    pointer-events: none;
+}

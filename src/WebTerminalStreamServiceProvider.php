@@ -15,6 +15,7 @@ use MWGuerra\WebTerminalStream\Console\Commands\TerminalLogsCleanupCommand;
 use MWGuerra\WebTerminalStream\Console\Commands\TerminalMakePageCommand;
 use MWGuerra\WebTerminalStream\Console\Commands\TerminalServeCommand;
 use MWGuerra\WebTerminalStream\Http\Controllers\TerminalWebSocketController;
+use MWGuerra\WebTerminalStream\Livewire\StreamDashboard;
 use MWGuerra\WebTerminalStream\Livewire\StreamTerminal;
 use MWGuerra\WebTerminalStream\Livewire\StreamWorkspace;
 use MWGuerra\WebTerminalStream\Services\TerminalLogger;
@@ -40,6 +41,7 @@ class WebTerminalStreamServiceProvider extends ServiceProvider
 
         Livewire::component('web-terminal-stream', StreamTerminal::class);
         Livewire::component('web-terminal-workspace', StreamWorkspace::class);
+        Livewire::component('web-terminal-dashboard', StreamDashboard::class);
 
         Route::post('terminal-stream/ws-token', [
             TerminalWebSocketController::class,

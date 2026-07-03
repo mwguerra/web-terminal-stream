@@ -1,16 +1,40 @@
+x-sshd: &sshd
+  build:
+    context: .
+    dockerfile: sshd/Dockerfile
+  healthcheck:
+    test: ["CMD", "nc", "-z", "127.0.0.1", "22"]
+    interval: 2s
+    timeout: 2s
+    retries: 15
+
 services:
   # Throwaway SSH target for the Integration + e2e suites. Loopback-only.
   sshd:
-    build:
-      context: .
-      dockerfile: sshd/Dockerfile
+    <<: *sshd
     ports:
       - "127.0.0.1:2299:22"
-    healthcheck:
-      test: ["CMD", "nc", "-z", "127.0.0.1", "22"]
-      interval: 2s
-      timeout: 2s
-      retries: 15
+
+  # Three more distinct SSH targets for the TerminalDashboard demo page.
+  # Profiled so the default `up sshd` (integration/e2e) stays lean; the
+  # dashboard e2e run starts them by name.
+  sshd-2:
+    <<: *sshd
+    profiles: ["dashboard"]
+    ports:
+      - "127.0.0.1:2300:22"
+
+  sshd-3:
+    <<: *sshd
+    profiles: ["dashboard"]
+    ports:
+      - "127.0.0.1:2301:22"
+
+  sshd-4:
+    <<: *sshd
+    profiles: ["dashboard"]
+    ports:
+      - "127.0.0.1:2302:22"
 
   # Linux PHP runner for the linux-pty group (composer test:integration:linux).
   php-tests:
