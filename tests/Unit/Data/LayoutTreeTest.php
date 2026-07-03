@@ -38,6 +38,14 @@ describe('LayoutTree', function () {
             expect(LayoutTree::paneIds($tree))->toBe(['p-a', 'p-b']);
         });
 
+        it('inserts the new pane first when $before is true (left/up splits)', function () {
+            $tree = LayoutTree::splitPane(LayoutTree::pane('p-a'), 'p-a', SplitOrientation::Horizontal, 'p-b', before: true);
+
+            expect($tree['first'])->toBe(['type' => 'pane', 'paneId' => 'p-b'])
+                ->and($tree['second'])->toBe(['type' => 'pane', 'paneId' => 'p-a'])
+                ->and(LayoutTree::paneIds($tree))->toBe(['p-b', 'p-a']);
+        });
+
         it('does not mutate the input tree', function () {
             $original = LayoutTree::splitPane(LayoutTree::pane('p-a'), 'p-a', SplitOrientation::Horizontal, 'p-b');
             $snapshot = $original;

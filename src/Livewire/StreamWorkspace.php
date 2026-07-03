@@ -101,11 +101,12 @@ class StreamWorkspace extends Component
     /**
      * Split a pane. The new pane's config is a server-side clone of the
      * source pane (tmux semantics) or the workspace template if one was
-     * declared via defaultPane().
+     * declared via defaultPane(). `$before` inserts the new pane on the
+     * leading side (left/above) instead of the trailing side (right/below).
      *
      * @return array{tree?: array, newPaneId?: string, error?: string}
      */
-    public function splitPane(string $paneId, string $orientation): array
+    public function splitPane(string $paneId, string $orientation, bool $before = false): array
     {
         if (! $this->userMayUseTerminal()) {
             return ['error' => 'Unauthorized'];
@@ -127,7 +128,7 @@ class StreamWorkspace extends Component
 
         $newPaneId = $this->generatePaneId();
 
-        $this->tree = LayoutTree::splitPane($this->tree, $paneId, $direction, $newPaneId);
+        $this->tree = LayoutTree::splitPane($this->tree, $paneId, $direction, $newPaneId, $before);
         $this->panes = [...$this->panes, $newPaneId => $this->paneTemplate ?? $this->panes[$paneId]];
 
         return ['tree' => $this->tree, 'newPaneId' => $newPaneId];

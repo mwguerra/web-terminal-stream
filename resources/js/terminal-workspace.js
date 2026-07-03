@@ -380,6 +380,11 @@ export function component() {
             switch (action) {
                 case 'split_horizontal': return this.split('horizontal');
                 case 'split_vertical': return this.split('vertical');
+                // Directional: left/up insert the new pane before the source.
+                case 'split_left': return this.split('horizontal', true);
+                case 'split_right': return this.split('horizontal', false);
+                case 'split_up': return this.split('vertical', true);
+                case 'split_down': return this.split('vertical', false);
                 case 'close_pane': return this.close();
                 case 'zoom_pane': return this.zoomToggle();
                 case 'focus_left': return this.focusDir('left');
@@ -408,7 +413,7 @@ export function component() {
 
         // ── Pane operations ──────────────────────────────────────────────
 
-        async split(orientation) {
+        async split(orientation, before = false) {
             if (this.busy || !this.focusedPaneId) {
                 return;
             }
@@ -420,7 +425,7 @@ export function component() {
             this.busy = true;
 
             try {
-                const result = await this.$wire.splitPane(this.focusedPaneId, orientation);
+                const result = await this.$wire.splitPane(this.focusedPaneId, orientation, before);
 
                 if (result?.tree) {
                     this.tree = result.tree;
@@ -435,7 +440,8 @@ export function component() {
         async close(paneId = null) {
             const target = paneId ?? this.focusedPaneId;
 
-            if (this.busy || !target) {
+            // Never close the last pane — the workspace always keeps one.
+            if (this.busy || !target || this.paneCount <= 1) {
                 return;
             }
 

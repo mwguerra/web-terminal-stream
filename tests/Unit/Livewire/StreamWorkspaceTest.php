@@ -125,6 +125,17 @@ describe('StreamWorkspace', function () {
             expect($component->get('panes')[$result['newPaneId']]['title'])->toBe('Template Pane');
         });
 
+        it('inserts the new pane before the source when $before is true', function () {
+            $component = Livewire::test(StreamWorkspace::class, workspaceDefaults());
+            $paneId = $component->get('tree')['paneId'];
+
+            $result = callWorkspace($component, 'splitPane', $paneId, 'horizontal', true);
+
+            // New pane leads (left); the original pane follows (right).
+            expect($result['tree']['first']['paneId'])->toBe($result['newPaneId'])
+                ->and($result['tree']['second']['paneId'])->toBe($paneId);
+        });
+
         it('rejects unknown panes', function () {
             $component = Livewire::test(StreamWorkspace::class, workspaceDefaults());
 

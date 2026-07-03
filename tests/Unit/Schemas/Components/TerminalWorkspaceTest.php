@@ -142,12 +142,45 @@ describe('TerminalWorkspace', function () {
     });
 
     describe('keymap enum coverage', function () {
-        it('exposes a binding slot for every PaneAction in the tmux preset', function () {
+        it('binds every core PaneAction in the tmux preset', function () {
             $bindings = TerminalWorkspace::make()->local()->getComponentProperties()['keymap']['bindings'];
 
-            foreach (PaneAction::cases() as $action) {
+            $core = [
+                PaneAction::SplitHorizontal, PaneAction::SplitVertical,
+                PaneAction::ClosePane, PaneAction::ZoomPane,
+                PaneAction::FocusLeft, PaneAction::FocusRight, PaneAction::FocusUp, PaneAction::FocusDown,
+                PaneAction::ResizeLeft, PaneAction::ResizeRight, PaneAction::ResizeUp, PaneAction::ResizeDown,
+            ];
+
+            foreach ($core as $action) {
                 expect($bindings)->toHaveKey($action->value);
             }
+        });
+
+        it('leaves the directional split actions unbound by default (opt-in)', function () {
+            $bindings = TerminalWorkspace::make()->local()->getComponentProperties()['keymap']['bindings'];
+
+            foreach ([PaneAction::SplitLeft, PaneAction::SplitRight, PaneAction::SplitUp, PaneAction::SplitDown] as $action) {
+                expect($bindings)->not->toHaveKey($action->value);
+            }
+        });
+
+        it('can bind directional splits fluently from the default preset', function () {
+            $keymap = TerminalWorkspace::make()
+                ->local()
+                ->keymap(
+                    Keymap::default()
+                        ->prefix('ctrl+d')
+                        ->bind(PaneAction::SplitLeft, 'ctrl+arrowleft')
+                        ->bind(PaneAction::SplitRight, 'ctrl+arrowright')
+                        ->bind(PaneAction::ClosePane, 'ctrl+q')
+                )
+                ->getComponentProperties()['keymap'];
+
+            expect($keymap['prefix'])->toBe('ctrl+d')
+                ->and($keymap['bindings']['split_left'])->toBe(['ctrl+arrowleft'])
+                ->and($keymap['bindings']['split_right'])->toBe(['ctrl+arrowright'])
+                ->and($keymap['bindings']['close_pane'])->toBe(['ctrl+q']);
         });
     });
 });

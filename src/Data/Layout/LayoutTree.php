@@ -33,20 +33,21 @@ final class LayoutTree
     }
 
     /**
-     * Replace the pane leaf with a split holding the old pane first and
-     * the new pane second, at an even ratio — tmux split semantics.
+     * Replace the pane leaf with a split holding the old and new panes at an
+     * even ratio — tmux split semantics. By default the new pane is second
+     * (right/below); `$before` puts it first (left/above).
      *
      * @throws InvalidArgumentException when the pane is not in the tree
      */
-    public static function splitPane(array $tree, string $paneId, SplitOrientation $orientation, string $newPaneId): array
+    public static function splitPane(array $tree, string $paneId, SplitOrientation $orientation, string $newPaneId, bool $before = false): array
     {
         $result = self::replacePane($tree, $paneId, [
             'type' => 'split',
             'id' => 's-'.$newPaneId,
             'orientation' => $orientation->value,
             'ratio' => 0.5,
-            'first' => self::pane($paneId),
-            'second' => self::pane($newPaneId),
+            'first' => self::pane($before ? $newPaneId : $paneId),
+            'second' => self::pane($before ? $paneId : $newPaneId),
         ]);
 
         if ($result === null) {
