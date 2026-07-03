@@ -210,6 +210,14 @@ export function withRatio(tree, splitId, ratio, minRatio) {
  * state and orphaning bindings).
  */
 export function component() {
+    // The workspace root element, captured once in init(). We must NOT use
+    // Alpine's `this.$el` magic in handlers bound to child elements (e.g. a
+    // divider's x-on:pointermove): `$el` is contextual to the element whose
+    // directive is running, so inside moveDrag it would be the 8px divider,
+    // not the workspace — wrecking the pointer→ratio geometry. Held in a
+    // closure so Alpine's reactivity never proxies the DOM node.
+    let rootEl = null;
+
     return {
         tree: null,
         keymap: { prefix: null, prefix_timeout: 1500, bindings: {} },
@@ -230,6 +238,9 @@ export function component() {
         _pendingRatios: {},
 
         init() {
+            // $el is the x-data (root) element during init — capture it now.
+            rootEl = this.$el;
+
             // Detach from the Livewire snapshot proxies — Alpine owns the
             // live tree; the server confirms through method return values.
             this.tree = JSON.parse(JSON.stringify(this.$wire.tree ?? null));
@@ -252,12 +263,12 @@ export function component() {
                     this.focusedPaneId = pane.dataset.wtsPane;
                 }
             };
-            this.$el.addEventListener('focusin', this._focusinHandler);
+            rootEl.addEventListener('focusin', this._focusinHandler);
         },
 
         destroy() {
             document.removeEventListener('keydown', this._keydownHandler, true);
-            this.$el.removeEventListener('focusin', this._focusinHandler);
+            rootEl?.removeEventListener('focusin', this._focusinHandler);
             clearTimeout(this._prefixTimer);
             clearTimeout(this._ratioSyncTimer);
         },
@@ -266,6 +277,10 @@ export function component() {
             const layout = computeRects(this.tree);
             this.rects = layout.panes;
             this.dividers = layout.dividers;
+        },
+
+        get paneCount() {
+            return Object.keys(this.rects).length;
         },
 
         paneStyle(paneId) {
@@ -289,7 +304,7 @@ export function component() {
         // ── Keyboard: tmux prefix state machine ─────────────────────────
 
         onKeydown(e) {
-            if (!this.shortcutsEnabled || !this.$el.contains(e.target)) {
+            if (!this.shortcutsEnabled || !rootEl || !rootEl.contains(e.target)) {
                 return;
             }
 
@@ -417,8 +432,10 @@ export function component() {
             }
         },
 
-        async close() {
-            if (this.busy || !this.focusedPaneId) {
+        async close(paneId = null) {
+            const target = paneId ?? this.focusedPaneId;
+
+            if (this.busy || !target) {
                 return;
             }
 
@@ -429,7 +446,7 @@ export function component() {
             this.busy = true;
 
             try {
-                const result = await this.$wire.closePane(this.focusedPaneId);
+                const result = await this.$wire.closePane(target);
 
                 if (result && !result.error) {
                     this.tree = result.tree;
@@ -500,7 +517,7 @@ export function component() {
         },
 
         paneEl(paneId) {
-            return this.$el.querySelector(`[data-wts-pane='${paneId}']`);
+            return rootEl.querySelector(`[data-wts-pane='${paneId}']`);
         },
 
         // ── Resize: keyboard + divider drag ─────────────────────────────
@@ -539,7 +556,7 @@ export function component() {
             }
 
             this.drag.raf = requestAnimationFrame(() => {
-                const container = this.$el.getBoundingClientRect();
+                const container = rootEl.getBoundingClientRect();
                 const splitRect = findSplitRect(this.tree, this.drag.splitId);
 
                 if (!splitRect) {

@@ -40,6 +40,19 @@
             x-bind:style="paneStyle('{{ $paneId }}')"
             x-bind:class="{ 'wts-pane-zoomed': zoomedPaneId === '{{ $paneId }}' }"
         >
+            {{-- Per-pane close button — only while more than one pane exists.
+                 The sole remaining pane has no button and fills the workspace. --}}
+            <button
+                type="button"
+                class="wts-pane-close"
+                x-show="paneCount > 1"
+                x-on:click.stop="close('{{ $paneId }}')"
+                x-on:pointerdown.stop
+                title="{{ __('Close pane') }}"
+                aria-label="{{ __('Close pane') }}"
+                x-cloak
+            >&times;</button>
+
             @livewire('web-terminal-stream', $pane, key($componentId.'-lw-'.$paneId))
         </div>
     @endforeach
