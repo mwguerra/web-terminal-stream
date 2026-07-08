@@ -238,8 +238,12 @@ class TerminalPtyBridge
             @exec('stty -F '.escapeshellarg($ttyDevice)." rows {$rows} cols {$cols} 2>/dev/null");
         }
 
-        // Send SIGWINCH to the process group so apps (vim, htop) re-read size
-        posix_kill(-$pid, SIGWINCH);
+        // Send SIGWINCH to the process group so apps (vim, htop) re-read size.
+        // Guarded: without ext-posix the stty resize above still applies; only
+        // the live re-read signal is skipped.
+        if (function_exists('posix_kill') && defined('SIGWINCH')) {
+            posix_kill(-$pid, SIGWINCH);
+        }
     }
 
     public function isRunning(): bool

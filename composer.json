@@ -40,7 +40,9 @@
         "pestphp/pest-plugin-laravel": "^3.0"
     },
     "suggest": {
-        "filament/filament": "Required for Filament admin panel integration (^5.0)"
+        "filament/filament": "Required for Filament admin panel integration (^5.0)",
+        "ext-posix": "Local-shell PTY resizing and orphaned-process cleanup on the terminal-stream:serve WebSocket server (Linux). SSH-only deployments do not need it.",
+        "ext-pcntl": "Graceful SIGINT/SIGTERM shutdown of the WebSocket server so live PTYs are closed cleanly instead of reaped on next start."
     },
     "autoload": {
         "psr-4": {

@@ -32,8 +32,9 @@ class ReactPhpProvider implements WebSocketProviderInterface
         // identity we can still vouch for — killing a recycled PID would take
         // down an unrelated process.
         $reapRegistry = function () use ($registry, $maxLifetime): void {
+            $canSignal = function_exists('posix_kill');
             foreach ($registry->cleanupStale($maxLifetime) as $session) {
-                if (PtySessionRegistry::pidIsReapable($session)) {
+                if ($canSignal && PtySessionRegistry::pidIsReapable($session)) {
                     posix_kill((int) $session['pid'], 9);
                 }
             }
