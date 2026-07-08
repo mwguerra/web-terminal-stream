@@ -43,10 +43,12 @@ class WebTerminalStreamServiceProvider extends ServiceProvider
         Livewire::component('web-terminal-workspace', StreamWorkspace::class);
         Livewire::component('web-terminal-dashboard', StreamDashboard::class);
 
+        $rateLimit = config('web-terminal-stream.security.token_rate_limit', '30,1');
+
         Route::post('terminal-stream/ws-token', [
             TerminalWebSocketController::class,
             'generateToken',
-        ])->name('web-terminal-stream.ws-token')->middleware(['web', 'auth']);
+        ])->name('web-terminal-stream.ws-token')->middleware(['web', 'auth', "throttle:{$rateLimit}"]);
 
         if ($this->app->runningInConsole()) {
             $this->commands([
@@ -79,7 +81,9 @@ class WebTerminalStreamServiceProvider extends ServiceProvider
             ];
 
             if (file_exists(__DIR__.'/../resources/dist/stream-terminal.js')) {
-                $assets[] = Js::make('stream-terminal', __DIR__.'/../resources/dist/stream-terminal.js');
+                // Namespaced id so co-installing mwguerra/web-terminal cannot
+                // collide (FilamentAsset keys scripts globally by id).
+                $assets[] = Js::make('web-terminal-stream', __DIR__.'/../resources/dist/stream-terminal.js');
             }
 
             FilamentAsset::register($assets, 'mwguerra/web-terminal-stream');

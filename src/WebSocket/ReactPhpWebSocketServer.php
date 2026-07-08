@@ -10,6 +10,7 @@ use Illuminate\Contracts\Encryption\Encrypter;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use MWGuerra\WebTerminalStream\Data\ConnectionConfig;
+use MWGuerra\WebTerminalStream\Security\ConnectionPolicy;
 use Ratchet\RFC6455\Handshake\RequestVerifier;
 use Ratchet\RFC6455\Handshake\ServerNegotiator;
 use Ratchet\RFC6455\Messaging\CloseFrameChecker;
@@ -148,12 +149,43 @@ class ReactPhpWebSocketServer
             return;
         }
 
-        $sessionId = $payload['sessionId'];
-        $userId = $payload['userId'];
+        $sessionId = $payload['sessionId'] ?? null;
+        $userId = $payload['userId'] ?? null;
 
-        // Retrieve connection config from cache (one-time use)
-        $configData = Cache::pull("terminal-stream-pty:{$sessionId}");
-        if ($configData === null) {
+        if (! is_string($sessionId) || $sessionId === '') {
+            $conn->close();
+
+            return;
+        }
+
+        // Retrieve connection config from cache (one-time use). Stored
+        // encrypted by the issuer; decrypt with the shared APP_KEY.
+        $raw = Cache::pull("terminal-stream-pty:{$sessionId}");
+        if ($raw === null) {
+            $conn->close();
+
+            return;
+        }
+
+        try {
+            $configData = is_array($raw) ? $raw : $this->encrypter->decrypt($raw);
+        } catch (\Throwable $e) {
+            $conn->close();
+
+            return;
+        }
+
+        if (! is_array($configData)) {
+            $conn->close();
+
+            return;
+        }
+
+        // Defense in depth: re-check the connection policy on the server, so a
+        // token minted for a disallowed target (e.g. an off-allow-list SSH
+        // host) is refused even if issuance was somehow bypassed.
+        if (! (new ConnectionPolicy)->allows($configData)) {
+            Log::warning("[web-terminal-stream] connection policy rejected session {$sessionId}");
             $conn->close();
 
             return;
@@ -162,12 +194,22 @@ class ReactPhpWebSocketServer
         // Send the upgrade response
         $conn->write(Message::toString($response));
 
-        // Create PTY bridge
-        $connectionConfig = ConnectionConfig::fromArray($configData);
-        $shell = $this->config['shell'] ?? '/bin/bash';
+        // Create PTY bridge. A failed SSH login, a proc_open failure, or bad
+        // config must NOT escape this callback — an uncaught throwable would
+        // propagate out of the event loop and kill the whole server, dropping
+        // every other live session.
+        try {
+            $connectionConfig = ConnectionConfig::fromArray($configData);
+            $shell = $this->config['shell'] ?? '/bin/bash';
 
-        $bridge = new TerminalPtyBridge($connectionConfig, $sessionId, $userId, $this->registry);
-        $bridge->start($shell);
+            $bridge = new TerminalPtyBridge($connectionConfig, $sessionId, (int) ($userId ?? 0), $this->registry);
+            $bridge->start($shell);
+        } catch (\Throwable $e) {
+            Log::warning("[web-terminal-stream] failed to start terminal for session {$sessionId}: {$e->getMessage()}");
+            $conn->close();
+
+            return;
+        }
 
         $this->bridges[$id] = $bridge;
         $this->connections[$id] = $conn;

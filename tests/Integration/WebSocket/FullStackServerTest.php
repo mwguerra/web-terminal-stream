@@ -74,14 +74,15 @@ function mintWsToken(int $ttl = 300): array
     $ssh = sshTestConfig();
     $sessionId = Str::uuid()->toString();
 
-    Cache::put("terminal-stream-pty:{$sessionId}", [
+    // Encrypted at rest exactly like the issuer does — the server decrypts on pull.
+    Cache::put("terminal-stream-pty:{$sessionId}", app('encrypter')->encrypt([
         'type' => 'ssh',
         'host' => $ssh['host'],
         'username' => $ssh['username'],
         'password' => $ssh['password'],
         'port' => $ssh['port'],
         'timeout' => 10,
-    ], $ttl);
+    ]), $ttl);
 
     $payload = json_encode([
         'userId' => 1,

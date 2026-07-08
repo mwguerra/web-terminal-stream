@@ -13,6 +13,7 @@ use MWGuerra\WebTerminalStream\Enums\ConnectionBehavior;
 use MWGuerra\WebTerminalStream\Enums\ConnectionType;
 use MWGuerra\WebTerminalStream\Events\TerminalConnectedEvent;
 use MWGuerra\WebTerminalStream\Events\TerminalDisconnectedEvent;
+use MWGuerra\WebTerminalStream\Security\ConnectionPolicy;
 use MWGuerra\WebTerminalStream\Services\TerminalLogger;
 
 class StreamTerminal extends Component
@@ -101,11 +102,18 @@ class StreamTerminal extends Component
             return ['error' => 'Unauthorized'];
         }
 
+        $reason = (new ConnectionPolicy)->deniedReason($this->connectionConfig);
+        if ($reason !== null) {
+            return ['error' => $reason];
+        }
+
         $sessionId = Str::uuid()->toString();
         $this->sessionId = $sessionId;
         $ttl = config('web-terminal-stream.stream.signed_url_ttl', 300);
 
-        Cache::put("terminal-stream-pty:{$sessionId}", $this->connectionConfig, $ttl);
+        // Encrypted at rest so SSH credentials in the config are not readable
+        // in whatever cache store the host uses; the server decrypts on pull.
+        Cache::put("terminal-stream-pty:{$sessionId}", encrypt($this->connectionConfig), $ttl);
 
         $payload = json_encode([
             'userId' => auth()->id(),
@@ -135,7 +143,7 @@ class StreamTerminal extends Component
 
     public function connect(): void
     {
-        if ($this->isConnected) {
+        if ($this->isConnected || ! $this->mayUseTerminal()) {
             return;
         }
 
@@ -201,6 +209,11 @@ class StreamTerminal extends Component
         }
 
         return [];
+    }
+
+    protected function mayUseTerminal(): bool
+    {
+        return ! Gate::has('useStreamTerminal') || Gate::allows('useStreamTerminal');
     }
 
     protected function getConnectionType(): ConnectionType

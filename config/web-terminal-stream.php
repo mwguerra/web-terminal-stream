@@ -5,6 +5,47 @@ declare(strict_types=1);
 return [
     /*
     |--------------------------------------------------------------------------
+    | Security
+    |--------------------------------------------------------------------------
+    |
+    | This package streams a real interactive shell. Access control is the
+    | boundary (there is no command whitelist — a PTY cannot be meaningfully
+    | whitelisted). Beyond page-level authz and the optional `useStreamTerminal`
+    | Gate, these settings constrain WHAT a token may connect to. They are
+    | enforced on every token-issuance path AND re-checked on the WebSocket
+    | server before a PTY is started (defense in depth).
+    |
+    */
+    'security' => [
+        // Whether local-shell terminals are permitted at all. Set false to
+        // allow only SSH connections so the app host's own shell is never
+        // exposed through the browser.
+        'allow_local' => env('WEB_TERMINAL_STREAM_ALLOW_LOCAL', true),
+
+        // SSH destination allow-list. Empty = any host allowed — NOT
+        // recommended in production, since the server becomes an SSH/SSRF
+        // pivot. List exact hostnames/IPs, optionally as "host:port" to pin
+        // the port. Enforced server-side; a token for a disallowed host is
+        // refused even if it was somehow minted.
+        'ssh_allowed_hosts' => [],
+
+        // Rate limit for the ws-token issuance route, "<maxAttempts>,<minutes>".
+        'token_rate_limit' => env('WEB_TERMINAL_STREAM_TOKEN_RATE_LIMIT', '30,1'),
+
+        // SSH host-key verification for OUTBOUND connections. phpseclib does
+        // not verify server host keys by default, so 'off' leaves SSH sessions
+        // open to MITM. Set 'known_hosts' and point known_hosts_path at an
+        // OpenSSH known_hosts file, or 'fingerprints' and list sha256
+        // fingerprints per host, to require verification.
+        'ssh_host_key' => [
+            'mode' => env('WEB_TERMINAL_STREAM_SSH_HOSTKEY_MODE', 'off'), // off | known_hosts | fingerprints
+            'known_hosts_path' => env('WEB_TERMINAL_STREAM_SSH_KNOWN_HOSTS'),
+            'fingerprints' => [], // ['host' => 'SHA256:...'] or ['host:port' => '...']
+        ],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Logging
     |--------------------------------------------------------------------------
     |
