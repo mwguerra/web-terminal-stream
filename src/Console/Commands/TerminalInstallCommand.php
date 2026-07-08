@@ -389,25 +389,34 @@ class TerminalInstallCommand extends Command
         $destination = database_path("migrations/{$timestamp}_create_terminal_stream_logs_table.php");
 
         // Check if migration already exists
-        $existingMigrations = glob(database_path('migrations/*_create_terminal_stream_logs_table.php'));
-        if (! empty($existingMigrations) && ! $this->option('force')) {
-            if ($this->option('no-interaction')) {
-                warning('Skipped migration file (already exists).');
+        $existingMigrations = glob(database_path('migrations/*_create_terminal_stream_logs_table.php')) ?: [];
 
-                return;
+        if (! empty($existingMigrations)) {
+            if (! $this->option('force')) {
+                if ($this->option('no-interaction')) {
+                    warning('Skipped migration file (already exists).');
+
+                    return;
+                }
+
+                if (! confirm('Terminal logs migration already exists. Overwrite it?', default: false)) {
+                    warning('Skipped migration file.');
+
+                    return;
+                }
             }
 
-            if (! confirm('Terminal logs migration already exists. Publish anyway?', default: false)) {
-                warning('Skipped migration file.');
-
-                return;
-            }
+            // Overwrite the existing migration in place. Writing a NEW
+            // timestamped file would leave two Schema::create() migrations for
+            // the same table, and `migrate` would fail on the second one.
+            $destination = $existingMigrations[0];
         }
 
         $this->files->copy($source, $destination);
 
+        $relative = 'database/migrations/'.basename($destination);
         $tenantInfo = $withTenant ? ' (with tenant support)' : '';
-        info("Migration published to database/migrations/{$timestamp}_create_terminal_stream_logs_table.php{$tenantInfo}");
+        info("Migration published to {$relative}{$tenantInfo}");
     }
 
     /**

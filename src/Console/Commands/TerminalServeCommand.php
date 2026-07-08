@@ -33,8 +33,10 @@ class TerminalServeCommand extends Command
             return self::FAILURE;
         }
 
-        $host = $this->option('host') ?? config('web-terminal-stream.stream.ratchet_host', '127.0.0.1');
-        $port = $this->option('port') ?? config('web-terminal-stream.stream.ratchet_port', 8090);
+        // Use ?: not ?? so an empty --host= / --port= falls back to config
+        // instead of binding to an empty host or port 0.
+        $host = $this->option('host') ?: config('web-terminal-stream.stream.ratchet_host', '127.0.0.1');
+        $port = $this->option('port') ?: config('web-terminal-stream.stream.ratchet_port', 8090);
 
         foreach (self::capabilityWarnings(
             hasPosix: function_exists('posix_kill'),

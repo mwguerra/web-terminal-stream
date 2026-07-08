@@ -65,6 +65,14 @@ class TerminalMakePageCommand extends Command
         // Get page name
         $name = $this->getPageName();
 
+        // Reject anything that would not compile as a PHP class name (the name
+        // is written verbatim into the generated class declaration).
+        if (! $this->isValidClassName($name)) {
+            $this->error("Invalid page class name '{$name}'. Use a valid PHP class name: a letter or underscore followed by letters, digits, or underscores.");
+
+            return self::FAILURE;
+        }
+
         // Get terminal key
         $key = $this->getTerminalKey($name);
 
@@ -164,6 +172,14 @@ class TerminalMakePageCommand extends Command
             required: true,
             hint: 'This will be the PHP class name (e.g., Terminal, ServerTerminal)',
         );
+    }
+
+    /**
+     * Whether a string is a valid, unqualified PHP class name.
+     */
+    public function isValidClassName(string $name): bool
+    {
+        return preg_match('/^[A-Za-z_][A-Za-z0-9_]*$/', $name) === 1;
     }
 
     /**

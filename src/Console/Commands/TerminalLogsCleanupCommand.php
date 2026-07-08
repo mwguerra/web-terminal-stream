@@ -27,9 +27,21 @@ class TerminalLogsCleanupCommand extends Command
      */
     public function handle(TerminalLogger $logger): int
     {
-        $days = $this->option('days')
-            ? (int) $this->option('days')
-            : (int) config('web-terminal-stream.logging.retention_days', 90);
+        $daysOption = $this->option('days');
+
+        if ($daysOption !== null) {
+            // Guard against a negative value — olderThan(-5) resolves to a date
+            // in the FUTURE, which would silently delete EVERY log entry.
+            if (! ctype_digit((string) $daysOption)) {
+                $this->error('The --days option must be a non-negative integer.');
+
+                return self::FAILURE;
+            }
+
+            $days = (int) $daysOption;
+        } else {
+            $days = (int) config('web-terminal-stream.logging.retention_days', 90);
+        }
 
         $dryRun = $this->option('dry-run');
 
