@@ -108,6 +108,18 @@ return [
         'max_session_lifetime' => 3600,
         'signed_url_ttl' => 300,
 
+        // Resilience limits for the long-running WebSocket server. The server
+        // is a single process holding one PTY per connection, so unbounded
+        // growth is a real denial-of-service surface.
+        //
+        // Total live PTYs the server will hold at once (0 = unlimited).
+        'max_connections' => env('WEB_TERMINAL_STREAM_MAX_CONNECTIONS', 100),
+        // Live PTYs a single authenticated user may hold (0 = unlimited).
+        'max_sessions_per_user' => env('WEB_TERMINAL_STREAM_MAX_SESSIONS_PER_USER', 10),
+        // Cap on the HTTP upgrade request before the handshake completes, so a
+        // client that never sends the terminating CRLF cannot grow memory.
+        'max_handshake_bytes' => env('WEB_TERMINAL_STREAM_MAX_HANDSHAKE_BYTES', 16384),
+
         // Origins allowed to open a WebSocket handshake (CSRF-shaped defense
         // in depth on top of the single-use token). Matched on normalized
         // scheme + host + port; requests without an Origin header (non-browser

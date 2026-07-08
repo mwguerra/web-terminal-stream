@@ -29,6 +29,18 @@ class ReactPhpWebSocketServer
     /** @var array<int, MessageBuffer> Maps connection object ID to message buffer */
     private array $buffers = [];
 
+    /** @var array<int, int> Maps connection object ID to the owning user id */
+    private array $userIds = [];
+
+    /** @var array<int, int> Maps connection object ID to its start timestamp */
+    private array $startedAt = [];
+
+    private int $maxConnections;
+
+    private int $maxSessionsPerUser;
+
+    private int $maxHandshakeBytes;
+
     private PtySessionRegistry $registry;
 
     private Encrypter $encrypter;
@@ -47,6 +59,9 @@ class ReactPhpWebSocketServer
         $this->registry = $registry;
         $this->encrypter = $encrypter;
         $this->config = $config;
+        $this->maxConnections = (int) ($config['max_connections'] ?? 100);
+        $this->maxSessionsPerUser = (int) ($config['max_sessions_per_user'] ?? 10);
+        $this->maxHandshakeBytes = (int) ($config['max_handshake_bytes'] ?? 16384);
         $this->negotiator = new ServerNegotiator(
             new RequestVerifier,
             new HttpFactory,
@@ -63,6 +78,17 @@ class ReactPhpWebSocketServer
             // If we haven't completed the handshake yet
             if (! isset($this->buffers[$id])) {
                 $httpBuffer .= $data;
+
+                // Bound the pre-handshake buffer: a client that opens a socket
+                // and never sends the terminating CRLF must not grow memory
+                // without limit (a trivial DoS otherwise).
+                if ($this->maxHandshakeBytes > 0 && strlen($httpBuffer) > $this->maxHandshakeBytes) {
+                    Log::warning('[web-terminal-stream] Rejected handshake: request exceeded max_handshake_bytes');
+                    $conn->close();
+
+                    return;
+                }
+
                 $this->handleHandshake($conn, $id, $httpBuffer);
 
                 return;
@@ -191,6 +217,18 @@ class ReactPhpWebSocketServer
             return;
         }
 
+        // Enforce resource caps before committing a PTY to this connection.
+        // The token is already consumed (Cache::pull); a rejected connection
+        // just closes — the client can retry once capacity frees up.
+        $reason = $this->capacityReason(is_int($userId) ? $userId : (is_numeric($userId) ? (int) $userId : null));
+        if ($reason !== null) {
+            Log::warning("[web-terminal-stream] refused session {$sessionId}: {$reason}");
+            $conn->write("HTTP/1.1 503 Service Unavailable\r\nConnection: close\r\nContent-Length: 0\r\n\r\n");
+            $conn->close();
+
+            return;
+        }
+
         // Send the upgrade response
         $conn->write(Message::toString($response));
 
@@ -213,6 +251,8 @@ class ReactPhpWebSocketServer
 
         $this->bridges[$id] = $bridge;
         $this->connections[$id] = $conn;
+        $this->userIds[$id] = is_numeric($userId) ? (int) $userId : 0;
+        $this->startedAt[$id] = time();
 
         // Set up WebSocket message buffer for this connection.
         // expectMask = true because browser clients always mask frames.
@@ -264,7 +304,13 @@ class ReactPhpWebSocketServer
             }
         }
 
-        unset($this->bridges[$id], $this->connections[$id], $this->buffers[$id]);
+        unset(
+            $this->bridges[$id],
+            $this->connections[$id],
+            $this->buffers[$id],
+            $this->userIds[$id],
+            $this->startedAt[$id],
+        );
     }
 
     /**
@@ -275,6 +321,12 @@ class ReactPhpWebSocketServer
         foreach ($this->bridges as $id => $bridge) {
             try {
                 if (! $bridge->isRunning()) {
+                    // The shell exited (e.g. the user typed `exit`) or the SSH
+                    // transport dropped. Close the socket and evict the bridge —
+                    // otherwise a finished session leaks here forever and the
+                    // client is never told the terminal is gone.
+                    $this->closeSession($id);
+
                     continue;
                 }
 
@@ -312,5 +364,78 @@ class ReactPhpWebSocketServer
         }
 
         $this->handleClose($id);
+    }
+
+    /**
+     * Why a new connection cannot be admitted, or null if it can.
+     *
+     * Enforces the total live-PTY cap and the per-user session cap. A limit of
+     * 0 means unlimited. Kept as a small pure-ish method so it is unit-testable
+     * without a real socket or token.
+     */
+    public function capacityReason(?int $userId): ?string
+    {
+        if ($this->maxConnections > 0 && count($this->bridges) >= $this->maxConnections) {
+            return "server at capacity ({$this->maxConnections} connections)";
+        }
+
+        if ($this->maxSessionsPerUser > 0 && $userId !== null && $userId > 0) {
+            $forUser = 0;
+            foreach ($this->userIds as $owner) {
+                if ($owner === $userId) {
+                    $forUser++;
+                }
+            }
+
+            if ($forUser >= $this->maxSessionsPerUser) {
+                return "user {$userId} at session limit ({$this->maxSessionsPerUser})";
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Close any session whose PTY has outlived max_session_lifetime.
+     *
+     * The registry-level reap in ReactPhpProvider kills the orphaned OS
+     * process; this closes the matching WebSocket so the browser is not left
+     * staring at a dead terminal. Called from the provider's periodic timer.
+     */
+    public function reapExpired(int $maxLifetimeSeconds): void
+    {
+        if ($maxLifetimeSeconds <= 0) {
+            return;
+        }
+
+        $cutoff = time() - $maxLifetimeSeconds;
+
+        foreach ($this->startedAt as $id => $startedAt) {
+            if ($startedAt < $cutoff) {
+                Log::info("[web-terminal-stream] reaping session over max lifetime (conn {$id})");
+                $this->closeSession($id);
+            }
+        }
+    }
+
+    /**
+     * Terminate every live session and clear all state.
+     *
+     * Wired to SIGINT/SIGTERM by the provider so Ctrl-C on `terminal-stream:serve`
+     * tears down PTYs and SSH channels instead of orphaning them.
+     */
+    public function shutdown(): void
+    {
+        foreach (array_keys($this->bridges) as $id) {
+            $this->closeSession($id);
+        }
+    }
+
+    /**
+     * Number of live sessions — exposed for health checks and tests.
+     */
+    public function activeConnectionCount(): int
+    {
+        return count($this->bridges);
     }
 }

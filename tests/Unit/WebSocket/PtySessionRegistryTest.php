@@ -75,4 +75,27 @@ describe('PtySessionRegistry', function () {
         expect($this->registry->find('old-session'))->toBeNull();
         expect($this->registry->find('new-session'))->not->toBeNull();
     });
+
+    it('records a startTime key on register', function () {
+        $this->registry->register('session-1', 12345, 1);
+        // Value is the kernel start-time on Linux, or null off /proc platforms.
+        expect($this->registry->find('session-1'))->toHaveKey('startTime');
+    });
+
+    describe('pidIsReapable', function () {
+        it('is false for a non-positive pid', function () {
+            expect(PtySessionRegistry::pidIsReapable(['pid' => 0]))->toBeFalse()
+                ->and(PtySessionRegistry::pidIsReapable(['pid' => -1]))->toBeFalse();
+        });
+
+        it('is true when no startTime was recorded (legacy entry, best effort)', function () {
+            expect(PtySessionRegistry::pidIsReapable(['pid' => 4242]))->toBeTrue();
+        });
+
+        it('is false when a recorded startTime cannot be matched (recycled or dead pid)', function () {
+            // PID 999999 will not exist / not match the recorded start-time,
+            // so the reaper must refuse to signal it.
+            expect(PtySessionRegistry::pidIsReapable(['pid' => 999999, 'startTime' => 12345]))->toBeFalse();
+        });
+    });
 });

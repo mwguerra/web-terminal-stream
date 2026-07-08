@@ -26,13 +26,20 @@ class ReactPhpProvider implements WebSocketProviderInterface
             $this->app->storagePath('web-terminal-stream')
         );
 
-        // Cleanup orphaned PIDs from previous crashes
-        $stale = $registry->cleanupStale($config['max_session_lifetime'] ?? 3600);
-        foreach ($stale as $session) {
-            if ($session['pid'] > 0 && posix_kill($session['pid'], 0)) {
-                posix_kill($session['pid'], 9);
+        $maxLifetime = $config['max_session_lifetime'] ?? 3600;
+
+        // Reap orphaned PIDs from a previous crash. Only signal a PID whose
+        // identity we can still vouch for — killing a recycled PID would take
+        // down an unrelated process.
+        $reapRegistry = function () use ($registry, $maxLifetime): void {
+            foreach ($registry->cleanupStale($maxLifetime) as $session) {
+                if (PtySessionRegistry::pidIsReapable($session)) {
+                    posix_kill((int) $session['pid'], 9);
+                }
             }
-        }
+        };
+
+        $reapRegistry();
 
         $server = new ReactPhpWebSocketServer(
             $registry,
@@ -71,15 +78,28 @@ class ReactPhpProvider implements WebSocketProviderInterface
             $server->tick();
         });
 
-        // Periodic cleanup (every 60s)
-        $loop->addPeriodicTimer(60, function () use ($registry, $config) {
-            $stale = $registry->cleanupStale($config['max_session_lifetime'] ?? 3600);
-            foreach ($stale as $session) {
-                if ($session['pid'] > 0 && posix_kill($session['pid'], 0)) {
-                    posix_kill($session['pid'], 9);
-                }
-            }
+        // Periodic cleanup (every 60s): reap orphaned OS processes AND close
+        // the matching WebSockets for any session that outlived its lifetime.
+        $loop->addPeriodicTimer(60, function () use ($reapRegistry, $server, $maxLifetime) {
+            $reapRegistry();
+            $server->reapExpired($maxLifetime);
         });
+
+        // Graceful shutdown: tear down every PTY / SSH channel on Ctrl-C or a
+        // supervisor's SIGTERM instead of orphaning them for the next reap.
+        $shutdown = function () use ($server, $loop): void {
+            $server->shutdown();
+            $loop->stop();
+        };
+
+        // ReactPHP's addSignal needs ext-pcntl (or ev/event); guard so the
+        // server still boots on a build without it — it just won't shut down
+        // as gracefully.
+        if (function_exists('pcntl_signal') && defined('SIGINT') && defined('SIGTERM')) {
+            foreach ([SIGINT, SIGTERM] as $signal) {
+                $loop->addSignal($signal, $shutdown);
+            }
+        }
 
         $loop->run();
     }
