@@ -190,6 +190,70 @@ A literal `'*'` entry disables the check entirely — an escape hatch for revers
 
 Because this is an array, it is **config-file-only** — there is no `WEB_TERMINAL_STREAM_*` env var for it (env vars carry scalars). Reference `env('APP_URL')` or your own env-driven values inside the published config file instead.
 
+#### Connection policy — what a token may connect to
+
+Beyond *who* may open a terminal (the [`useStreamTerminal` gate](#authorization)), the `security` config block constrains *what* a terminal may connect to. It is enforced at token issuance **and re-checked on the server** before a PTY starts, so a token minted for a disallowed target is refused even if issuance were bypassed.
+
+```php
+// config/web-terminal-stream.php
+'security' => [
+    // Allow local-shell terminals at all. Set false to expose SSH only, so the
+    // app host's own shell is never reachable through the browser.
+    'allow_local' => env('WEB_TERMINAL_STREAM_ALLOW_LOCAL', true),
+
+    // SSH destination allow-list. Empty = any host (NOT recommended in
+    // production — the server becomes an SSH/SSRF pivot). List exact
+    // hostnames/IPs, optionally as "host:port" to pin the port.
+    'ssh_allowed_hosts' => ['bastion.internal', 'db-1.internal:2222'],
+
+    // Rate limit for the ws-token issuance route: "<maxAttempts>,<minutes>".
+    'token_rate_limit' => env('WEB_TERMINAL_STREAM_TOKEN_RATE_LIMIT', '30,1'),
+],
+```
+
+#### SSH host-key verification
+
+phpseclib does not verify server host keys by default, so with `mode` left at `off` an outbound SSH session is open to a man-in-the-middle. Turn it on with either pinned fingerprints or an OpenSSH `known_hosts` file:
+
+```php
+'security' => [
+    'ssh_host_key' => [
+        'mode' => env('WEB_TERMINAL_STREAM_SSH_HOSTKEY_MODE', 'off'), // off | known_hosts | fingerprints
+
+        // mode = known_hosts
+        'known_hosts_path' => env('WEB_TERMINAL_STREAM_SSH_KNOWN_HOSTS', '/etc/ssh/ssh_known_hosts'),
+
+        // mode = fingerprints (per host, or "host:port"; SHA256 or MD5)
+        'fingerprints' => [
+            'bastion.internal' => 'SHA256:l1C7yZJ+mCVTwIunDQ0ZzytglTeg5SloW66Iwm874pc',
+        ],
+    ],
+],
+```
+
+A key that does not match aborts the connection before authentication.
+
+#### Resource limits
+
+The server is a single long-running process holding one PTY per connection. Cap it so a runaway client cannot exhaust the host:
+
+```php
+'stream' => [
+    'max_connections' => env('WEB_TERMINAL_STREAM_MAX_CONNECTIONS', 100),        // total live PTYs (0 = unlimited)
+    'max_sessions_per_user' => env('WEB_TERMINAL_STREAM_MAX_SESSIONS_PER_USER', 10),
+    'max_handshake_bytes' => env('WEB_TERMINAL_STREAM_MAX_HANDSHAKE_BYTES', 16384),
+    'max_session_lifetime' => 3600,  // PTYs older than this are reaped and their sockets closed
+],
+```
+
+#### Operating in production
+
+- **Shared cache + `APP_KEY`.** The HTTP app issues the single-use token and caches the (encrypted) connection config; `terminal-stream:serve` pulls it back. They **must share the same cache store and `APP_KEY`** — run the server from the same deployment, and do not use the `array` cache driver. A per-request cache (or a mismatched key) means every handshake fails.
+- **Single point of failure.** The server is one process; if it dies, every live terminal drops. Supervise it (above) so it restarts, and note there is no built-in clustering — run one server per app node and pin each browser to its node's WebSocket URL if you scale horizontally.
+- **Capability check.** On boot the server prints warnings if `ext-posix` / `ext-pcntl` are missing or the host is not Linux (local-shell PTY resizing needs `/proc` + `stty`). SSH connections are unaffected by these.
+- **Log retention.** Connection logs accumulate in `terminal_stream_logs`; schedule `terminal-stream:logs:cleanup` (see [Retention & cleanup](#retention--cleanup)).
+- **Health.** A simple liveness check is a TCP connect to the server's `host:port`; there is no HTTP health endpoint.
+
 ### Environment variables
 
 | Variable | Config key | Default |
@@ -208,8 +272,15 @@ Because this is an array, it is **config-file-only** — there is no `WEB_TERMIN
 | `WEB_TERMINAL_STREAM_MAX_OUTPUT_LOG` | `logging.max_output_length` | `10000` |
 | `WEB_TERMINAL_STREAM_LOG_RETENTION` | `logging.retention_days` | `90` |
 | `WEB_TERMINAL_STREAM_SHORTCUTS` | `workspace.shortcuts.enabled` | `true` |
+| `WEB_TERMINAL_STREAM_ALLOW_LOCAL` | `security.allow_local` | `true` |
+| `WEB_TERMINAL_STREAM_TOKEN_RATE_LIMIT` | `security.token_rate_limit` | `30,1` |
+| `WEB_TERMINAL_STREAM_SSH_HOSTKEY_MODE` | `security.ssh_host_key.mode` | `off` |
+| `WEB_TERMINAL_STREAM_SSH_KNOWN_HOSTS` | `security.ssh_host_key.known_hosts_path` | `null` |
+| `WEB_TERMINAL_STREAM_MAX_CONNECTIONS` | `stream.max_connections` | `100` |
+| `WEB_TERMINAL_STREAM_MAX_SESSIONS_PER_USER` | `stream.max_sessions_per_user` | `10` |
+| `WEB_TERMINAL_STREAM_MAX_HANDSHAKE_BYTES` | `stream.max_handshake_bytes` | `16384` |
 
-Non-env config keys: `stream.max_session_lifetime` (default `3600` — stale PTYs older than this are killed by the server's cleanup pass), `stream.signed_url_ttl` (default `300` — lifetime of a WebSocket auth token), and `stream.allowed_origins` (default `[env('APP_URL', 'http://localhost')]` — see the Origin allow-list section; it's an array, so config-file-only).
+Non-env config keys: `stream.max_session_lifetime` (default `3600` — stale PTYs older than this are killed by the server's cleanup pass), `stream.signed_url_ttl` (default `300` — lifetime of a WebSocket auth token), `stream.allowed_origins` (default `[env('APP_URL', 'http://localhost')]` — see the Origin allow-list section; it's an array, so config-file-only), `security.ssh_allowed_hosts` and `security.ssh_host_key.fingerprints` (arrays — see [Connection policy](#connection-policy--what-a-token-may-connect-to) and [SSH host-key verification](#ssh-host-key-verification)).
 
 ## Usage
 

@@ -81,7 +81,7 @@ One rendering path. Configuration flows Schema component → Livewire props → 
 
 ### 2. WebSocket / PTY server (`src/WebSocket/`)
 
-- `ReactPhpWebSocketServer` — RFC6455 over a `react/socket` loop (started by `Console\Commands\TerminalServeCommand`, `php artisan terminal-stream:serve`). Validates the encrypted single-use token, `Cache::pull`s the connection config (`terminal-stream-pty:{sessionId}`), streams PTY output on a 10ms tick.
+- `ReactPhpWebSocketServer` — RFC6455 over a `react/socket` loop (started by `Console\Commands\TerminalServeCommand`, `php artisan terminal-stream:serve`). Validates the encrypted single-use token, `Cache::pull`s + `decrypt`s the connection config (`terminal-stream-pty:{sessionId}`), re-checks `ConnectionPolicy`, enforces the connection caps, streams PTY output on a 10ms tick, reaps exited/over-lifetime sessions, records a reliable disconnect log on socket close, and tears down every bridge on `SIGINT`/`SIGTERM` (`shutdown()`).
 - `TerminalPtyBridge` — one per connection; local `proc_open` PTY or phpseclib3 SSH `CHANNEL_SHELL`. Handles write/read/resize/terminate.
 - `PtySessionRegistry` — JSON pid registry at `storage/web-terminal-stream/`, used to kill orphaned PTYs after crashes (`stream.max_session_lifetime`).
 - `Http\Controllers\TerminalWebSocketController` — `POST terminal-stream/ws-token` (route name `web-terminal-stream.ws-token`, web+auth) for custom frontends.
@@ -92,7 +92,7 @@ One rendering path. Configuration flows Schema component → Livewire props → 
 
 ### 4. Security model
 
-There is **no command whitelist** — Stream is a raw PTY byte-pipe and cannot be meaningfully whitelisted. Do not add validation layers that pretend otherwise. The boundaries are: page-level authz, the optional `useStreamTerminal` Gate at token issuance, the encrypted expiring single-use token, and network reachability of the WS port. Keep those seams intact when changing auth-adjacent code.
+There is **no command whitelist** — Stream is a raw PTY byte-pipe and cannot be meaningfully whitelisted. Do not add validation layers that pretend otherwise. The boundaries are: page-level authz; the optional `useStreamTerminal` Gate at token issuance (checked on BOTH the REST `ws-token` route and the Livewire `getWebSocketUrl()` path, plus `connect()`); `Security\ConnectionPolicy` (`security.allow_local` + `security.ssh_allowed_hosts`) enforced at issuance AND re-checked on the server before a PTY starts; `Security\SshHostKeyVerifier` (`security.ssh_host_key.mode`) verifying the SSH host key before authentication; the encrypted expiring single-use token; the connection config **encrypted at rest** in the cache; the `ws-token` route rate limit (`security.token_rate_limit`); the resource caps (`stream.max_connections`/`max_sessions_per_user`/`max_handshake_bytes`); the Origin allow-list; and network reachability of the WS port. Keep those seams intact when changing auth-adjacent code — the `ConnectionPolicy` is enforced on all three issuance/handshake paths on purpose (defense in depth).
 
 ### 5. Logging / Filament surface
 
