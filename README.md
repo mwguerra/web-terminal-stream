@@ -810,6 +810,9 @@ Install the tenant-aware migration with `php artisan terminal-stream:install --w
 - Check the browser console: a failing `ws://`/`wss://` connect will log `[StreamTerminal]` errors.
 - Tokens are single-use with a 300s TTL (`stream.signed_url_ttl`) — a stale tab needs a reload.
 
+**`StreamWeb not loaded` in the console / a 404 on `…/web-terminal-stream.js`**
+- The bundled JS is published by Filament under its asset id. After upgrading the package, run `php artisan filament:assets` so the browser loads the current file — a stale published asset 404s and the terminal never boots.
+
 **`Address already in use` when starting the server**
 - Another process (possibly the original `mwguerra/web-terminal` server) is on port 8090. Run this package on its own port: `php artisan terminal-stream:serve --port=8091` and set `WEB_TERMINAL_STREAM_RATCHET_PORT=8091`.
 

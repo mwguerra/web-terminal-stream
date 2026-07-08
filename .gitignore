@@ -23,3 +23,6 @@ debug-csrf.mjs
 # Transient benchmark output (baselines under docs/benchmarks/baselines/ ARE committed)
 /docs/benchmarks/latest.json
 composer.lock
+
+# Playwright MCP scratch snapshots
+/.playwright-mcp/

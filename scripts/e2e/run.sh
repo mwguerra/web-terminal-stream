@@ -10,6 +10,12 @@ APP_DIR="$ROOT/tests/e2e-app"
 
 bash "$ROOT/scripts/e2e/setup.sh"
 
+# Re-publish the package's Filament assets every run. setup.sh exits early when
+# the app already exists, so without this a change to a registered asset id
+# (e.g. the bundled JS) would keep serving a stale published file — a 404 that
+# silently breaks every terminal spec.
+(cd "$APP_DIR" && php artisan filament:assets >/dev/null)
+
 # sshd is the primary target; sshd-2/3/4 back the dashboard demo page.
 docker compose -f "$ROOT/tests/docker/compose.yaml" up -d --wait sshd sshd-2 sshd-3 sshd-4
 
