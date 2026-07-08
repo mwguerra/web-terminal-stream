@@ -1,0 +1,223 @@
+parameters:
+	ignoreErrors:
+		-
+			message: '#^Negated boolean expression is always false\.$#'
+			identifier: booleanNot.alwaysFalse
+			count: 1
+			path: src/Console/Commands/TerminalInstallCommand.php
+
+		-
+			message: '#^Call to an undefined static method MWGuerra\\WebTerminalStream\\Models\\TerminalLog\:\:olderThan\(\)\.$#'
+			identifier: staticMethod.notFound
+			count: 1
+			path: src/Console/Commands/TerminalLogsCleanupCommand.php
+
+		-
+			message: '#^Negated boolean expression is always false\.$#'
+			identifier: booleanNot.alwaysFalse
+			count: 1
+			path: src/Console/Commands/TerminalMakePageCommand.php
+
+		-
+			message: '#^Parameter \#1 \$array \(list\<string\>\) of array_values is already a list, call has no effect\.$#'
+			identifier: arrayValues.list
+			count: 1
+			path: src/Data/Keymap.php
+
+		-
+			message: '#^Parameter \#1 \$array \(list\<string\>\) of array_values is already a list, call has no effect\.$#'
+			identifier: arrayValues.list
+			count: 1
+			path: src/Data/Layout/LayoutTree.php
+
+		-
+			message: '#^Unsafe usage of new static\(\)\.$#'
+			identifier: new.static
+			count: 1
+			path: src/Data/Script.php
+
+		-
+			message: '#^Anonymous function should return Illuminate\\Database\\Eloquent\\Builder but returns Illuminate\\Database\\Query\\Builder\.$#'
+			identifier: return.type
+			count: 2
+			path: src/Filament/Resources/TerminalLogResource/Tables/TerminalLogsTable.php
+
+		-
+			message: '#^Call to an undefined static method MWGuerra\\WebTerminalStream\\Models\\TerminalLog\:\:count\(\)\.$#'
+			identifier: staticMethod.notFound
+			count: 1
+			path: src/Filament/Resources/TerminalLogResource/Widgets/TerminalLogsStatsOverview.php
+
+		-
+			message: '#^Call to an undefined static method MWGuerra\\WebTerminalStream\\Models\\TerminalLog\:\:whereDate\(\)\.$#'
+			identifier: staticMethod.notFound
+			count: 1
+			path: src/Filament/Resources/TerminalLogResource/Widgets/TerminalLogsStatsOverview.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Contracts\\Auth\\Factory\:\:id\(\)\.$#'
+			identifier: method.notFound
+			count: 5
+			path: src/Livewire/StreamTerminal.php
+
+		-
+			message: '#^Using nullsafe method call on non\-nullable type Illuminate\\Http\\Request\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 2
+			path: src/Livewire/StreamTerminal.php
+
+		-
+			message: '#^Call to function is_int\(\) with int will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: src/Livewire/StreamWorkspace.php
+
+		-
+			message: '#^Call to function is_string\(\) with string will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: src/Livewire/StreamWorkspace.php
+
+		-
+			message: '#^Property MWGuerra\\WebTerminalStream\\Livewire\\StreamWorkspace\:\:\$keymap \(array\{prefix\: string\|null, prefix_timeout\: int, bindings\: array\<string, list\<string\>\>\}\) does not accept default value of type array\{\}\.$#'
+			identifier: property.defaultValue
+			count: 1
+			path: src/Livewire/StreamWorkspace.php
+
+		-
+			message: '#^Result of && is always true\.$#'
+			identifier: booleanAnd.alwaysTrue
+			count: 1
+			path: src/Livewire/StreamWorkspace.php
+
+		-
+			message: '#^Result of \|\| is always true\.$#'
+			identifier: booleanOr.alwaysTrue
+			count: 1
+			path: src/Livewire/StreamWorkspace.php
+
+		-
+			message: '#^Access to an undefined property MWGuerra\\WebTerminalStream\\Models\\TerminalLog\:\:\$event_type\.$#'
+			identifier: property.notFound
+			count: 3
+			path: src/Models/TerminalLog.php
+
+		-
+			message: '#^Access to an undefined property MWGuerra\\WebTerminalStream\\Models\\TerminalLog\:\:\$execution_time_seconds\.$#'
+			identifier: property.notFound
+			count: 1
+			path: src/Models/TerminalLog.php
+
+		-
+			message: '#^Access to an undefined property MWGuerra\\WebTerminalStream\\Models\\TerminalLog\:\:\$exit_code\.$#'
+			identifier: property.notFound
+			count: 2
+			path: src/Models/TerminalLog.php
+
+		-
+			message: '#^Method MWGuerra\\WebTerminalStream\\Models\\TerminalLog\:\:scopeConnections\(\) should return Illuminate\\Database\\Eloquent\\Builder but returns Illuminate\\Database\\Query\\Builder\.$#'
+			identifier: return.type
+			count: 1
+			path: src/Models/TerminalLog.php
+
+		-
+			message: '#^Call to function is_string\(\) with string will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: src/Schemas/Components/TerminalDashboard.php
+
+		-
+			message: '#^Instanceof between MWGuerra\\WebTerminalStream\\Schemas\\Components\\WebTerminalStream and MWGuerra\\WebTerminalStream\\Schemas\\Components\\WebTerminalStream will always evaluate to true\.$#'
+			identifier: instanceof.alwaysTrue
+			count: 1
+			path: src/Schemas/Components/TerminalDashboard.php
+
+		-
+			message: '#^Parameter \#1 \$array \(list\<string\>\) of array_values is already a list, call has no effect\.$#'
+			identifier: arrayValues.list
+			count: 1
+			path: src/Schemas/Components/TerminalDashboard.php
+
+		-
+			message: '#^Instanceof between MWGuerra\\WebTerminalStream\\Schemas\\Components\\WebTerminalStream and MWGuerra\\WebTerminalStream\\Schemas\\Components\\WebTerminalStream will always evaluate to true\.$#'
+			identifier: instanceof.alwaysTrue
+			count: 1
+			path: src/Schemas/Components/TerminalGrid.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Contracts\\Auth\\Factory\:\:id\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: src/Services/TerminalLogger.php
+
+		-
+			message: '#^Call to an undefined static method MWGuerra\\WebTerminalStream\\Models\\TerminalLog\:\:create\(\)\.$#'
+			identifier: staticMethod.notFound
+			count: 1
+			path: src/Services/TerminalLogger.php
+
+		-
+			message: '#^Call to an undefined static method MWGuerra\\WebTerminalStream\\Models\\TerminalLog\:\:forSession\(\)\.$#'
+			identifier: staticMethod.notFound
+			count: 2
+			path: src/Services/TerminalLogger.php
+
+		-
+			message: '#^Call to an undefined static method MWGuerra\\WebTerminalStream\\Models\\TerminalLog\:\:olderThan\(\)\.$#'
+			identifier: staticMethod.notFound
+			count: 1
+			path: src/Services/TerminalLogger.php
+
+		-
+			message: '#^Strict comparison using \!\=\= between mixed and null will always evaluate to true\.$#'
+			identifier: notIdentical.alwaysTrue
+			count: 1
+			path: src/Services/TerminalLogger.php
+
+		-
+			message: '#^Using nullsafe method call on non\-nullable type Illuminate\\Http\\Request\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 2
+			path: src/Services/TerminalLogger.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>created_at" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: src/Services/TerminalLogger.php
+
+		-
+			message: '#^Unsafe usage of new static\(\)\.$#'
+			identifier: new.static
+			count: 1
+			path: src/Themes/TerminalTheme.php
+
+		-
+			message: '#^Offset ''pid'' on array\{command\: string, pid\: int, running\: bool, signaled\: bool, stopped\: bool, exitcode\: int, termsig\: int, stopsig\: int\} on left side of \?\? always exists and is not nullable\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: src/WebSocket/TerminalPtyBridge.php
+
+		-
+			message: '#^Parameter \#2 \.\.\.\$args of method phpseclib3\\Net\\SSH2\:\:login\(\) expects array\<array\>\|phpseclib3\\Crypt\\Common\\PrivateKey\|phpseclib3\\System\\SSH\\Agent\|string\|null, phpseclib3\\Crypt\\Common\\AsymmetricKey given\.$#'
+			identifier: argument.type
+			count: 1
+			path: src/WebSocket/TerminalPtyBridge.php
+
+		-
+			message: '#^Property MWGuerra\\WebTerminalStream\\WebSocket\\TerminalPtyBridge\:\:\$config on left side of \?\? is not nullable nor uninitialized\.$#'
+			identifier: nullCoalesce.initializedProperty
+			count: 1
+			path: src/WebSocket/TerminalPtyBridge.php
+
+		-
+			message: '#^Method MWGuerra\\WebTerminalStream\\WebTerminalStreamPlugin\:\:current\(\) should return static\(MWGuerra\\WebTerminalStream\\WebTerminalStreamPlugin\)\|null but returns MWGuerra\\WebTerminalStream\\WebTerminalStreamPlugin\|null\.$#'
+			identifier: return.type
+			count: 1
+			path: src/WebTerminalStreamPlugin.php
+
+		-
+			message: '#^Method MWGuerra\\WebTerminalStream\\WebTerminalStreamPlugin\:\:get\(\) should return static\(MWGuerra\\WebTerminalStream\\WebTerminalStreamPlugin\) but returns MWGuerra\\WebTerminalStream\\WebTerminalStreamPlugin\.$#'
+			identifier: return.type
+			count: 1
+			path: src/WebTerminalStreamPlugin.php

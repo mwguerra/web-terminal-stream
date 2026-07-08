@@ -1,0 +1,23 @@
+# Normalize line endings.
+* text=auto eol=lf
+
+# Keep development-only paths out of the distributed package (composer archive
+# / dist installs). Without this the throwaway SSH test keys under
+# tests/docker/keys, the 14k-file e2e app, and all docs/CI tooling ship to
+# every production install.
+/.github            export-ignore
+/.maestro           export-ignore
+/.phpunit.cache     export-ignore
+/.playwright-mcp    export-ignore
+/docs               export-ignore
+/scripts            export-ignore
+/tests              export-ignore
+/test-results       export-ignore
+/.editorconfig      export-ignore
+/.gitattributes     export-ignore
+/.gitignore         export-ignore
+/CONTRIBUTING.md    export-ignore
+/phpunit.xml        export-ignore
+/playwright.config.js export-ignore
+/package.json       export-ignore
+/package-lock.json  export-ignore

@@ -20,7 +20,7 @@
         }
     ],
     "require": {
-        "php": "^8.2",
+        "php": "^8.3",
         "illuminate/contracts": "^12.0|^13.0",
         "illuminate/support": "^12.0|^13.0",
         "laravel/prompts": "^0.3.0",
@@ -36,8 +36,9 @@
         "nunomaduro/collision": "^8.4",
         "orchestra/testbench": "^10.0|^11.0",
         "pestphp/pest": "^3.0",
-        "phrity/websocket": "^3.0",
-        "pestphp/pest-plugin-laravel": "^3.0"
+        "pestphp/pest-plugin-laravel": "^3.0",
+        "phpstan/phpstan": "^2.0",
+        "phrity/websocket": "^3.0"
     },
     "suggest": {
         "filament/filament": "Required for Filament admin panel integration (^5.0)",
@@ -56,7 +57,7 @@
     },
     "scripts": {
         "post-autoload-dump": "@php ./vendor/bin/testbench package:discover --ansi",
-        "analyse": "vendor/bin/phpstan analyse",
+        "analyse": "vendor/bin/phpstan analyse --memory-limit=1G",
         "test": "@php -d memory_limit=-1 vendor/bin/pest --testsuite=Unit",
         "test:parallel": "@php -d memory_limit=-1 vendor/bin/pest --testsuite=Unit --parallel",
         "test:coverage": "XDEBUG_MODE=coverage @php -d memory_limit=-1 vendor/bin/pest --testsuite=Unit --coverage",

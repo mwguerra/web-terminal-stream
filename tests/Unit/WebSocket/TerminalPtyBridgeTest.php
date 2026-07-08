@@ -78,7 +78,8 @@ describe('TerminalPtyBridge', function () {
             $bridge = new TerminalPtyBridge($config, 'test-session', 1, $registry);
             $bridge->start('/bin/sh');
             $bridge->resize(120, 40);
-            expect(true)->toBeTrue();
+            // A resize must not tear the shell down — it stays running.
+            expect($bridge->isRunning())->toBeTrue();
             $bridge->terminate();
         });
     });
