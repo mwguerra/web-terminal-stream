@@ -6,6 +6,8 @@ namespace MWGuerra\WebTerminalStream\WebSocket;
 
 use MWGuerra\WebTerminalStream\Data\ConnectionConfig;
 use MWGuerra\WebTerminalStream\Enums\ConnectionType;
+use MWGuerra\WebTerminalStream\Security\HostKeyVerificationException;
+use MWGuerra\WebTerminalStream\Security\SshHostKeyVerifier;
 use phpseclib3\Crypt\PublicKeyLoader;
 use phpseclib3\Net\SSH2;
 
@@ -94,10 +96,30 @@ class TerminalPtyBridge
 
     private function startSsh(): void
     {
+        $port = $this->config->port ?? 22;
+
         $ssh = new InteractiveSsh(
             $this->config->host,
-            $this->config->port ?? 22,
+            $port,
             $this->config->timeout
+        );
+
+        // Verify the server host key BEFORE authenticating. phpseclib does the
+        // key exchange but trusts any key, so without this an outbound SSH
+        // session (and its credentials) is exposed to a man-in-the-middle.
+        // getServerPublicHostKey() forces the handshake and returns the key.
+        $hostKey = $ssh->getServerPublicHostKey();
+        if ($hostKey === false) {
+            throw new HostKeyVerificationException(
+                "Could not read the SSH server host key for {$this->config->host}."
+            );
+        }
+
+        (new SshHostKeyVerifier)->verify(
+            $hostKey,
+            $this->config->host,
+            $port,
+            config('web-terminal-stream.security.ssh_host_key', ['mode' => 'off']),
         );
 
         if ($this->config->privateKey !== null) {
