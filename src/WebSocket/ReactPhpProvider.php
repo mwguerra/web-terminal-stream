@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace MWGuerra\WebTerminalStream\WebSocket;
 
 use Illuminate\Contracts\Foundation\Application;
+use MWGuerra\WebTerminalStream\Services\TerminalLogger;
 use React\EventLoop\Loop;
 use React\Socket\ConnectionInterface;
 use React\Socket\SocketServer;
@@ -46,6 +47,7 @@ class ReactPhpProvider implements WebSocketProviderInterface
             $registry,
             $this->app['encrypter'],
             $config,
+            $this->app->make(TerminalLogger::class),
         );
 
         $loop = Loop::get();

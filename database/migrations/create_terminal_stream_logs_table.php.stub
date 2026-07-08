@@ -42,6 +42,9 @@ return new class extends Migration
             // Composite indexes for common queries
             $table->index(['terminal_session_id', 'event_type']);
             $table->index(['user_id', 'created_at']);
+            // Standalone created_at index for the retention cleanup range scan
+            // (the composite above is keyed on user_id first, so it cannot).
+            $table->index('created_at');
         });
     }
 

@@ -30,9 +30,6 @@ class TerminalLogInfolist
                                             ->color(fn (string $state): string => match ($state) {
                                                 TerminalLog::EVENT_CONNECTED => 'success',
                                                 TerminalLog::EVENT_DISCONNECTED => 'warning',
-                                                TerminalLog::EVENT_COMMAND => 'info',
-                                                TerminalLog::EVENT_OUTPUT => 'gray',
-                                                TerminalLog::EVENT_ERROR => 'danger',
                                                 default => 'gray',
                                             })
                                             ->formatStateUsing(fn (string $state): string => ucfirst($state)),
@@ -96,17 +93,9 @@ class TerminalLogInfolist
                         Section::make(__('web-terminal-stream::terminal.infolist.timing'))
                             ->icon('heroicon-o-clock')
                             ->schema([
-                                Grid::make(2)
-                                    ->schema([
-                                        TextEntry::make('created_at')
-                                            ->label(__('web-terminal-stream::terminal.infolist.timestamp'))
-                                            ->dateTime('F j, Y g:i:s A'),
-
-                                        TextEntry::make('execution_time_seconds')
-                                            ->label(__('web-terminal-stream::terminal.infolist.execution_time'))
-                                            ->formatStateUsing(fn (?int $state): string => $state !== null ? __('web-terminal-stream::terminal.infolist.seconds', ['count' => $state]) : '—')
-                                            ->placeholder('—'),
-                                    ]),
+                                TextEntry::make('created_at')
+                                    ->label(__('web-terminal-stream::terminal.infolist.timestamp'))
+                                    ->dateTime('F j, Y g:i:s A'),
                             ]),
 
                         Section::make(__('web-terminal-stream::terminal.infolist.ssh_connection_details'))
@@ -127,50 +116,6 @@ class TerminalLogInfolist
                                             ->label(__('web-terminal-stream::terminal.infolist.ssh_username'))
                                             ->fontFamily('mono'),
                                     ]),
-                            ]),
-
-                        Section::make(__('web-terminal-stream::terminal.infolist.command'))
-                            ->icon('heroicon-o-command-line')
-                            ->visible(fn ($record): bool => $record->command !== null)
-                            ->schema([
-                                TextEntry::make('command')
-                                    ->label(__('web-terminal-stream::terminal.infolist.command'))
-                                    ->fontFamily('mono')
-                                    ->copyable()
-                                    ->copyMessage(__('web-terminal-stream::terminal.infolist.command_copied')),
-
-                                TextEntry::make('exit_code')
-                                    ->label(__('web-terminal-stream::terminal.infolist.exit_code'))
-                                    ->badge()
-                                    ->color(fn (?int $state): string => match (true) {
-                                        $state === null => 'gray',
-                                        $state === 0 => 'success',
-                                        default => 'danger',
-                                    })
-                                    ->placeholder('—'),
-                            ]),
-
-                        Section::make(__('web-terminal-stream::terminal.infolist.output'))
-                            ->icon('heroicon-o-document-text')
-                            ->visible(fn ($record): bool => $record->output !== null)
-                            ->collapsed()
-                            ->schema([
-                                TextEntry::make('output')
-                                    ->label('')
-                                    ->formatStateUsing(function (?string $state): string {
-                                        if ($state === null) {
-                                            return '';
-                                        }
-
-                                        $escapedOutput = e($state);
-
-                                        return <<<HTML
-                                        <div class="w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 overflow-hidden">
-                                            <pre class="p-3 text-xs font-mono whitespace-pre text-gray-700 dark:text-gray-300 m-0 overflow-auto max-h-60">{$escapedOutput}</pre>
-                                        </div>
-                                        HTML;
-                                    })
-                                    ->html(),
                             ]),
 
                         Section::make(__('web-terminal-stream::terminal.infolist.metadata'))

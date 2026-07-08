@@ -23,15 +23,19 @@ class TerminalLogsStatsOverview extends StatsOverviewWidget
                 ->descriptionIcon('heroicon-m-calendar')
                 ->color('success'),
 
-            Stat::make(__('web-terminal-stream::terminal.widgets.commands'), number_format(TerminalLog::commands()->count()))
-                ->description(__('web-terminal-stream::terminal.widgets.total_commands_executed'))
-                ->descriptionIcon('heroicon-m-command-line')
+            Stat::make(
+                __('web-terminal-stream::terminal.events.connected'),
+                number_format(TerminalLog::query()->where('event_type', TerminalLog::EVENT_CONNECTED)->count())
+            )
+                ->descriptionIcon('heroicon-m-arrow-right-on-rectangle')
                 ->color('info'),
 
-            Stat::make(__('web-terminal-stream::terminal.widgets.errors'), number_format(TerminalLog::errors()->count()))
-                ->description(__('web-terminal-stream::terminal.widgets.total_error_events'))
-                ->descriptionIcon('heroicon-m-exclamation-triangle')
-                ->color('danger'),
+            Stat::make(
+                __('web-terminal-stream::terminal.events.disconnected'),
+                number_format(TerminalLog::query()->where('event_type', TerminalLog::EVENT_DISCONNECTED)->count())
+            )
+                ->descriptionIcon('heroicon-m-arrow-left-on-rectangle')
+                ->color('warning'),
         ];
     }
 }

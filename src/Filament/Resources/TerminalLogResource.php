@@ -8,12 +8,14 @@ use BackedEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 use MWGuerra\WebTerminalStream\Filament\Resources\TerminalLogResource\Pages\ListTerminalLogs;
 use MWGuerra\WebTerminalStream\Filament\Resources\TerminalLogResource\Pages\ViewTerminalLog;
 use MWGuerra\WebTerminalStream\Filament\Resources\TerminalLogResource\Schemas\TerminalLogInfolist;
 use MWGuerra\WebTerminalStream\Filament\Resources\TerminalLogResource\Tables\TerminalLogsTable;
 use MWGuerra\WebTerminalStream\Filament\Resources\TerminalLogResource\Widgets\TerminalLogsStatsOverview;
 use MWGuerra\WebTerminalStream\Models\TerminalLog;
+use MWGuerra\WebTerminalStream\Services\TerminalLogger;
 use MWGuerra\WebTerminalStream\WebTerminalStreamPlugin;
 
 class TerminalLogResource extends Resource
@@ -64,6 +66,32 @@ class TerminalLogResource extends Resource
     public static function table(Table $table): Table
     {
         return TerminalLogsTable::configure($table);
+    }
+
+    /**
+     * Scope the log list to the current tenant.
+     *
+     * When multi-tenancy is configured (logging.tenant_column + a resolver),
+     * a tenant must never see another tenant's terminal history. Resolution
+     * goes through the same TerminalLogger authority that writes the rows.
+     */
+    public static function getEloquentQuery(): Builder
+    {
+        $query = parent::getEloquentQuery();
+
+        $tenantColumn = config('web-terminal-stream.logging.tenant_column');
+
+        if ($tenantColumn) {
+            // Fresh instance so it resolves against current config, not the
+            // snapshot the singleton captured at boot.
+            $tenantId = (new TerminalLogger)->resolveTenantId();
+
+            if ($tenantId !== null) {
+                $query->where($tenantColumn, $tenantId);
+            }
+        }
+
+        return $query;
     }
 
     public static function getRelations(): array

@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use MWGuerra\WebTerminalStream\Data\ConnectionConfig;
 use MWGuerra\WebTerminalStream\Security\ConnectionPolicy;
+use MWGuerra\WebTerminalStream\Services\TerminalLogger;
 use Ratchet\RFC6455\Handshake\RequestVerifier;
 use Ratchet\RFC6455\Handshake\ServerNegotiator;
 use Ratchet\RFC6455\Messaging\CloseFrameChecker;
@@ -35,6 +36,12 @@ class ReactPhpWebSocketServer
     /** @var array<int, int> Maps connection object ID to its start timestamp */
     private array $startedAt = [];
 
+    /** @var array<int, string> Maps connection object ID to its terminal session id */
+    private array $sessionIds = [];
+
+    /** @var array<int, string> Maps connection object ID to its connection type */
+    private array $connectionTypes = [];
+
     private int $maxConnections;
 
     private int $maxSessionsPerUser;
@@ -51,14 +58,18 @@ class ReactPhpWebSocketServer
 
     private OriginValidator $originValidator;
 
+    private ?TerminalLogger $logger;
+
     public function __construct(
         PtySessionRegistry $registry,
         Encrypter $encrypter,
         array $config,
+        ?TerminalLogger $logger = null,
     ) {
         $this->registry = $registry;
         $this->encrypter = $encrypter;
         $this->config = $config;
+        $this->logger = $logger;
         $this->maxConnections = (int) ($config['max_connections'] ?? 100);
         $this->maxSessionsPerUser = (int) ($config['max_sessions_per_user'] ?? 10);
         $this->maxHandshakeBytes = (int) ($config['max_handshake_bytes'] ?? 16384);
@@ -253,6 +264,8 @@ class ReactPhpWebSocketServer
         $this->connections[$id] = $conn;
         $this->userIds[$id] = is_numeric($userId) ? (int) $userId : 0;
         $this->startedAt[$id] = time();
+        $this->sessionIds[$id] = $sessionId;
+        $this->connectionTypes[$id] = is_string($configData['type'] ?? null) ? $configData['type'] : 'local';
 
         // Set up WebSocket message buffer for this connection.
         // expectMask = true because browser clients always mask frames.
@@ -304,12 +317,30 @@ class ReactPhpWebSocketServer
             }
         }
 
+        // Record the end of the session. The server is the only place that
+        // reliably observes every disconnect (a killed browser tab never runs
+        // the client-side teardown). De-duplicated in the logger.
+        $sessionId = $this->sessionIds[$id] ?? null;
+        if ($this->logger !== null && $sessionId !== null) {
+            try {
+                $this->logger->logServerDisconnection(
+                    $sessionId,
+                    $this->userIds[$id] ?? null,
+                    $this->connectionTypes[$id] ?? null,
+                );
+            } catch (\Throwable) {
+                // Logging must never destabilise the event loop.
+            }
+        }
+
         unset(
             $this->bridges[$id],
             $this->connections[$id],
             $this->buffers[$id],
             $this->userIds[$id],
             $this->startedAt[$id],
+            $this->sessionIds[$id],
+            $this->connectionTypes[$id],
         );
     }
 

@@ -95,8 +95,11 @@ class TerminalLogger
 
     /**
      * Get the current tenant ID using the configured resolver.
+     *
+     * Public so the Filament resource can scope its query to the same tenant
+     * these rows are written under — one authority for tenant resolution.
      */
-    protected function getTenantId(): mixed
+    public function resolveTenantId(): mixed
     {
         $resolver = $this->config['tenant_resolver'] ?? null;
 
@@ -169,6 +172,39 @@ class TerminalLogger
         $data['terminal_session_id'] = $sessionId;
 
         return $this->createLog(TerminalLog::EVENT_DISCONNECTED, $data);
+    }
+
+    /**
+     * Log a disconnection observed by the WebSocket server itself.
+     *
+     * The browser's own disconnect() only fires on a clean teardown — a killed
+     * tab or dropped network never reaches it, so without this a session shows
+     * as "connected" forever. The server always sees the socket close, so it is
+     * the reliable place to record the end of a session. De-duplicated against a
+     * disconnect the browser may already have logged for the same session.
+     */
+    public function logServerDisconnection(string $sessionId, ?int $userId = null, ?string $connectionType = null): ?TerminalLog
+    {
+        if (! $this->shouldLog('disconnections')) {
+            return null;
+        }
+
+        try {
+            if (TerminalLog::forSession($sessionId)
+                ->where('event_type', TerminalLog::EVENT_DISCONNECTED)
+                ->exists()) {
+                return null;
+            }
+        } catch (\Throwable) {
+            // Table missing (migration not run) — nothing to record.
+            return null;
+        }
+
+        return $this->createLog(TerminalLog::EVENT_DISCONNECTED, [
+            'terminal_session_id' => $sessionId,
+            'user_id' => $userId,
+            'connection_type' => $connectionType ?? TerminalLog::CONNECTION_LOCAL,
+        ]);
     }
 
     /**
@@ -266,7 +302,7 @@ class TerminalLogger
     {
         try {
             $tenantColumn = $this->config['tenant_column'] ?? null;
-            $tenantId = $tenantColumn ? $this->getTenantId() : null;
+            $tenantId = $tenantColumn ? $this->resolveTenantId() : null;
 
             // Merge base metadata (from terminal config) with per-call metadata
             // Per-call metadata takes precedence over base metadata
