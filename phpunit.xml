@@ -26,10 +26,4 @@
             <directory>src</directory>
         </include>
     </source>
-    <coverage>
-        <report>
-            <html outputDirectory="coverage"/>
-            <text outputFile="coverage.txt"/>
-        </report>
-    </coverage>
 </phpunit>
