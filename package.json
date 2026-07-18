@@ -13,7 +13,7 @@
     "devDependencies": {
         "@playwright/test": "^1.53",
         "@tailwindcss/cli": "^4.3.3",
-        "esbuild": "^0.25.0",
+        "esbuild": "^0.28.1",
         "tailwindcss": "^4.3.3"
     }
 }
