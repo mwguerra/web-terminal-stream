@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-07-18
+
+First stable release.
+
 ### Security
 
 - **Connection authorization + token issuance hardening.** `Http\Controllers\TerminalWebSocketController` previously minted a WebSocket token for **any** client-supplied `connectionConfig` with no gate and no restriction on the target, letting an authenticated user open an arbitrary local shell or SSH connection through the server. Issuance (both the REST route and the Livewire path) now (1) enforces the optional `useStreamTerminal` gate, (2) runs a new `Security\ConnectionPolicy` — `security.allow_local` toggles local shells, `security.ssh_allowed_hosts` is an SSH destination allow-list (bare host or `host:port`) — and (3) rate-limits the `ws-token` route (`security.token_rate_limit`). The policy is **re-checked on the WebSocket server** before a PTY starts, so a token minted for a disallowed target is still refused. The cached connection config (which may hold SSH credentials) is now **encrypted at rest** and decrypted by the server on pull.
