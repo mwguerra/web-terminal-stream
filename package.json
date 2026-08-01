@@ -11,7 +11,7 @@
         "ghostty-web": "^0.4.0"
     },
     "devDependencies": {
-        "@playwright/test": "^1.53",
+        "@playwright/test": "^1.62",
         "@tailwindcss/cli": "^4.3.3",
         "esbuild": "^0.28.1",
         "tailwindcss": "^4.3.3"
