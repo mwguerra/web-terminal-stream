@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.1] - 2026-08-06
+
+### Changed
+
+- README images now use absolute `raw.githubusercontent.com` URLs so they render on Packagist and the Filament plugins page (which don't resolve repo-relative paths); the hero image carries `filament-hidden` to avoid duplicating the plugin-page banner.
+- Installation instructions updated for Packagist (`composer require mwguerra/web-terminal-stream`) — the pre-publication private-VCS-repository instructions were removed.
+- Added the Filament plugins directory banner (`docs/images/mwguerra-web-terminal-stream.jpg`, 16:9 2880×1620 JPEG). Docs-only; `docs/` is export-ignored, so dist archives are unchanged.
+
 ## [1.0.0] - 2026-08-06
 
 First stable release.
