@@ -4,7 +4,7 @@ A full interactive PTY terminal for Laravel + Filament, streamed over WebSocket.
 
 This package was extracted from [`mwguerra/web-terminal`](https://github.com/mwguerra/web-terminal). That package keeps its dual-mode terminal (Classic command-by-command execution + Stream); this one is **Stream-only**, fully renamed and namespaced so the two can be installed side-by-side in the same application.
 
-![A TerminalWorkspace split into three live panes with tmux-style shortcuts](docs/images/workspace-split.png)
+<img src="docs/images/workspace-split.png" alt="A TerminalWorkspace split into three live panes with tmux-style shortcuts" class="filament-hidden">
 
 ## Version Compatibility
 
