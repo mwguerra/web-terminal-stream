@@ -4,7 +4,7 @@ A full interactive PTY terminal for Laravel + Filament, streamed over WebSocket.
 
 This package was extracted from [`mwguerra/web-terminal`](https://github.com/mwguerra/web-terminal). That package keeps its dual-mode terminal (Classic command-by-command execution + Stream); this one is **Stream-only**, fully renamed and namespaced so the two can be installed side-by-side in the same application.
 
-<img src="docs/images/workspace-split.png" alt="A TerminalWorkspace split into three live panes with tmux-style shortcuts" class="filament-hidden">
+<img src="https://raw.githubusercontent.com/mwguerra/web-terminal-stream/main/docs/images/workspace-split.png" alt="A TerminalWorkspace split into three live panes with tmux-style shortcuts" class="filament-hidden">
 
 ## Version Compatibility
 
@@ -46,24 +46,9 @@ This package was extracted from [`mwguerra/web-terminal`](https://github.com/mwg
 
 ### Composer
 
-The package is currently distributed from a private GitHub repository. Add the VCS repository and require it:
-
-```json
-{
-    "repositories": [
-        {
-            "type": "vcs",
-            "url": "https://github.com/mwguerra/web-terminal-stream"
-        }
-    ]
-}
-```
-
 ```bash
 composer require mwguerra/web-terminal-stream
 ```
-
-(For private repos, make sure your machine/CI can authenticate to GitHub — e.g. `composer config --global github-oauth.github.com <token>`.)
 
 The WebSocket server's ReactPHP stack (`react/socket`, `react/event-loop`, `ratchet/rfc6455`) is a hard requirement and installs automatically.
 
@@ -324,7 +309,7 @@ WebTerminalStreamPlugin::make()
 
 `WebTerminalStream::make()` is the public entry point. It works in any Filament schema (pages, forms):
 
-![A single framed terminal running commands over SSH](docs/images/single-terminal.png)
+![A single framed terminal running commands over SSH](https://raw.githubusercontent.com/mwguerra/web-terminal-stream/main/docs/images/single-terminal.png)
 
 ```php
 use MWGuerra\WebTerminalStream\Schemas\Components\WebTerminalStream;
@@ -448,7 +433,7 @@ WebTerminalStream::make()->connection(
 
 `connectionBehavior()` controls when the WebSocket (and therefore the PTY) opens and what connection UI the user sees:
 
-![Manual connection behavior: the terminal shows a Connect overlay until clicked — no socket, no PTY](docs/images/manual-connect.png)
+![Manual connection behavior: the terminal shows a Connect overlay until clicked — no socket, no PTY](https://raw.githubusercontent.com/mwguerra/web-terminal-stream/main/docs/images/manual-connect.png)
 
 ```php
 use MWGuerra\WebTerminalStream\Enums\ConnectionBehavior;
@@ -478,7 +463,7 @@ Combined with `squareCorners()`, frameless terminals tile edge-to-edge — the b
 
 `TerminalGrid` lays out multiple terminals in a flush CSS grid — the tmux look, without manual plumbing:
 
-![Two flush side-by-side terminals in a TerminalGrid, each an isolated SSH session](docs/images/terminal-grid.png)
+![Two flush side-by-side terminals in a TerminalGrid, each an isolated SSH session](https://raw.githubusercontent.com/mwguerra/web-terminal-stream/main/docs/images/terminal-grid.png)
 
 ```php
 use MWGuerra\WebTerminalStream\Enums\ConnectionBehavior;
@@ -513,7 +498,7 @@ Manual composition still works — `TerminalGrid` is sugar; arranging `frameless
 
 `TerminalWorkspace` is one terminal that splits into arbitrarily nested panes at runtime, driven by configurable keyboard shortcuts — a tmux session in your Filament panel. Every pane is a fully isolated terminal: its own WebSocket, its own PTY, zero interference with siblings.
 
-![A workspace split into three panes — one tall left, two stacked right — with per-pane close buttons](docs/images/workspace-split.png)
+![A workspace split into three panes — one tall left, two stacked right — with per-pane close buttons](https://raw.githubusercontent.com/mwguerra/web-terminal-stream/main/docs/images/workspace-split.png)
 
 ```php
 use MWGuerra\WebTerminalStream\Data\Keymap;
@@ -590,7 +575,7 @@ Planned next increments (not in this release): per-user layout persistence.
 
 `TerminalDashboard` is a roster of named terminal **sources** (each a distinct connection), each opened or closed by a button. The open panes are **auto-arranged** by how many are open — you choose the layout per count:
 
-![A dashboard with three toggled terminals on distinct servers, auto-arranged main-left](docs/images/dashboard-auto-layout.png)
+![A dashboard with three toggled terminals on distinct servers, auto-arranged main-left](https://raw.githubusercontent.com/mwguerra/web-terminal-stream/main/docs/images/dashboard-auto-layout.png)
 
 ```php
 use MWGuerra\WebTerminalStream\Schemas\Components\TerminalDashboard;
@@ -623,7 +608,7 @@ Planned next increment (not in this release): per-user layout persistence, share
 
 `theme()` accepts a **`TerminalTheme`** object (recommended) or a raw ghostty colors array. The theme object controls the terminal **font**, **colors**, and the **pane divider** styling in one place, with fluent partial overrides that keep every other default:
 
-![A workspace using the shipped TokyoNight preset with a styled pane divider](docs/images/themed-tokyonight.png)
+![A workspace using the shipped TokyoNight preset with a styled pane divider](https://raw.githubusercontent.com/mwguerra/web-terminal-stream/main/docs/images/themed-tokyonight.png)
 
 ```php
 use MWGuerra\WebTerminalStream\Themes\TerminalTheme;
@@ -783,7 +768,7 @@ Event::listen(TerminalConnectedEvent::class, function (TerminalConnectedEvent $e
 
 The Filament **Terminal Logs** resource lists entries with filters (event type, connection type, user, terminal, date range), a detail view, and stats widgets:
 
-![The Terminal Logs resource with connection lifecycle entries and stats widgets](docs/images/terminal-logs-resource.png)
+![The Terminal Logs resource with connection lifecycle entries and stats widgets](https://raw.githubusercontent.com/mwguerra/web-terminal-stream/main/docs/images/terminal-logs-resource.png)
 
 Query the model directly with its scopes:
 
