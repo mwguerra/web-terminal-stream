@@ -1,0 +1,197 @@
+{
+    "captured_at": "2026-08-03T08:18:24+00:00",
+    "commit": "c753f4f",
+    "php": "8.5.7",
+    "profiles": {
+        "baseline": {
+            "profile": "baseline",
+            "fleet": 100,
+            "established": 100,
+            "connect_failures": 0,
+            "clean_closes": 100,
+            "unexpected_closes": 0,
+            "overcap_attempted": 10,
+            "overcap_rejected": 10,
+            "overcap_accepted": 0,
+            "connect_ms": {
+                "p50": 18902.8,
+                "p95": 60863.8,
+                "p99": 65665.4,
+                "min": 130.7,
+                "max": 65665.4,
+                "mean": 23471.6
+            },
+            "ttfb_ms": {
+                "p50": 0,
+                "p95": 0,
+                "p99": 0.9,
+                "min": 0,
+                "max": 0.9,
+                "mean": 0
+            },
+            "rtt_ms": {
+                "p50": 2044.8,
+                "p95": 2283.6,
+                "p99": 2283.7,
+                "min": 2021.5,
+                "max": 3465.6,
+                "mean": 2117.1
+            },
+            "rtt_samples": 333,
+            "duration_s": 79.78,
+            "errors": []
+        },
+        "client-10ms": {
+            "profile": "client-10ms",
+            "fleet": 100,
+            "established": 100,
+            "connect_failures": 0,
+            "clean_closes": 100,
+            "unexpected_closes": 0,
+            "overcap_attempted": 10,
+            "overcap_rejected": 10,
+            "overcap_accepted": 0,
+            "connect_ms": {
+                "p50": 18882.5,
+                "p95": 60936.3,
+                "p99": 65776,
+                "min": 203.8,
+                "max": 65776,
+                "mean": 23462.6
+            },
+            "ttfb_ms": {
+                "p50": 0,
+                "p95": 0,
+                "p99": 0.8,
+                "min": 0,
+                "max": 0.8,
+                "mean": 0
+            },
+            "rtt_ms": {
+                "p50": 2051.4,
+                "p95": 2293.3,
+                "p99": 2293.3,
+                "min": 1977.5,
+                "max": 3444.3,
+                "mean": 2111.2
+            },
+            "rtt_samples": 333,
+            "duration_s": 79.92,
+            "errors": []
+        },
+        "client-500ms": {
+            "profile": "client-500ms",
+            "fleet": 100,
+            "established": 100,
+            "connect_failures": 0,
+            "clean_closes": 100,
+            "unexpected_closes": 0,
+            "overcap_attempted": 10,
+            "overcap_rejected": 10,
+            "overcap_accepted": 0,
+            "connect_ms": {
+                "p50": 5175.4,
+                "p95": 46966.4,
+                "p99": 51791.4,
+                "min": 1855.7,
+                "max": 51791.4,
+                "mean": 15426.6
+            },
+            "ttfb_ms": {
+                "p50": 0,
+                "p95": 0,
+                "p99": 0.8,
+                "min": 0,
+                "max": 0.8,
+                "mean": 0
+            },
+            "rtt_ms": {
+                "p50": 3202.8,
+                "p95": 3232.4,
+                "p99": 3274.7,
+                "min": 2277.8,
+                "max": 3274.7,
+                "mean": 2874.7
+            },
+            "rtt_samples": 273,
+            "duration_s": 65.74,
+            "errors": []
+        },
+        "ssh-10ms": {
+            "profile": "ssh-10ms",
+            "fleet": 100,
+            "established": 100,
+            "connect_failures": 0,
+            "clean_closes": 100,
+            "unexpected_closes": 0,
+            "overcap_attempted": 10,
+            "overcap_rejected": 10,
+            "overcap_accepted": 0,
+            "connect_ms": {
+                "p50": 26129.9,
+                "p95": 74476.6,
+                "p99": 79702.3,
+                "min": 236.7,
+                "max": 79702.3,
+                "mean": 30646.6
+            },
+            "ttfb_ms": {
+                "p50": 0,
+                "p95": 0,
+                "p99": 1,
+                "min": 0,
+                "max": 1,
+                "mean": 0
+            },
+            "rtt_ms": {
+                "p50": 2036.2,
+                "p95": 2289.8,
+                "p99": 2289.8,
+                "min": 2025.1,
+                "max": 3470.7,
+                "mean": 2127.9
+            },
+            "rtt_samples": 332,
+            "duration_s": 93.85,
+            "errors": []
+        },
+        "ssh-500ms": {
+            "profile": "ssh-500ms",
+            "fleet": 25,
+            "established": 25,
+            "connect_failures": 0,
+            "clean_closes": 25,
+            "unexpected_closes": 0,
+            "overcap_attempted": 10,
+            "overcap_rejected": 10,
+            "overcap_accepted": 0,
+            "connect_ms": {
+                "p50": 79691.5,
+                "p95": 143865.5,
+                "p99": 144153.5,
+                "min": 5660.7,
+                "max": 144153.5,
+                "mean": 79538.8
+            },
+            "ttfb_ms": {
+                "p50": 0,
+                "p95": 0.4,
+                "p99": 0.7,
+                "min": 0,
+                "max": 0.7,
+                "mean": 0.1
+            },
+            "rtt_ms": {
+                "p50": 842.4,
+                "p95": 1160.7,
+                "p99": 1160.7,
+                "min": 536.7,
+                "max": 1160.7,
+                "mean": 827.3
+            },
+            "rtt_samples": 167,
+            "duration_s": 155.35,
+            "errors": []
+        }
+    }
+}

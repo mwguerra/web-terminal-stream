@@ -1,0 +1,69 @@
+x-sshd: &sshd
+  build:
+    context: .
+    dockerfile: sshd/Dockerfile
+  healthcheck:
+    test: ["CMD", "nc", "-z", "127.0.0.1", "22"]
+    interval: 2s
+    timeout: 2s
+    retries: 15
+
+services:
+  # Throwaway SSH target for the Integration + e2e suites. Loopback-only.
+  # NET_ADMIN lets the stress harness (composer stress) shape this
+  # container's egress with `tc netem` — unused by the other suites.
+  sshd:
+    <<: *sshd
+    cap_add:
+      - NET_ADMIN
+    ports:
+      - "127.0.0.1:2299:22"
+
+  # Three more distinct SSH targets for the TerminalDashboard demo page.
+  # Profiled so the default `up sshd` (integration/e2e) stays lean; the
+  # dashboard e2e run starts them by name.
+  sshd-2:
+    <<: *sshd
+    profiles: ["dashboard"]
+    ports:
+      - "127.0.0.1:2300:22"
+
+  sshd-3:
+    <<: *sshd
+    profiles: ["dashboard"]
+    ports:
+      - "127.0.0.1:2301:22"
+
+  sshd-4:
+    <<: *sshd
+    profiles: ["dashboard"]
+    ports:
+      - "127.0.0.1:2302:22"
+
+  # Latency-injection proxy for the stress harness (composer stress).
+  # 8474 is the control API; 8092 is the WebSocket proxy listener whose
+  # upstream is the host's terminal-stream:serve via host.docker.internal.
+  toxiproxy:
+    image: ghcr.io/shopify/toxiproxy:2.9.0
+    profiles: ["stress"]
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    ports:
+      - "127.0.0.1:8474:8474"
+      - "127.0.0.1:8092:8092"
+
+  # Linux PHP runner for the linux-pty group (composer test:integration:linux).
+  php-tests:
+    build:
+      context: .
+      dockerfile: php/Dockerfile
+    profiles: ["php"]
+    volumes:
+      - ../..:/app
+    working_dir: /app
+    environment:
+      WTS_SSH_HOST: sshd
+      WTS_SSH_PORT: "22"
+    depends_on:
+      sshd:
+        condition: service_healthy

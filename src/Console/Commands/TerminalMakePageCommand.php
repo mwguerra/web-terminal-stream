@@ -1,0 +1,318 @@
+<?php
+
+declare(strict_types=1);
+
+namespace MWGuerra\WebTerminalStream\Console\Commands;
+
+use Filament\Facades\Filament;
+use Filament\Panel;
+use Illuminate\Console\Command;
+use Illuminate\Filesystem\Filesystem;
+use Illuminate\Support\Arr;
+
+use function Laravel\Prompts\confirm;
+use function Laravel\Prompts\info;
+use function Laravel\Prompts\note;
+use function Laravel\Prompts\select;
+use function Laravel\Prompts\text;
+use function Laravel\Prompts\warning;
+
+class TerminalMakePageCommand extends Command
+{
+    /**
+     * The name and signature of the console command.
+     */
+    protected $signature = 'terminal-stream:make-page
+                            {name? : The name of the terminal page class}
+                            {--panel= : The Filament panel to create the page for}
+                            {--key= : The terminal identifier key}
+                            {--force : Overwrite existing file}';
+
+    /**
+     * The console command description.
+     */
+    protected $description = 'Create a custom Terminal page for a Filament panel';
+
+    /**
+     * The filesystem instance.
+     */
+    protected Filesystem $files;
+
+    /**
+     * The selected Filament panel.
+     */
+    protected ?Panel $panel = null;
+
+    /**
+     * Create a new command instance.
+     */
+    public function __construct(Filesystem $files)
+    {
+        parent::__construct();
+        $this->files = $files;
+    }
+
+    /**
+     * Execute the console command.
+     */
+    public function handle(): int
+    {
+        if (! $this->configurePanel()) {
+            return self::FAILURE;
+        }
+
+        $name = $this->getPageName();
+
+        // Reject anything that would not compile as a PHP class name (the name
+        // is written verbatim into the generated class declaration).
+        if (! $this->isValidClassName($name)) {
+            $this->error("Invalid page class name '{$name}'. Use a valid PHP class name: a letter or underscore followed by letters, digits, or underscores.");
+
+            return self::FAILURE;
+        }
+
+        $key = $this->getTerminalKey($name);
+
+        if (! $this->generatePage($name, $key)) {
+            return self::FAILURE;
+        }
+
+        $this->displayCompletion($name);
+
+        return self::SUCCESS;
+    }
+
+    /**
+     * Configure the Filament panel.
+     */
+    protected function configurePanel(): bool
+    {
+        if (! class_exists(Panel::class)) {
+            $this->error('Filament Panel class not found. Please install filament/filament.');
+
+            return false;
+        }
+
+        $panelId = $this->option('panel');
+
+        if (filled($panelId)) {
+            $this->panel = Filament::getPanel($panelId, isStrict: false);
+
+            if (! $this->panel) {
+                $this->error("Panel '{$panelId}' not found.");
+
+                return false;
+            }
+
+            return true;
+        }
+
+        $panels = Filament::getPanels();
+
+        if (count($panels) === 0) {
+            warning('No Filament panels found. Using default paths.');
+            $this->panel = null;
+
+            return true;
+        }
+
+        if (count($panels) === 1) {
+            $this->panel = Arr::first($panels);
+            info("Using panel: {$this->panel->getId()}");
+
+            return true;
+        }
+
+        if ($this->option('no-interaction')) {
+            $this->panel = Filament::getDefaultPanel();
+
+            return true;
+        }
+
+        // Multiple panels - interactive selection
+        $panelOptions = [];
+        foreach ($panels as $panel) {
+            $panelOptions[$panel->getId()] = $panel->getId();
+        }
+
+        $selectedId = select(
+            label: 'Which panel should the page be created for?',
+            options: $panelOptions,
+            default: Filament::getDefaultPanel()->getId(),
+        );
+
+        $this->panel = $panels[$selectedId];
+
+        return true;
+    }
+
+    /**
+     * Get the page name.
+     */
+    protected function getPageName(): string
+    {
+        $name = $this->argument('name');
+
+        if (filled($name)) {
+            return $name;
+        }
+
+        if ($this->option('no-interaction')) {
+            return 'Terminal';
+        }
+
+        return text(
+            label: 'What should the page class be named?',
+            placeholder: 'Terminal',
+            default: 'Terminal',
+            required: true,
+            hint: 'This will be the PHP class name (e.g., Terminal, ServerTerminal)',
+        );
+    }
+
+    /**
+     * Whether a string is a valid, unqualified PHP class name.
+     */
+    public function isValidClassName(string $name): bool
+    {
+        return preg_match('/^[A-Za-z_][A-Za-z0-9_]*$/', $name) === 1;
+    }
+
+    /**
+     * Get the terminal key identifier.
+     */
+    protected function getTerminalKey(string $name): string
+    {
+        $key = $this->option('key');
+
+        if (filled($key)) {
+            return $key;
+        }
+
+        $defaultKey = str($name)
+            ->kebab()
+            ->append('-terminal')
+            ->toString();
+
+        if ($this->option('no-interaction')) {
+            return $defaultKey;
+        }
+
+        return text(
+            label: 'What should the terminal identifier key be?',
+            placeholder: $defaultKey,
+            default: $defaultKey,
+            required: true,
+            hint: 'This key is used for logging and identifying this terminal instance',
+        );
+    }
+
+    /**
+     * Get the page directory and namespace from the panel.
+     *
+     * @return array{0: string, 1: string} [directory, namespace]
+     */
+    protected function getPageDirectoryAndNamespace(): array
+    {
+        if (! $this->panel) {
+            return [
+                app_path('Filament/Pages'),
+                app()->getNamespace().'Filament\\Pages',
+            ];
+        }
+
+        $directories = $this->panel->getPageDirectories();
+        $namespaces = $this->panel->getPageNamespaces();
+
+        // Filter out vendor directories
+        foreach ($directories as $index => $dir) {
+            if (str($dir)->startsWith(base_path('vendor'))) {
+                unset($directories[$index], $namespaces[$index]);
+            }
+        }
+
+        return [
+            Arr::first($directories) ?? app_path('Filament/Pages'),
+            Arr::first($namespaces) ?? app()->getNamespace().'Filament\\Pages',
+        ];
+    }
+
+    /**
+     * Generate the terminal page.
+     */
+    protected function generatePage(string $name, string $key): bool
+    {
+        [$directory, $namespace] = $this->getPageDirectoryAndNamespace();
+
+        $path = $directory.'/'.$name.'.php';
+
+        if ($this->files->exists($path) && ! $this->option('force')) {
+            if ($this->option('no-interaction')) {
+                $this->error("Page {$name} already exists. Use --force to overwrite.");
+
+                return false;
+            }
+
+            if (! confirm("Page {$name} already exists. Overwrite?", default: false)) {
+                warning('Cancelled.');
+
+                return false;
+            }
+        }
+
+        $navigationLabel = str($name)->headline()->toString();
+        $slug = str($name)->kebab()->toString();
+
+        $content = $this->generateFromStub('terminal-page.php.stub', [
+            'namespace' => $namespace,
+            'class_name' => $name,
+            'navigation_label' => $navigationLabel,
+            'slug' => $slug,
+            'terminal_key' => $key,
+        ]);
+
+        $this->files->ensureDirectoryExists($directory);
+        $this->files->put($path, $content);
+
+        info("Terminal page created: {$path}");
+
+        return true;
+    }
+
+    /**
+     * Generate content from a stub file.
+     */
+    protected function generateFromStub(string $stubName, array $replacements): string
+    {
+        $stubPath = __DIR__.'/../../../stubs/'.$stubName;
+        $content = $this->files->get($stubPath);
+
+        foreach ($replacements as $key => $value) {
+            $content = str_replace('{{ '.$key.' }}', $value, $content);
+        }
+
+        return $content;
+    }
+
+    /**
+     * Display completion message.
+     */
+    protected function displayCompletion(string $name): void
+    {
+        $this->newLine();
+        note('Next steps:');
+        $this->line('1. Customize the terminal configuration in the generated page');
+        $this->line('2. If using WebTerminalStreamPlugin, disable its default Terminal page:');
+        $this->newLine();
+        $this->line('   WebTerminalStreamPlugin::make()');
+        $this->line('       ->withoutTerminalPage()');
+        $this->newLine();
+        $this->line('   Or use components() to keep just TerminalLogs from the plugin:');
+        $this->newLine();
+        $this->line('   WebTerminalStreamPlugin::make()');
+        $this->line('       ->components([');
+        $this->line('           \\MWGuerra\\WebTerminalStream\\Filament\\Resources\\TerminalLogResource::class,');
+        $this->line('       ])');
+        $this->newLine();
+    }
+}

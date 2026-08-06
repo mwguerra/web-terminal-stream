@@ -1,0 +1,98 @@
+{
+    "name": "mwguerra/web-terminal-stream",
+    "description": "A Stream-mode web terminal for Filament/Laravel: full interactive PTY over WebSocket with local and SSH connections",
+    "keywords": [
+        "laravel",
+        "livewire",
+        "filament",
+        "terminal",
+        "shell",
+        "ssh"
+    ],
+    "homepage": "https://github.com/mwguerra/web-terminal-stream",
+    "license": "MIT",
+    "type": "library",
+    "authors": [
+        {
+            "name": "mwguerra",
+            "email": "mwguerra@gmail.com",
+            "role": "Developer"
+        }
+    ],
+    "require": {
+        "php": "^8.3",
+        "illuminate/contracts": "^12.0|^13.0",
+        "illuminate/support": "^12.0|^13.0",
+        "laravel/prompts": "^0.3.0",
+        "livewire/livewire": "^4.0",
+        "phpseclib/phpseclib": "^3.0",
+        "ratchet/rfc6455": "^0.4.0",
+        "react/event-loop": "^1.6",
+        "react/socket": "^1.17"
+    },
+    "require-dev": {
+        "filament/filament": "^5.0",
+        "laravel/pint": "^1.0",
+        "nunomaduro/collision": "^8.4",
+        "orchestra/testbench": "^10.0|^11.0",
+        "pestphp/pest": "^4.0",
+        "pestphp/pest-plugin-laravel": "^4.1",
+        "phpstan/phpstan": "^2.0",
+        "phrity/websocket": "^3.0",
+        "ratchet/pawl": "^0.4"
+    },
+    "suggest": {
+        "filament/filament": "Required for Filament admin panel integration (^5.0)",
+        "ext-posix": "Local-shell PTY resizing and orphaned-process cleanup on the terminal-stream:serve WebSocket server (Linux). SSH-only deployments do not need it.",
+        "ext-pcntl": "Graceful SIGINT/SIGTERM shutdown of the WebSocket server so live PTYs are closed cleanly instead of reaped on next start."
+    },
+    "autoload": {
+        "psr-4": {
+            "MWGuerra\\WebTerminalStream\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "MWGuerra\\WebTerminalStream\\Tests\\": "tests/"
+        }
+    },
+    "scripts": {
+        "post-autoload-dump": "@php ./vendor/bin/testbench package:discover --ansi",
+        "analyse": "vendor/bin/phpstan analyse --memory-limit=1G",
+        "test": "@php -d memory_limit=-1 vendor/bin/pest --testsuite=Unit",
+        "test:parallel": "@php -d memory_limit=-1 vendor/bin/pest --testsuite=Unit --parallel",
+        "test:coverage": "XDEBUG_MODE=coverage @php -d memory_limit=-1 vendor/bin/pest --testsuite=Unit --coverage",
+        "test:coverage:html": "XDEBUG_MODE=coverage @php -d memory_limit=-1 vendor/bin/pest --testsuite=Unit --coverage-html tests/coverage",
+        "test:parallel:coverage": "XDEBUG_MODE=coverage @php -d memory_limit=-1 vendor/bin/pest --testsuite=Unit --parallel --coverage",
+        "test:integration:up": "docker compose -f tests/docker/compose.yaml up -d --wait sshd",
+        "test:integration": [
+            "@test:integration:up",
+            "@php -d memory_limit=-1 vendor/bin/pest --testsuite=Integration"
+        ],
+        "test:integration:linux": "docker compose -f tests/docker/compose.yaml run --rm php-tests vendor/bin/pest --testsuite=Integration --group=linux-pty",
+        "test:integration:down": "docker compose -f tests/docker/compose.yaml down -v",
+        "format": "vendor/bin/pint",
+        "build": "npm run build",
+        "release": "bash scripts/release.sh",
+        "bench": "@php scripts/bench.php",
+        "stress": [
+            "Composer\\Config::disableProcessTimeout",
+            "bash scripts/stress/run.sh"
+        ]
+    },
+    "config": {
+        "sort-packages": true,
+        "allow-plugins": {
+            "pestphp/pest-plugin": true
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "MWGuerra\\WebTerminalStream\\WebTerminalStreamServiceProvider"
+            ]
+        }
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true
+}

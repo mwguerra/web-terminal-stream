@@ -1,0 +1,308 @@
+<?php
+
+use Filament\Schemas\Components\Component;
+use Filament\Schemas\Components\Livewire;
+use MWGuerra\WebTerminalStream\Data\ConnectionConfig;
+use MWGuerra\WebTerminalStream\Enums\ConnectionBehavior;
+use MWGuerra\WebTerminalStream\Enums\TerminalChrome;
+use MWGuerra\WebTerminalStream\Livewire\StreamTerminal as StreamTerminalComponent;
+use MWGuerra\WebTerminalStream\Schemas\Components\WebTerminalStream as WebTerminal;
+use MWGuerra\WebTerminalStream\Themes\TokyoNight;
+
+describe('make', function () {
+    it('creates instance with default component', function () {
+        $component = WebTerminal::make();
+
+        expect($component)->toBeInstanceOf(WebTerminal::class);
+    });
+
+    it('always mounts the StreamTerminal Livewire component', function () {
+        $component = WebTerminal::make();
+
+        expect($component->getComponent())->toBe(StreamTerminalComponent::class);
+    });
+});
+
+describe('ssh', function () {
+    it('configures SSH connection with password', function () {
+        $component = WebTerminal::make()
+            ->ssh(
+                host: '192.168.1.100',
+                username: 'admin',
+                password: 'secret123',
+                port: 22
+            );
+
+        $config = $component->getConnectionConfig();
+
+        expect($config['type'])->toBe('ssh')
+            ->and($config['host'])->toBe('192.168.1.100')
+            ->and($config['username'])->toBe('admin')
+            ->and($config['password'])->toBe('secret123')
+            ->and($config['port'])->toBe(22);
+    });
+
+    it('configures SSH connection with key content', function () {
+        $keyContent = '-----BEGIN OPENSSH PRIVATE KEY-----
+test-key-content
+-----END OPENSSH PRIVATE KEY-----';
+
+        $component = WebTerminal::make()
+            ->ssh(
+                host: '192.168.1.100',
+                username: 'admin',
+                privateKey: $keyContent,
+                port: 2222
+            );
+
+        $config = $component->getConnectionConfig();
+
+        expect($config['type'])->toBe('ssh')
+            ->and($config['host'])->toBe('192.168.1.100')
+            ->and($config['username'])->toBe('admin')
+            ->and($config['private_key'])->toBe($keyContent)
+            ->and($config['port'])->toBe(2222);
+    });
+
+    it('configures SSH connection with key and passphrase', function () {
+        $keyContent = '-----BEGIN OPENSSH PRIVATE KEY-----
+encrypted-key
+-----END OPENSSH PRIVATE KEY-----';
+
+        $component = WebTerminal::make()
+            ->ssh(
+                host: 'localhost',
+                username: 'root',
+                privateKey: $keyContent,
+                passphrase: 'my-secret-passphrase',
+                port: 22
+            );
+
+        $config = $component->getConnectionConfig();
+
+        expect($config['passphrase'])->toBe('my-secret-passphrase');
+    });
+
+    it('leaves port null when not specified so the SSH default (22) applies', function () {
+        $component = WebTerminal::make()
+            ->ssh(
+                host: 'localhost',
+                username: 'root'
+            );
+
+        $config = $component->getConnectionConfig();
+
+        expect($config['port'])->toBeNull()
+            ->and(ConnectionConfig::fromArray([...$config, 'password' => 'x'])->effectivePort())->toBe(22);
+    });
+
+    it('returns self for method chaining', function () {
+        $component = WebTerminal::make();
+
+        expect($component->ssh(host: 'localhost', username: 'root'))->toBe($component);
+    });
+});
+
+describe('local', function () {
+    it('configures local connection', function () {
+        $component = WebTerminal::make()
+            ->local();
+
+        $config = $component->getConnectionConfig();
+
+        expect($config['type'])->toBe('local');
+    });
+
+    it('returns self for method chaining', function () {
+        $component = WebTerminal::make();
+
+        expect($component->local())->toBe($component);
+    });
+});
+
+describe('height', function () {
+    it('has default height of 400px', function () {
+        $component = WebTerminal::make();
+
+        expect($component->getHeight())->toBe('400px');
+    });
+
+    it('sets custom height', function () {
+        $component = WebTerminal::make()
+            ->height('600px');
+
+        expect($component->getHeight())->toBe('600px');
+    });
+
+    it('evaluates closure for height', function () {
+        $component = WebTerminal::make()
+            ->height(fn () => '500px');
+
+        expect($component->getHeight())->toBe('500px');
+    });
+
+    it('returns self for method chaining', function () {
+        $component = WebTerminal::make();
+
+        expect($component->height('400px'))->toBe($component);
+    });
+});
+
+describe('workingDirectory', function () {
+    it('has null working directory by default', function () {
+        $component = WebTerminal::make();
+
+        expect($component->getWorkingDirectory())->toBeNull();
+    });
+
+    it('sets working directory', function () {
+        $component = WebTerminal::make()
+            ->workingDirectory('/home/user');
+
+        expect($component->getWorkingDirectory())->toBe('/home/user');
+    });
+
+    it('includes working directory in the component connection config', function () {
+        $component = WebTerminal::make()
+            ->local()
+            ->workingDirectory('/home/user');
+
+        $props = $component->getComponentProperties();
+
+        expect($props['connectionConfig']['working_directory'])->toBe('/home/user');
+    });
+
+    it('returns self for method chaining', function () {
+        $component = WebTerminal::make();
+
+        expect($component->workingDirectory('/tmp'))->toBe($component);
+    });
+});
+
+describe('title', function () {
+    it('has default title of Terminal', function () {
+        $component = WebTerminal::make();
+
+        expect($component->getTitle())->toBe('Terminal');
+    });
+
+    it('sets custom title', function () {
+        $component = WebTerminal::make()
+            ->title('My Server Console');
+
+        expect($component->getTitle())->toBe('My Server Console');
+    });
+
+    it('evaluates closure for title', function () {
+        $component = WebTerminal::make()
+            ->title(fn () => 'Dynamic Title');
+
+        expect($component->getTitle())->toBe('Dynamic Title');
+    });
+
+    it('returns self for method chaining', function () {
+        $component = WebTerminal::make();
+
+        expect($component->title('Custom Title'))->toBe($component);
+    });
+});
+
+describe('chrome', function () {
+    it('defaults to full chrome', function () {
+        $component = WebTerminal::make();
+
+        expect($component->getChrome())->toBe(TerminalChrome::Full);
+    });
+
+    it('sets minimal chrome', function () {
+        $component = WebTerminal::make()
+            ->chrome(TerminalChrome::Minimal);
+
+        expect($component->getChrome())->toBe(TerminalChrome::Minimal);
+    });
+
+    it('frameless() is sugar for chrome none', function () {
+        $component = WebTerminal::make()->frameless();
+
+        expect($component->getChrome())->toBe(TerminalChrome::None);
+    });
+
+    it('returns self for method chaining', function () {
+        $component = WebTerminal::make();
+
+        expect($component->chrome(TerminalChrome::Minimal))->toBe($component);
+    });
+});
+
+describe('component properties', function () {
+    it('exposes the stream component props', function () {
+        $component = WebTerminal::make()
+            ->local()
+            ->height('500px')
+            ->title('Console')
+            ->theme(['background' => '#000000'])
+            ->log(enabled: true, connections: true, identifier: 'console');
+
+        $props = $component->getComponentProperties();
+
+        expect($props['connectionConfig'])->toBe(['type' => 'local'])
+            ->and($props['height'])->toBe('500px')
+            ->and($props['title'])->toBe('Console')
+            ->and($props['theme'])->toBe(['background' => '#000000'])
+            ->and($props['loggingEnabled'])->toBeTrue()
+            ->and($props['logConnections'])->toBeTrue()
+            ->and($props['logIdentifier'])->toBe('console')
+            ->and($props['chrome'])->toBe('full')
+            ->and($props)->not->toHaveKey('autoConnect')
+            ->and($props)->not->toHaveKey('showWindowControls')
+            ->and($props['connectionBehavior'])->toBe('always');
+    });
+
+    it('forwards an explicit connection behavior to the Livewire component', function () {
+        $props = WebTerminal::make()
+            ->local()
+            ->connectionBehavior(ConnectionBehavior::Manual)
+            ->getComponentProperties();
+
+        expect($props['connectionBehavior'])->toBe('manual');
+    });
+
+    it('splits a TerminalTheme into colors + font props', function () {
+        $props = WebTerminal::make()
+            ->local()
+            ->theme(
+                TokyoNight::make()
+                    ->fontFamily('JetBrains Mono')
+                    ->fontSize(16)
+            )
+            ->getComponentProperties();
+
+        expect($props['theme']['background'])->toBe('#1a1b26')   // preset color kept
+            ->and($props['fontFamily'])->toBe('JetBrains Mono')
+            ->and($props['fontSize'])->toBe(16);
+    });
+
+    it('leaves font props null for a raw colors array (view falls back)', function () {
+        $props = WebTerminal::make()->local()->theme(['background' => '#000'])->getComponentProperties();
+
+        expect($props['theme'])->toBe(['background' => '#000'])
+            ->and($props['fontFamily'])->toBeNull()
+            ->and($props['fontSize'])->toBeNull();
+    });
+
+    it('defaults the connection behavior prop to always (no breaking change)', function () {
+        $props = WebTerminal::make()->local()->getComponentProperties();
+
+        expect($props['connectionBehavior'])->toBe('always');
+    });
+});
+
+describe('inheritance', function () {
+    it('extends Filament Livewire component', function () {
+        expect(is_subclass_of(WebTerminal::class, Livewire::class))->toBeTrue();
+    });
+
+    it('is a Filament schema component', function () {
+        expect(is_subclass_of(WebTerminal::class, Component::class))->toBeTrue();
+    });
+});

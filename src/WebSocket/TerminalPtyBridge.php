@@ -1,0 +1,307 @@
+<?php
+
+declare(strict_types=1);
+
+namespace MWGuerra\WebTerminalStream\WebSocket;
+
+use MWGuerra\WebTerminalStream\Data\ConnectionConfig;
+use MWGuerra\WebTerminalStream\Enums\ConnectionType;
+use MWGuerra\WebTerminalStream\Security\HostKeyVerificationException;
+use MWGuerra\WebTerminalStream\Security\SshHostKeyVerifier;
+use phpseclib3\Crypt\PublicKeyLoader;
+use phpseclib3\Net\SSH2;
+
+class TerminalPtyBridge
+{
+    private string $sessionId;
+
+    private int $userId;
+
+    private ConnectionConfig $config;
+
+    private PtySessionRegistry $registry;
+
+    /** @var resource|null */
+    private $process = null;
+
+    /** @var array<int, resource> */
+    private array $pipes = [];
+
+    private ?object $sshShell = null;
+
+    public function __construct(
+        ConnectionConfig $config,
+        string $sessionId,
+        int $userId,
+        PtySessionRegistry $registry,
+    ) {
+        $this->config = $config;
+        $this->sessionId = $sessionId;
+        $this->userId = $userId;
+        $this->registry = $registry;
+    }
+
+    public function getSessionId(): string
+    {
+        return $this->sessionId;
+    }
+
+    public function start(string $shell = '/bin/bash'): void
+    {
+        if ($this->config->type === ConnectionType::SSH) {
+            $this->startSsh();
+
+            return;
+        }
+
+        $this->startLocal($shell);
+    }
+
+    private function startLocal(string $shell): void
+    {
+        $descriptors = [
+            0 => ['pty'],
+            1 => ['pty'],
+            2 => ['pty'],
+        ];
+
+        $env = array_merge(getenv() ?: [], $this->config->environment, [
+            'TERM' => 'xterm-256color',
+            'XDEBUG_MODE' => 'off',
+        ]);
+
+        $cwd = $this->config->workingDirectory;
+        if ($cwd !== null && ! is_dir($cwd)) {
+            $cwd = config('web-terminal-stream.stream.working_directory') ?? getcwd();
+        }
+
+        $this->process = proc_open(
+            "setsid {$shell} -il",
+            $descriptors,
+            $this->pipes,
+            $cwd,
+            $env
+        );
+
+        if (! is_resource($this->process)) {
+            throw new \RuntimeException("Failed to start PTY process: {$shell}");
+        }
+
+        stream_set_blocking($this->pipes[1], false);
+        stream_set_blocking($this->pipes[2], false);
+
+        $status = proc_get_status($this->process);
+        $this->registry->register($this->sessionId, $status['pid'], $this->userId);
+    }
+
+    private function startSsh(): void
+    {
+        $port = $this->config->port ?? 22;
+
+        $ssh = new InteractiveSsh(
+            $this->config->host,
+            $port,
+            $this->config->timeout
+        );
+
+        // Verify the server host key BEFORE authenticating. phpseclib does the
+        // key exchange but trusts any key, so without this an outbound SSH
+        // session (and its credentials) is exposed to a man-in-the-middle.
+        // getServerPublicHostKey() forces the handshake and returns the key.
+        $hostKey = $ssh->getServerPublicHostKey();
+        if ($hostKey === false) {
+            throw new HostKeyVerificationException(
+                "Could not read the SSH server host key for {$this->config->host}."
+            );
+        }
+
+        (new SshHostKeyVerifier)->verify(
+            $hostKey,
+            $this->config->host,
+            $port,
+            config('web-terminal-stream.security.ssh_host_key', ['mode' => 'off']),
+        );
+
+        if ($this->config->privateKey !== null) {
+            $key = PublicKeyLoader::load(
+                $this->config->privateKey,
+                $this->config->passphrase ?? ''
+            );
+            if (! $ssh->login($this->config->username, $key)) {
+                throw new \RuntimeException('SSH key authentication failed');
+            }
+        } else {
+            if (! $ssh->login($this->config->username, $this->config->password)) {
+                throw new \RuntimeException('SSH password authentication failed');
+            }
+        }
+
+        // Bootstrap the interactive shell channel properly.
+        //
+        // The previous implementation used `enablePTY() + exec('')` which opens
+        // a CHANNEL_EXEC with an empty command. Some SSH servers reject or
+        // half-close an empty exec, leaving the channel in a state that throws
+        // "Please close the channel (2) before trying to open it again" on the
+        // next connection.
+        //
+        // Opening CHANNEL_SHELL explicitly is the semantically-correct path for
+        // an interactive shell session. We use a normal timeout during the
+        // handshake because `setTimeout(0)` in phpseclib3 means "no timeout =
+        // block forever", not "non-blocking" — once the shell is open we switch
+        // to a tiny timeout so reads are effectively non-blocking inside the
+        // ReactPHP event loop.
+        //
+        // See: https://github.com/mwguerra/web-terminal/issues/3
+        $ssh->setTimeout(max(5, $this->config->timeout ?? 10));
+        $ssh->write('', SSH2::CHANNEL_SHELL);
+        $ssh->setTimeout(0.01);
+        $this->sshShell = $ssh;
+        // SSH sessions use pid -1 (sentinel) since there's no local process
+        $this->registry->register($this->sessionId, -1, $this->userId);
+    }
+
+    public function write(string $data): void
+    {
+        if ($this->sshShell !== null) {
+            $this->sshShell->write($data);
+
+            return;
+        }
+
+        if (isset($this->pipes[0]) && is_resource($this->pipes[0])) {
+            fwrite($this->pipes[0], $data);
+        }
+    }
+
+    public function read(): string
+    {
+        if ($this->sshShell !== null) {
+            // The tiny timeout set in startSsh() keeps this non-blocking.
+            // Transport-level failures are handled at the event-loop boundary
+            // (ReactPhpWebSocketServer::tick), not here — this method stays
+            // a simple read of whatever is buffered on the channel.
+            return $this->sshShell->read('') ?: '';
+        }
+
+        $output = '';
+
+        if (isset($this->pipes[1]) && is_resource($this->pipes[1])) {
+            while (($chunk = fread($this->pipes[1], 8192)) !== false && $chunk !== '') {
+                $output .= $chunk;
+            }
+        }
+
+        if (isset($this->pipes[2]) && is_resource($this->pipes[2])) {
+            while (($chunk = fread($this->pipes[2], 8192)) !== false && $chunk !== '') {
+                $output .= $chunk;
+            }
+        }
+
+        return $output;
+    }
+
+    public function resize(int $cols, int $rows): void
+    {
+        if ($cols <= 0 || $rows <= 0) {
+            return;
+        }
+
+        if ($this->sshShell !== null) {
+            // window-change channel request: setWindowSize() alone never
+            // reaches an already-open shell (see InteractiveSsh).
+            if ($this->sshShell instanceof InteractiveSsh) {
+                $this->sshShell->sendWindowChange($cols, $rows);
+            } else {
+                $this->sshShell->setWindowSize($cols, $rows);
+            }
+
+            return;
+        }
+
+        if ($this->process === null || ! $this->isRunning()) {
+            return;
+        }
+
+        $status = proc_get_status($this->process);
+        $pid = $status['pid'] ?? 0;
+
+        if ($pid <= 0) {
+            return;
+        }
+
+        // Resize the PTY via the child's TTY device
+        // /proc/<pid>/fd/0 is a symlink to the PTY slave device
+        $ttyLink = "/proc/{$pid}/fd/0";
+        $ttyDevice = @readlink($ttyLink);
+
+        if ($ttyDevice !== false && str_starts_with($ttyDevice, '/dev/pts/')) {
+            @exec('stty -F '.escapeshellarg($ttyDevice)." rows {$rows} cols {$cols} 2>/dev/null");
+        }
+
+        // Send SIGWINCH to the process group so apps (vim, htop) re-read size.
+        // Guarded: without ext-posix the stty resize above still applies; only
+        // the live re-read signal is skipped.
+        if (function_exists('posix_kill') && defined('SIGWINCH')) {
+            posix_kill(-$pid, SIGWINCH);
+        }
+    }
+
+    public function isRunning(): bool
+    {
+        if ($this->sshShell !== null) {
+            return $this->sshShell->isConnected();
+        }
+
+        if ($this->process === null) {
+            return false;
+        }
+
+        $status = proc_get_status($this->process);
+
+        return $status['running'];
+    }
+
+    public function terminate(): void
+    {
+        if ($this->sshShell !== null) {
+            // Short timeout so the event loop can't be stalled by a slow remote.
+            $this->sshShell->setTimeout(0.01);
+            $this->sshShell->disconnect();
+            $this->sshShell = null;
+            $this->registry->unregister($this->sessionId);
+
+            return;
+        }
+
+        if ($this->process !== null) {
+            foreach ($this->pipes as $pipe) {
+                if (is_resource($pipe)) {
+                    fclose($pipe);
+                }
+            }
+
+            $status = proc_get_status($this->process);
+            if ($status['running']) {
+                proc_terminate($this->process, 15); // SIGTERM
+                usleep(100000); // 100ms grace
+                $status = proc_get_status($this->process);
+                if ($status['running']) {
+                    proc_terminate($this->process, 9); // SIGKILL
+                }
+            }
+
+            proc_close($this->process);
+            $this->process = null;
+            $this->pipes = [];
+        }
+
+        $this->registry->unregister($this->sessionId);
+    }
+
+    public function __destruct()
+    {
+        if ($this->isRunning()) {
+            $this->terminate();
+        }
+    }
+}

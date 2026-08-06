@@ -1,0 +1,53 @@
+<?php
+
+declare(strict_types=1);
+
+namespace {{ namespace }};
+
+use Filament\Schemas\Components\Section;
+use Filament\Schemas\Schema;
+use MWGuerra\WebTerminalStream\Filament\Pages\Terminal as BaseTerminal;
+use MWGuerra\WebTerminalStream\Schemas\Components\WebTerminalStream;
+use BackedEnum;
+use UnitEnum;
+
+class {{ class_name }} extends BaseTerminal
+{
+    protected static string|BackedEnum|null $navigationIcon = 'heroicon-o-command-line';
+
+    protected static ?string $navigationLabel = '{{ navigation_label }}';
+
+    protected static string|UnitEnum|null $navigationGroup = 'Tools';
+
+    protected static ?int $navigationSort = 100;
+
+    protected static ?string $slug = '{{ slug }}';
+
+    /**
+     * Customize the terminal schema.
+     *
+     * @see https://github.com/mwguerra/web-terminal-stream for all available options
+     */
+    public function schema(Schema $schema): Schema
+    {
+        return $schema
+            ->components([
+                Section::make(__('web-terminal-stream::terminal.pages.terminal.local_terminal'))
+                    ->description(__('web-terminal-stream::terminal.pages.terminal.local_terminal_description'))
+                    ->icon('heroicon-o-command-line')
+                    ->schema([
+                        WebTerminalStream::make()
+                            ->key('{{ terminal_key }}')
+                            ->local()
+                            ->workingDirectory(base_path())
+                            ->height('400px')
+                            ->title(__('web-terminal-stream::terminal.pages.terminal.local_terminal'))
+                            ->log(
+                                enabled: true,
+                                connections: true,
+                                identifier: '{{ terminal_key }}',
+                            ),
+                    ]),
+            ]);
+    }
+}

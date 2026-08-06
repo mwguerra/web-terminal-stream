@@ -1,0 +1,39 @@
+/vendor/
+/node_modules/
+/.phpunit.cache/
+/coverage/
+.env
+composer.phar
+*.log
+.DS_Store
+Thumbs.db
+.taskmanager/
+coverage.txt
+
+# E2E test app
+/tests/e2e-app/
+
+# Playwright test artifacts
+/screenshots/
+/test-results/
+/tests/screenshots/
+test-scripts.mjs
+debug-csrf.mjs
+
+# Transient benchmark output (baselines under docs/benchmarks/baselines/ ARE committed)
+/docs/benchmarks/latest.json
+composer.lock
+
+# Playwright MCP scratch snapshots and generated folders (any depth)
+.playwright-mcp/
+playwright-report/
+blob-report/
+.last-run.json
+
+# Images misplaced at the repo root — committed screenshots live in docs/images/
+/*.png
+/*.jpg
+/*.jpeg
+/*.gif
+/*.webp
+/*.avif

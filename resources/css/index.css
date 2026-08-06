@@ -1,0 +1,233 @@
+@import 'tailwindcss';
+@source '../views/**/*.blade.php';
+@source '../../src/**/*.php';
+@variant dark (&:where(.dark, .dark *));
+
+/* Hide elements until Alpine.js initializes */
+[x-cloak] { display: none !important; }
+
+@theme {
+    --color-primary-50: var(--primary-50);
+    --color-primary-100: var(--primary-100);
+    --color-primary-200: var(--primary-200);
+    --color-primary-300: var(--primary-300);
+    --color-primary-400: var(--primary-400);
+    --color-primary-500: var(--primary-500);
+    --color-primary-600: var(--primary-600);
+    --color-primary-700: var(--primary-700);
+    --color-primary-800: var(--primary-800);
+    --color-primary-900: var(--primary-900);
+    --color-primary-950: var(--primary-950);
+}
+
+/* Stream Terminal */
+.stream-web-terminal canvas {
+    width: 100% !important;
+    height: 100% !important;
+}
+
+.stream-web-terminal textarea {
+    caret-color: transparent !important;
+}
+
+/* Terminal Grid (tiling)
+   The TerminalGrid schema component sets the custom properties on the outer
+   container; the actual CSS grid is the Filament child schema div (.fi-sc). */
+.wts-terminal-grid > .fi-sc {
+    gap: var(--wts-grid-gap, 0px);
+    grid-auto-rows: minmax(0, 1fr);
+    height: var(--wts-grid-height, auto);
+    /* With a positive gap, the container background shows through as
+       pane dividers. */
+    background-color: var(--wts-grid-divider, transparent);
+}
+
+.wts-terminal-grid > .fi-sc > * {
+    min-height: 0;
+}
+
+/* Let panes fill their grid row when the grid owns the height. */
+.wts-terminal-grid .fi-sc-component {
+    height: 100%;
+}
+
+/* Focused-pane ring: the pane whose hidden textarea owns keyboard focus.
+   Pure CSS — no JS focus tracking. An inward outline (not box-shadow, which
+   the canvas container's opaque background would cover) so it stays visible
+   over the pane content. Override the color per app via --wts-grid-focus-ring. */
+.wts-terminal-grid .stream-web-terminal:focus-within {
+    outline: 2px solid var(--wts-divider-focus, var(--wts-grid-focus-ring, rgba(96, 165, 250, 0.7)));
+    outline-offset: -2px;
+}
+
+/* Terminal Workspace (tmux-style dynamic tiling)
+   Panes are absolutely-positioned siblings whose rects Alpine computes
+   from the split tree; dividers are zero-layout-space overlay strips. */
+.wts-workspace {
+    background-color: var(--wts-terminal-bg, var(--wts-grid-divider, rgba(148, 163, 184, 0.25)));
+}
+
+.wts-workspace .wts-pane {
+    min-width: 0;
+    min-height: 0;
+    outline: none;
+}
+
+.wts-workspace .wts-pane > * {
+    height: 100%;
+}
+
+.wts-workspace .stream-web-terminal:focus-within {
+    outline: 2px solid var(--wts-divider-focus, var(--wts-grid-focus-ring, rgba(96, 165, 250, 0.7)));
+    outline-offset: -2px;
+}
+
+/* Per-pane close button. Rendered by the workspace (not the terminal) so it
+   closes that specific pane. Only shown while more than one pane exists;
+   the sole remaining pane has none and fills the workspace. Top-left to
+   clear the terminal's own top-right floating actions. */
+.wts-workspace .wts-pane-close {
+    position: absolute;
+    top: 0.4rem;
+    left: 0.4rem;
+    z-index: 25;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.35rem;
+    height: 1.35rem;
+    padding: 0;
+    border: none;
+    border-radius: 9999px;
+    font-size: 0.95rem;
+    line-height: 1;
+    cursor: pointer;
+    color: rgb(226 232 240);
+    background: rgba(15, 23, 42, 0.85);
+    box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.4);
+    opacity: 0.85;
+    transition: opacity 0.12s ease, background-color 0.12s ease;
+}
+
+.wts-workspace .wts-pane-close:hover {
+    opacity: 1;
+    background: rgba(220, 38, 38, 0.9);
+    box-shadow: inset 0 0 0 1px rgba(248, 113, 113, 0.9);
+}
+
+/* Divider hit areas: 8px wide strips centered on the pane boundary. The
+   visible line is a ::before rendered from theme custom properties
+   (--wts-divider-width / -style / -color), highlighting to
+   --wts-divider-focus on hover/drag. */
+.wts-divider {
+    z-index: 20;
+    touch-action: none;
+}
+
+.wts-divider::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    border-color: var(--wts-divider-color, rgba(148, 163, 184, 0.4));
+    border-style: var(--wts-divider-style, solid);
+    transition: border-color 0.12s ease;
+}
+
+.wts-divider-vertical {
+    width: 8px;
+    margin-left: -4px;
+    cursor: col-resize;
+}
+
+.wts-divider-vertical::before {
+    left: 50%;
+    transform: translateX(-50%);
+    width: 0;
+    height: 100%;
+    border-left-width: var(--wts-divider-width, 1px);
+}
+
+.wts-divider-horizontal {
+    height: 8px;
+    margin-top: -4px;
+    cursor: row-resize;
+}
+
+.wts-divider-horizontal::before {
+    top: 50%;
+    transform: translateY(-50%);
+    width: 100%;
+    height: 0;
+    border-top-width: var(--wts-divider-width, 1px);
+}
+
+.wts-divider:hover::before,
+.wts-divider:active::before {
+    border-color: var(--wts-divider-focus, var(--wts-grid-focus-ring, rgba(96, 165, 250, 0.7)));
+}
+
+/* Armed tmux prefix: subtle ring on the whole workspace. */
+.wts-workspace.wts-prefix-armed {
+    outline: 2px solid var(--wts-divider-focus, var(--wts-grid-focus-ring, rgba(96, 165, 250, 0.7)));
+    outline-offset: -2px;
+}
+
+.wts-workspace .wts-workspace-empty {
+    background: #1a1a2e;
+}
+
+/* Terminal Dashboard: a toggle bar above an auto-arranged pane area. */
+.wts-dashboard-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
+}
+
+.wts-dashboard-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.4rem 0.85rem;
+    border-radius: 0.5rem;
+    font-size: 0.8rem;
+    font-weight: 500;
+    cursor: pointer;
+    color: rgb(51 65 85);
+    background: rgb(226 232 240);
+    box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.35);
+    transition: background-color 0.12s ease, color 0.12s ease, box-shadow 0.12s ease;
+}
+
+:where(.dark) .wts-dashboard-toggle {
+    color: rgb(203 213 225);
+    background: rgba(30, 41, 59, 0.7);
+}
+
+.wts-dashboard-toggle:hover {
+    box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.6);
+}
+
+.wts-dashboard-toggle-open {
+    color: #fff;
+    background: var(--wts-divider-focus, rgb(37 99 235));
+    box-shadow: inset 0 0 0 1px transparent;
+}
+
+.wts-dashboard-dot {
+    width: 0.5rem;
+    height: 0.5rem;
+    border-radius: 9999px;
+    background: currentColor;
+    opacity: 0.45;
+}
+
+.wts-dashboard-toggle-open .wts-dashboard-dot {
+    opacity: 1;
+}
+
+/* Dashboard dividers are decorative only — the arrangement is automatic. */
+.wts-divider-static {
+    pointer-events: none;
+}
