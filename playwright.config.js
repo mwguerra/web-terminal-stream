@@ -2,7 +2,7 @@
 const { defineConfig, devices } = require('@playwright/test');
 
 /**
- * E2E suite against the scaffolded host app (tests/e2e-app), started by
+ * E2E suite against the scaffolded host app (.e2e-app), started by
  * scripts/e2e/run.sh: app on :8000, WebSocket server on :8091, sshd target
  * on :2299. workers: 1 — every spec drives real PTYs on the same server.
  */

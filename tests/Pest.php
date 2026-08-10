@@ -6,6 +6,8 @@ use MWGuerra\WebTerminalStream\Security\ConnectionVault;
 use MWGuerra\WebTerminalStream\Tests\IntegrationTestCase;
 use MWGuerra\WebTerminalStream\Tests\TestCase;
 use MWGuerra\WebTerminalStream\WebSocket\TerminalPtyBridge;
+use React\Socket\ConnectionInterface;
+use React\Stream\WritableStreamInterface;
 
 /*
 |--------------------------------------------------------------------------
@@ -156,4 +158,89 @@ function connectionBehind(array $props): array
 {
     return app(ConnectionVault::class)
         ->get($props['connectionRef'] ?? '');
+}
+
+/**
+ * A ConnectionInterface that records writes and closes instead of touching a
+ * socket, for tests that assert what the server SENT or whether it hung up.
+ *
+ * Lives here, not in a test file: it is used from more than one file, and a
+ * helper defined in one spec only happens to exist for another when both land
+ * in the same process. Serially they always do, so the coupling was invisible
+ * until the suite ran in parallel and the two files went to different workers.
+ */
+function nullConnection(): ConnectionInterface
+{
+    return new class implements ConnectionInterface
+    {
+        public array $writes = [];
+
+        public bool $closed = false;
+
+        public function getRemoteAddress(): ?string
+        {
+            return '127.0.0.1:0';
+        }
+
+        public function getLocalAddress(): ?string
+        {
+            return '127.0.0.1:0';
+        }
+
+        public function isReadable(): bool
+        {
+            return ! $this->closed;
+        }
+
+        public function isWritable(): bool
+        {
+            return ! $this->closed;
+        }
+
+        public function pause(): void {}
+
+        public function resume(): void {}
+
+        public function pipe(WritableStreamInterface $dest, array $options = []): WritableStreamInterface
+        {
+            return $dest;
+        }
+
+        public function write($data): bool
+        {
+            $this->writes[] = (string) $data;
+
+            return true;
+        }
+
+        public function end($data = null): void
+        {
+            $this->closed = true;
+        }
+
+        public function close(): void
+        {
+            $this->closed = true;
+        }
+
+        public function on($event, callable $listener): void {}
+
+        public function once($event, callable $listener): void {}
+
+        public function removeListener($event, callable $listener): void {}
+
+        public function removeAllListeners($event = null): void {}
+
+        public function listeners($event = null): array
+        {
+            return [];
+        }
+
+        public function emit($event, array $arguments = []): void {}
+
+        public function eventNames(): array
+        {
+            return [];
+        }
+    };
 }

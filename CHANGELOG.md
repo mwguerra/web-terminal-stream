@@ -44,6 +44,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - The green window control lifted a pane to fullscreen by toggling a class imperatively, which Livewire's DOM morph then stripped on the next round trip. The class is Alpine-bound instead, so fullscreen survives (re)connects.
 
+- **The unit suite could not run, and had been failing unnoticed since 1.1.0.** Three faults stacked:
+
+  `ConnectionVault` (1.1.0) routes every connection config through the cache, so mounting a terminal now touches the cache store — but the test environment left Laravel's default `database` store pointing at Testbench's in-memory SQLite, where no `cache` table exists. **128 tests** died on `no such table: cache`. `TestCase` now selects the `array` store; `IntegrationTestCase` keeps `file`, which its separately-spawned server needs.
+
+  The e2e host app scaffolded into `tests/e2e-app` put ~17k files inside the tree Pest scans for datasets on every boot. The suite hung before printing a line, and each `--parallel` worker exhausted the default 128M limit — which is why the failures above stayed invisible. The app now scaffolds to `.e2e-app` at the repo root (`scripts/e2e/setup.sh`, `scripts/e2e/run.sh`, `playwright.config.js` follow it). Unit suite: **>10 min hang → under 3 s**.
+
+  `nullConnection()` lived in one spec and was called from another. One process serially, so it always resolved; under `--parallel` the two files landed in different workers and four tests died on `Call to undefined function`. It moved to `tests/Pest.php` with the other shared helpers.
+
+  Now green both ways: 488 unit (serial and `--parallel`), 10 integration + 1 Linux-only skip, PHPStan clean.
+
 ### Changed
 
 - **The three title-bar dots do something.** They were decorative `<span>`s; they are now labelled, keyboard-reachable buttons with macOS semantics. Red and yellow ask the *container* to close the window (a dashboard toggles the source off — so it stays reopenable from the bar; a workspace closes the pane, refusing when it is the last one). Green toggles fullscreen locally, so it works in a dashboard, a workspace, or standalone. A terminal with no container renders the close dots dimmed and `aria-disabled` rather than pretending. Escape is deliberately NOT bound to exit fullscreen: the terminal forwards it to the PTY, and stealing it would break vim, less, and anything modal inside the shell.

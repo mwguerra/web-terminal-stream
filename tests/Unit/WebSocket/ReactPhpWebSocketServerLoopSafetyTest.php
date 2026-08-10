@@ -6,8 +6,6 @@ use Illuminate\Contracts\Encryption\Encrypter;
 use MWGuerra\WebTerminalStream\WebSocket\PtySessionRegistry;
 use MWGuerra\WebTerminalStream\WebSocket\ReactPhpWebSocketServer;
 use MWGuerra\WebTerminalStream\WebSocket\TerminalPtyBridge;
-use React\Socket\ConnectionInterface;
-use React\Stream\WritableStreamInterface;
 
 /*
  * Event-loop safety boundary tests.
@@ -87,82 +85,6 @@ function throwingBridge(string $on = 'isRunning'): TerminalPtyBridge
             if ($this->throwOn === 'terminate') {
                 throw new RuntimeException('terminate failed');
             }
-        }
-    };
-}
-
-function nullConnection(): ConnectionInterface
-{
-    return new class implements ConnectionInterface
-    {
-        public array $writes = [];
-
-        public bool $closed = false;
-
-        public function getRemoteAddress(): ?string
-        {
-            return '127.0.0.1:0';
-        }
-
-        public function getLocalAddress(): ?string
-        {
-            return '127.0.0.1:0';
-        }
-
-        public function isReadable(): bool
-        {
-            return ! $this->closed;
-        }
-
-        public function isWritable(): bool
-        {
-            return ! $this->closed;
-        }
-
-        public function pause(): void {}
-
-        public function resume(): void {}
-
-        public function pipe(WritableStreamInterface $dest, array $options = []): WritableStreamInterface
-        {
-            return $dest;
-        }
-
-        public function write($data): bool
-        {
-            $this->writes[] = (string) $data;
-
-            return true;
-        }
-
-        public function end($data = null): void
-        {
-            $this->closed = true;
-        }
-
-        public function close(): void
-        {
-            $this->closed = true;
-        }
-
-        public function on($event, callable $listener): void {}
-
-        public function once($event, callable $listener): void {}
-
-        public function removeListener($event, callable $listener): void {}
-
-        public function removeAllListeners($event = null): void {}
-
-        public function listeners($event = null): array
-        {
-            return [];
-        }
-
-        public function emit($event, array $arguments = []): void {}
-
-        public function eventNames(): array
-        {
-            return [];
         }
     };
 }

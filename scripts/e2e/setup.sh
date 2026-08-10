@@ -1,13 +1,17 @@
 #!/usr/bin/env bash
 #
-# Scaffold the gitignored e2e host app (tests/e2e-app): Laravel 13 + Filament 5
+# Scaffold the gitignored e2e host app (.e2e-app): Laravel 13 + Filament 5
 # with this package symlinked in, fixture pages, seeded admin user, and the
 # E2E backdoor login route. Idempotent — exits early if the app already
 # exists; pass --force to rebuild from scratch.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-APP_DIR="$ROOT/tests/e2e-app"
+# Deliberately OUTSIDE tests/: Pest scans the test tree for datasets on every
+# boot, and a scaffolded Laravel app is ~17k files. Inside tests/ it made the
+# unit suite hang before printing a line, and blew the 128M limit in every
+# parallel worker.
+APP_DIR="$ROOT/.e2e-app"
 FIXTURES="$ROOT/scripts/e2e/fixtures"
 
 FORCE=0

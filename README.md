@@ -922,7 +922,7 @@ composer test:integration:linux    # Linux-only PTY resize tests inside the php 
 composer test:integration:down     # tear the containers down
 
 # End-to-end (Playwright against a dedicated Laravel 13 + Filament 5 app)
-npm run test:e2e                   # scaffolds tests/e2e-app (gitignored), boots app +
+npm run test:e2e                   # scaffolds .e2e-app (gitignored), boots app +
                                    # WebSocket server + sshd container, runs tests/e2e
 
 composer analyse           # PHPStan

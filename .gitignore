@@ -10,8 +10,9 @@ Thumbs.db
 .taskmanager/
 coverage.txt
 
-# E2E test app
-/tests/e2e-app/
+# E2E test app — kept OUT of tests/ so Pest's dataset scan never walks its
+# ~17k files (inside tests/ it hung the unit suite and OOM'd parallel workers)
+/.e2e-app/
 
 # Playwright test artifacts
 /screenshots/

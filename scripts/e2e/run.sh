@@ -6,7 +6,7 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-APP_DIR="$ROOT/tests/e2e-app"
+APP_DIR="$ROOT/.e2e-app"
 
 bash "$ROOT/scripts/e2e/setup.sh"
 
