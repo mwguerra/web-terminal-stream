@@ -169,7 +169,7 @@ describe('workingDirectory', function () {
 
         $props = $component->getComponentProperties();
 
-        expect($props['connectionConfig']['working_directory'])->toBe('/home/user');
+        expect(connectionBehind($props)['working_directory'])->toBe('/home/user');
     });
 
     it('returns self for method chaining', function () {
@@ -245,7 +245,7 @@ describe('component properties', function () {
 
         $props = $component->getComponentProperties();
 
-        expect($props['connectionConfig'])->toBe(['type' => 'local'])
+        expect(connectionBehind($props))->toBe(['type' => 'local'])
             ->and($props['height'])->toBe('500px')
             ->and($props['title'])->toBe('Console')
             ->and($props['theme'])->toBe(['background' => '#000000'])

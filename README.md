@@ -600,7 +600,7 @@ TerminalDashboard::make()
 
 - Clicking a button **opens** that source's terminal, or **closes** it — closing destroys the pane, its WebSocket, and its PTY.
 - **Layout presets** (from `LayoutTree::arrange()`): `tiled` (2 = columns; 3 = one tall left + two stacked right; 4 = even 2×2 grid), `columns` (even side-by-side), `rows` (even stacked), `main-left` (big left + stacked right), `main-top`. All produce even ratios. The `arrangement` map picks a preset per count; anything unlisted uses the `default`.
-- `maxOpen` is capped at 4 and enforced server-side; opening re-checks the `useStreamTerminal` gate. Each source's connection config stays server-side (Locked) — the browser only ever sends a source id.
+- `maxOpen` is capped at 4 and enforced server-side; opening re-checks the `useStreamTerminal` gate. Each source's connection config stays server-side in the [connection vault](#connection-custody--credentials-never-reach-the-browser) — the browser only ever holds an opaque handle.
 
 Planned next increment (not in this release): per-user layout persistence, shared with the workspace.
 
@@ -710,6 +710,33 @@ Options the Stream terminal honors:
 | `confirmBeforeRun()` | First click arms an inline Confirm/Cancel prompt; only Confirm runs the script |
 
 The `Script` DTO accepts additional options inherited from the parent package (`icon`, `stopOnError`, `elevated`, `requiredCommands`, `willDisconnect`, `beforeMessage`, `disconnectMessage`); they are carried through but **not currently rendered or enforced by the Stream UI** — since commands are raw PTY input, there is no per-command exit-code tracking. The confirmation gate is UX, not a security control: a connected user already has a full shell.
+
+### Connection custody — credentials never reach the browser
+
+A resolved connection config can hold an SSH password or a **private key**. Since 1.1.0 it never becomes Livewire component state: `ResolvesTerminalProperties` hands it to the `ConnectionVault`, and the components keep only an opaque 64-char handle (`connectionRef`).
+
+> **Why this changed.** Before 1.1.0 the config sat in a `#[Locked] public array $connectionConfig`. `#[Locked]` prevents the *client* from writing a property back — it does **not** keep it off the wire. Livewire serializes every public property into the `wire:snapshot` attribute it renders, so the SSH host, username and private key were present in the page HTML of every terminal, dashboard and workspace (including dashboard sources nobody had opened). See [CHANGELOG](CHANGELOG.md#110).
+
+The vault stores the config encrypted in the cache, under the SHA-256 of the handle, bound to the identity that created it — a handle lifted from one user's page resolves to nothing for anyone else. The window slides on each read (`stream.connection_ttl`, default 2h idle), and once it lapses the terminal reports that it needs a reload rather than connecting to anything else.
+
+Nothing changes in your code: `->ssh(...)`, `->local()` and the standalone `@livewire('web-terminal-stream', ['connectionConfig' => [...]])` form all still work. Only reads of the old property have to move:
+
+```php
+// Before                                   After
+$component->connectionConfig;            // $component->connectionConfig()
+$props['connectionConfig'];              // app(ConnectionVault::class)->get($props['connectionRef'])
+```
+
+If your app only uses the schema components, also close the client-supplied path on the token route:
+
+```php
+// config/web-terminal-stream.php
+'security' => [
+    'allow_client_supplied_connections' => false,
+],
+```
+
+That endpoint accepts a whole connection config from the caller (the documented standalone flow). With an empty `ssh_allowed_hosts` it lets anyone past the Gate use the app server as an SSH pivot, so turn it off when nothing needs it.
 
 ### Authorization
 

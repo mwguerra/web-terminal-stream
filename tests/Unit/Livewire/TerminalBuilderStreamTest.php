@@ -41,7 +41,7 @@ describe('TerminalBuilder Stream Methods', function () {
             $builder = new TerminalBuilder;
             $builder->local();
             $params = $builder->getParameters();
-            expect($params['connectionConfig'])->toBe(['type' => 'local']);
+            expect(connectionBehind($params))->toBe(['type' => 'local']);
         });
     });
 });

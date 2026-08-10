@@ -7,6 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-08-10
+
+### Security
+
+- **The resolved connection config — including SSH private keys — was rendered into the page HTML.** Components held it in a `#[Locked] public array $connectionConfig`. `#[Locked]` stops the *client* writing a property back; it does **not** keep it off the wire, and Livewire serializes every public property into the `wire:snapshot` attribute it renders. So the SSH host, port, username, passphrase and **private key** were present in the delivered HTML of every `StreamTerminal`, every `StreamWorkspace` pane (via `panes`/`paneDefaults`/`paneTemplate`), and every `StreamDashboard` source — including sources the user had never opened. Anyone who could view the page, its cache, or a screen share could read the credentials for every configured target.
+
+  Configs are now held server-side by `Security\ConnectionVault`: encrypted in the cache, keyed by the SHA-256 of a 64-char random handle, and bound to the identity that minted it, so a handle scraped from one user's page resolves to nothing for anyone else. Components carry only the handle (`connectionRef`). Custody is taken at `Concerns\ResolvesTerminalProperties` — the single author of the prop-set contract — plus at each container's mount for prop sets passed in directly, so no path can hand a raw config to Livewire state.
+
+  Handles expire on an idle window (`stream.connection_ttl`, default 7200s, sliding on each read). A lapsed handle makes the terminal report that it needs a reload; it never falls through to a default connection, because an empty config reads as "local shell" to the layers below.
+
+- **`POST /terminal-stream/ws-token` can now refuse client-supplied connection configs.** That endpoint accepts a whole config from the caller, so with an empty `security.ssh_allowed_hosts` any caller past the Gate can use the app server as an SSH/SSRF pivot. It now prefers a `connectionRef`, and the raw-config path can be switched off with `security.allow_client_supplied_connections` (default `true` — unchanged behaviour; set it to `false` when only the schema components are used).
+
+### Added
+
+- `Security\ConnectionVault` — encrypted, identity-bound, sliding-window custody for resolved connection configs.
+- `Concerns\VaultsPaneConnections` — normalizes any pane prop set handed to a container so a raw config can't become component state.
+- Config: `stream.connection_ttl` (`WEB_TERMINAL_STREAM_CONNECTION_TTL`, default 7200) and `security.allow_client_supplied_connections` (`WEB_TERMINAL_STREAM_ALLOW_CLIENT_CONNECTIONS`, default true).
+
+### Changed
+
+- **Prop sets carry `connectionRef` instead of `connectionConfig`.** The fluent API is untouched — `->ssh(...)`, `->local()` and `@livewire('web-terminal-stream', ['connectionConfig' => [...]])` all still work, since mount still accepts a raw array and vaults it. Only *reads* move: `$component->connectionConfig` becomes `$component->connectionConfig()`, and `$props['connectionConfig']` becomes `app(ConnectionVault::class)->get($props['connectionRef'])`.
+- `StreamTerminal` gained a `connectionType` property carrying just `'local'`/`'ssh'`. It is not a secret, the chrome reads it every render, and keeping it out of the vault means a lapsed handle still renders a coherent terminal.
+
 ## [1.0.1] - 2026-08-06
 
 ### Changed

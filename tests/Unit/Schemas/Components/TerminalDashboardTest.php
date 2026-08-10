@@ -26,7 +26,7 @@ describe('TerminalDashboard', function () {
         expect($props['sources'])->toHaveKeys(['web', 'db'])
             ->and($props['sources']['web']['label'])->toBe('Web')
             ->and($props['sources']['db']['label'])->toBe('Database')
-            ->and($props['sources']['db']['props']['connectionConfig']['host'])->toBe('db')
+            ->and(connectionBehind($props['sources']['db']['props'])['host'])->toBe('db')
             // Dashboard panes fill their arranged rect.
             ->and($props['sources']['web']['props']['height'])->toBe('100%');
     });

@@ -13,14 +13,14 @@ describe('TerminalBuilder', function () {
 
             $params = $builder->getParameters();
 
-            expect($params['connectionConfig'])->toBe(['type' => 'local']);
+            expect(connectionBehind($params))->toBe(['type' => 'local']);
         });
 
         it('sets local connection', function () {
             $builder = new TerminalBuilder;
             $builder->local(workingDirectory: '/srv', environment: ['FOO' => 'bar']);
 
-            $config = $builder->getParameters()['connectionConfig'];
+            $config = connectionBehind($builder->getParameters());
 
             expect($config['type'])->toBe('local')
                 ->and($config['working_directory'])->toBe('/srv')
@@ -31,7 +31,7 @@ describe('TerminalBuilder', function () {
             $builder = new TerminalBuilder;
             $builder->ssh(host: 'example.com', username: 'deploy', password: 'secret', port: 2222);
 
-            $config = $builder->getParameters()['connectionConfig'];
+            $config = connectionBehind($builder->getParameters());
 
             expect($config['type'])->toBe('ssh')
                 ->and($config['host'])->toBe('example.com')
@@ -44,7 +44,7 @@ describe('TerminalBuilder', function () {
             $builder = new TerminalBuilder;
             $builder->ssh(host: 'example.com', username: 'deploy', privateKey: 'PRIVATE-KEY', passphrase: 'phrase');
 
-            $config = $builder->getParameters()['connectionConfig'];
+            $config = connectionBehind($builder->getParameters());
 
             expect($config['type'])->toBe('ssh')
                 ->and($config['private_key'])->toBe('PRIVATE-KEY')
@@ -55,7 +55,7 @@ describe('TerminalBuilder', function () {
             $builder = new TerminalBuilder;
             $builder->connection(ConnectionConfig::local(workingDirectory: '/tmp'));
 
-            $config = $builder->getParameters()['connectionConfig'];
+            $config = connectionBehind($builder->getParameters());
 
             expect($config['type'])->toBe('local')
                 ->and($config['working_directory'])->toBe('/tmp');
@@ -72,7 +72,7 @@ describe('TerminalBuilder', function () {
                 passphrase: 'phrase',
             ));
 
-            $config = $builder->getParameters()['connectionConfig'];
+            $config = connectionBehind($builder->getParameters());
 
             expect($config['private_key'])->toBe('PEM-CONTENT')
                 ->and($config['passphrase'])->toBe('phrase');
@@ -82,7 +82,7 @@ describe('TerminalBuilder', function () {
             $builder = new TerminalBuilder;
             $builder->local()->workingDirectory('/var/www');
 
-            expect($builder->getParameters()['connectionConfig']['working_directory'])->toBe('/var/www');
+            expect(connectionBehind($builder->getParameters())['working_directory'])->toBe('/var/www');
         });
     });
 

@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Str;
 use Livewire\Attributes\Locked;
 use Livewire\Component;
+use MWGuerra\WebTerminalStream\Concerns\VaultsPaneConnections;
 use MWGuerra\WebTerminalStream\Data\Keymap;
 use MWGuerra\WebTerminalStream\Data\Layout\LayoutTree;
 use MWGuerra\WebTerminalStream\Enums\SplitOrientation;
@@ -30,6 +31,8 @@ use MWGuerra\WebTerminalStream\Enums\SplitOrientation;
  */
 class StreamWorkspace extends Component
 {
+    use VaultsPaneConnections;
+
     public string $height = '600px';
 
     /** The authoritative split tree; null renders the empty state. */
@@ -245,6 +248,9 @@ class StreamWorkspace extends Component
     {
         $config['height'] = '100%';
 
-        return $config;
+        // Every pane prop set lands in a public Livewire property, so a raw
+        // connection config here would ship to the browser. Panes cloned on
+        // split inherit the handle, which is correct: same target, same custody.
+        return $this->vaultPaneProps($config);
     }
 }

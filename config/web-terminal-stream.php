@@ -22,6 +22,14 @@ return [
         // exposed through the browser.
         'allow_local' => env('WEB_TERMINAL_STREAM_ALLOW_LOCAL', true),
 
+        // Whether POST /terminal-stream/ws-token may accept a whole connection
+        // config from the CLIENT. That is the documented standalone flow, but it
+        // means the app server dials wherever the caller says — with an empty
+        // `ssh_allowed_hosts` below, an SSH/SSRF pivot behind nothing but the
+        // Gate. Apps that only use the schema components send an opaque
+        // `connectionRef` instead and should turn this off.
+        'allow_client_supplied_connections' => env('WEB_TERMINAL_STREAM_ALLOW_CLIENT_CONNECTIONS', true),
+
         // SSH destination allow-list. Empty = any host allowed — NOT
         // recommended in production, since the server becomes an SSH/SSRF
         // pivot. List exact hostnames/IPs, optionally as "host:port" to pin
@@ -107,6 +115,14 @@ return [
         'working_directory' => env('WEB_TERMINAL_STREAM_CWD'),
         'max_session_lifetime' => 3600,
         'signed_url_ttl' => 300,
+
+        // How long a resolved connection config stays in server-side custody
+        // (ConnectionVault) while its terminal sits on screen. The window slides
+        // on every read, so this is an IDLE timeout, not a total one: a page has
+        // to survive being left open over lunch and still connect. Past it, the
+        // terminal reports that it needs a reload rather than connecting to
+        // anything unexpected.
+        'connection_ttl' => env('WEB_TERMINAL_STREAM_CONNECTION_TTL', 7200),
 
         // Resilience limits for the long-running WebSocket server. The server
         // is a single process holding one PTY per connection, so unbounded

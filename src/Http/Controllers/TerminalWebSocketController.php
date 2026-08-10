@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Str;
 use MWGuerra\WebTerminalStream\Security\ConnectionPolicy;
+use MWGuerra\WebTerminalStream\Security\ConnectionVault;
 
 class TerminalWebSocketController extends Controller
 {
@@ -22,10 +23,31 @@ class TerminalWebSocketController extends Controller
             abort(403, 'Unauthorized.');
         }
 
-        $config = $request->input('connectionConfig', []);
+        // Preferred path: an opaque handle minted server-side, which the caller
+        // cannot forge or point somewhere else. {@see ConnectionVault}
+        $ref = $request->input('connectionRef');
 
-        if (! is_array($config)) {
-            abort(422, 'connectionConfig must be an object.');
+        if (is_string($ref) && $ref !== '') {
+            $config = app(ConnectionVault::class)->get($ref);
+
+            if ($config === []) {
+                abort(410, 'This terminal session is no longer valid. Reload the page to reconnect.');
+            }
+        } else {
+            // Legacy path: the caller hands over a whole connection config. This
+            // makes the app server dial wherever the CLIENT says, which with an
+            // empty `ssh_allowed_hosts` is an SSH/SSRF pivot behind nothing but
+            // the Gate. Kept for the documented standalone flow, but an app that
+            // only uses the schema components should switch it off.
+            if (! config('web-terminal-stream.security.allow_client_supplied_connections', true)) {
+                abort(403, 'Client-supplied connection configs are disabled; use connectionRef.');
+            }
+
+            $config = $request->input('connectionConfig', []);
+
+            if (! is_array($config)) {
+                abort(422, 'connectionConfig must be an object.');
+            }
         }
 
         // The connection target must be permitted by the server-side policy —

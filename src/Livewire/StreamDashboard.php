@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Str;
 use Livewire\Attributes\Locked;
 use Livewire\Component;
+use MWGuerra\WebTerminalStream\Concerns\VaultsPaneConnections;
 use MWGuerra\WebTerminalStream\Data\Layout\LayoutTree;
 
 /**
@@ -26,6 +27,8 @@ use MWGuerra\WebTerminalStream\Data\Layout\LayoutTree;
  */
 class StreamDashboard extends Component
 {
+    use VaultsPaneConnections;
+
     public string $height = '600px';
 
     /** @var array<string, array{label: string, props: array<string, mixed>}> */
@@ -76,6 +79,15 @@ class StreamDashboard extends Component
         array $themeCss = [],
     ): void {
         $this->componentId = 'wtsd-'.Str::random(8);
+
+        // `$sources` is a public Livewire property, so it is serialized into
+        // wire:snapshot for EVERY source — including the ones nobody opened.
+        // A raw config here would publish credentials for the whole roster at
+        // once; take custody before it becomes component state.
+        foreach ($sources as $id => $source) {
+            $sources[$id]['props'] = $this->vaultPaneProps((array) $source['props']);
+        }
+
         $this->sources = $sources;
         $this->arrangement = self::normalizeArrangement($arrangement);
         $this->defaultPreset = $defaultPreset;

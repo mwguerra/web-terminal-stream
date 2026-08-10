@@ -56,7 +56,7 @@ describe('StreamWorkspace', function () {
             expect($tree['type'])->toBe('pane')
                 ->and($panes)->toHaveCount(1)
                 ->and(array_key_first($panes))->toBe($tree['paneId'])
-                ->and($panes[$tree['paneId']]['connectionConfig'])->toBe(['type' => 'local']);
+                ->and(connectionBehind($panes[$tree['paneId']]))->toBe(['type' => 'local']);
         });
 
         it('forces pane height to 100% — panes fill their rects', function () {

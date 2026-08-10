@@ -1,3 +1,42 @@
+# Upgrading
+
+## 1.0.x → 1.1.0
+
+**Security release — upgrade, then treat any SSH credential configured before it as exposed.**
+
+Until 1.0.1 the resolved connection config was a public Livewire property. Livewire serializes those into the `wire:snapshot` attribute it renders, so the SSH host, username, passphrase and **private key** were delivered in the page HTML of every terminal — and of every dashboard source, including ones nobody opened. `#[Locked]` did not prevent this; it only stops the client writing a value back.
+
+After upgrading, **rotate any key or password that was reachable through a terminal page**, and treat browser caches, screen recordings and shared sessions from that period as having contained them.
+
+### What you have to change
+
+Nothing in the fluent API. `->ssh(...)`, `->local()`, `TerminalDashboard`, `TerminalWorkspace` and the standalone `@livewire('web-terminal-stream', ['connectionConfig' => [...]])` form all still work — mount still accepts a raw array and takes custody of it.
+
+Only **reads** of the old property move:
+
+```php
+// Before                                  After
+$component->connectionConfig            // $component->connectionConfig()
+$props['connectionConfig']              // app(ConnectionVault::class)->get($props['connectionRef'])
+```
+
+### What you should also do
+
+If your app only uses the schema components, close the client-supplied path on the token route — it lets any caller past the Gate use your server as an SSH pivot:
+
+```php
+// config/web-terminal-stream.php
+'security' => [
+    'allow_client_supplied_connections' => false,
+],
+```
+
+### Requirements this adds
+
+Handles live in the cache between the render and the connect, so the app needs a cache store that **persists across requests** — anything except the `array` driver. (The package already required a shared store for the PTY handoff to the WebSocket server, so this is the same bar.) Tune the idle window with `stream.connection_ttl` (default 7200s, sliding on each read); past it the terminal asks for a page reload instead of connecting.
+
+---
+
 # Migrating from `mwguerra/web-terminal`
 
 This guide is for host applications that used **Stream mode** in `mwguerra/web-terminal` and want to move to this standalone, Stream-only package. The two packages are fully namespaced and can be installed side-by-side during the transition.

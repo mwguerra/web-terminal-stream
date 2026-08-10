@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use MWGuerra\WebTerminalStream\Security\ConnectionVault;
 use MWGuerra\WebTerminalStream\Tests\IntegrationTestCase;
 use MWGuerra\WebTerminalStream\Tests\TestCase;
 use MWGuerra\WebTerminalStream\WebSocket\TerminalPtyBridge;
@@ -140,4 +141,19 @@ function sshTargetReachable(): bool
     fclose($socket);
 
     return true;
+}
+
+/**
+ * The connection config behind a prop set's opaque handle.
+ *
+ * Prop sets stopped carrying `connectionConfig` in 1.1.0: a Livewire public
+ * property is serialized into `wire:snapshot` and shipped to the browser, so
+ * the resolved config (SSH host, username, PRIVATE KEY) was in the page HTML.
+ * Components now hold a ConnectionVault handle and the config stays server-side
+ * — tests that care about the target resolve it the same way the component does.
+ */
+function connectionBehind(array $props): array
+{
+    return app(ConnectionVault::class)
+        ->get($props['connectionRef'] ?? '');
 }

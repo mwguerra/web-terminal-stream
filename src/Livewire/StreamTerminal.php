@@ -14,6 +14,7 @@ use MWGuerra\WebTerminalStream\Enums\ConnectionType;
 use MWGuerra\WebTerminalStream\Events\TerminalConnectedEvent;
 use MWGuerra\WebTerminalStream\Events\TerminalDisconnectedEvent;
 use MWGuerra\WebTerminalStream\Security\ConnectionPolicy;
+use MWGuerra\WebTerminalStream\Security\ConnectionVault;
 use MWGuerra\WebTerminalStream\Services\TerminalLogger;
 
 class StreamTerminal extends Component
@@ -39,8 +40,26 @@ class StreamTerminal extends Component
     #[Locked]
     public ?int $fontSize = null;
 
+    /**
+     * Opaque handle for the connection config, NOT the config itself.
+     *
+     * Everything public on a Livewire component is serialized into the
+     * `wire:snapshot` attribute and delivered to the browser — `#[Locked]`
+     * only stops the client changing it on the way back. Holding the resolved
+     * config here therefore published the SSH host, username and private key
+     * in the page HTML. {@see ConnectionVault}
+     */
     #[Locked]
-    public array $connectionConfig = [];
+    public string $connectionRef = '';
+
+    /**
+     * The connection KIND ('local' / 'ssh') — carried in the clear on purpose.
+     * It is not a secret, the chrome reads it on every render, and keeping it
+     * out of the vault means a lapsed handle still renders a coherent terminal
+     * instead of silently degrading to a local shell.
+     */
+    #[Locked]
+    public string $connectionType = 'local';
 
     #[Locked]
     public string $componentId = '';
@@ -65,6 +84,7 @@ class StreamTerminal extends Component
 
     public function mount(
         array $connectionConfig = [],
+        string $connectionRef = '',
         string $height = '400px',
         string $title = 'Terminal',
         array $theme = [],
@@ -79,7 +99,18 @@ class StreamTerminal extends Component
         ?string $logIdentifier = null,
         array $logMetadata = [],
     ): void {
-        $this->connectionConfig = $connectionConfig;
+        // Two entry points meet here. Schema-driven usage arrives with a handle
+        // already minted by ResolvesTerminalProperties; standalone Blade/Livewire
+        // usage (`@livewire('web-terminal-stream', ['connectionConfig' => [...]])`)
+        // still passes a raw array, so take custody of it now — this method is
+        // the last place the config exists before Livewire serializes state.
+        $this->connectionRef = $connectionRef !== ''
+            ? $connectionRef
+            : app(ConnectionVault::class)->put($connectionConfig);
+
+        $resolved = $connectionConfig !== [] ? $connectionConfig : $this->connectionConfig();
+        $this->connectionType = (ConnectionType::tryFrom($resolved['type'] ?? 'local') ?? ConnectionType::Local)->value;
+
         $this->height = $height;
         $this->title = $title;
         $this->theme = $theme;
@@ -102,7 +133,17 @@ class StreamTerminal extends Component
             return ['error' => 'Unauthorized'];
         }
 
-        $reason = (new ConnectionPolicy)->deniedReason($this->connectionConfig);
+        $config = $this->connectionConfig();
+
+        // An empty config means the vault entry is gone — expired, or minted
+        // for a different identity. Say so plainly: falling through would open
+        // a PTY somewhere nobody asked for, since an empty config reads as
+        // "local shell" to every layer below.
+        if ($config === []) {
+            return ['error' => 'This terminal session is no longer valid. Reload the page to reconnect.'];
+        }
+
+        $reason = (new ConnectionPolicy)->deniedReason($config);
         if ($reason !== null) {
             return ['error' => $reason];
         }
@@ -113,7 +154,7 @@ class StreamTerminal extends Component
 
         // Encrypted at rest so SSH credentials in the config are not readable
         // in whatever cache store the host uses; the server decrypts on pull.
-        Cache::put("terminal-stream-pty:{$sessionId}", encrypt($this->connectionConfig), $ttl);
+        Cache::put("terminal-stream-pty:{$sessionId}", encrypt($config), $ttl);
 
         $payload = json_encode([
             'userId' => auth()->id(),
@@ -153,12 +194,14 @@ class StreamTerminal extends Component
             $this->sessionId = Str::uuid()->toString();
         }
 
+        $config = $this->connectionConfig();
+
         event(new TerminalConnectedEvent(
             sessionId: $this->sessionId,
             connectionType: $this->getConnectionType(),
-            host: $this->connectionConfig['host'] ?? null,
-            port: isset($this->connectionConfig['port']) ? (int) $this->connectionConfig['port'] : null,
-            sshUsername: $this->connectionConfig['username'] ?? null,
+            host: $config['host'] ?? null,
+            port: isset($config['port']) ? (int) $config['port'] : null,
+            sshUsername: $config['username'] ?? null,
             userId: auth()->id() !== null ? (string) auth()->id() : null,
             terminalIdentifier: $this->logIdentifier,
             ipAddress: request()?->ip(),
@@ -168,9 +211,9 @@ class StreamTerminal extends Component
         $this->getLogger()->logConnection([
             'terminal_session_id' => $this->sessionId,
             'connection_type' => $this->getConnectionType()->value,
-            'host' => $this->connectionConfig['host'] ?? null,
-            'port' => isset($this->connectionConfig['port']) ? (int) $this->connectionConfig['port'] : null,
-            'ssh_username' => $this->connectionConfig['username'] ?? null,
+            'host' => $config['host'] ?? null,
+            'port' => isset($config['port']) ? (int) $config['port'] : null,
+            'ssh_username' => $config['username'] ?? null,
         ]);
     }
 
@@ -182,11 +225,13 @@ class StreamTerminal extends Component
 
         $this->isConnected = false;
 
+        $config = $this->connectionConfig();
+
         event(new TerminalDisconnectedEvent(
             sessionId: $this->sessionId,
             connectionType: $this->getConnectionType(),
-            host: $this->connectionConfig['host'] ?? null,
-            port: isset($this->connectionConfig['port']) ? (int) $this->connectionConfig['port'] : null,
+            host: $config['host'] ?? null,
+            port: isset($config['port']) ? (int) $config['port'] : null,
             userId: auth()->id() !== null ? (string) auth()->id() : null,
             terminalIdentifier: $this->logIdentifier,
             ipAddress: request()?->ip(),
@@ -195,8 +240,8 @@ class StreamTerminal extends Component
 
         $this->getLogger()->logDisconnection($this->sessionId, [
             'connection_type' => $this->getConnectionType()->value,
-            'host' => $this->connectionConfig['host'] ?? null,
-            'port' => isset($this->connectionConfig['port']) ? (int) $this->connectionConfig['port'] : null,
+            'host' => $config['host'] ?? null,
+            'port' => isset($config['port']) ? (int) $config['port'] : null,
         ]);
     }
 
@@ -216,9 +261,22 @@ class StreamTerminal extends Component
         return ! Gate::has('useStreamTerminal') || Gate::allows('useStreamTerminal');
     }
 
+    /**
+     * The resolved connection config, fetched from server-side custody.
+     *
+     * Deliberately a method and not a property: a property would be public
+     * Livewire state again, which is the whole defect this replaced.
+     *
+     * @return array<string, mixed>
+     */
+    public function connectionConfig(): array
+    {
+        return app(ConnectionVault::class)->get($this->connectionRef);
+    }
+
     protected function getConnectionType(): ConnectionType
     {
-        return ConnectionType::tryFrom($this->connectionConfig['type'] ?? 'local') ?? ConnectionType::Local;
+        return ConnectionType::tryFrom($this->connectionType) ?? ConnectionType::Local;
     }
 
     protected function getLogger(): TerminalLogger

@@ -36,7 +36,7 @@ describe('TerminalWorkspace', function () {
 
             $defaults = $props['paneDefaults'];
 
-            expect($defaults['connectionConfig']['host'])->toBe('example.com')
+            expect(connectionBehind($defaults)['host'])->toBe('example.com')
                 ->and($defaults['title'])->toBe('Deploy')
                 ->and($defaults['theme'])->toBe(['background' => '#000'])
                 ->and($defaults['connectionBehavior'])->toBe('always');
