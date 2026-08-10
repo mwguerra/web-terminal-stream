@@ -30,8 +30,9 @@ composer create-project laravel/laravel:^13.0 "$APP_DIR" --no-interaction --pref
 
 cd "$APP_DIR"
 
-# This package, symlinked from the repo root.
-composer config repositories.wts '{"type": "path", "url": "../../", "options": {"symlink": true}}'
+# This package, symlinked from the repo root. One level up, not two: the app
+# lives at <root>/.e2e-app, deliberately outside tests/ (see APP_DIR above).
+composer config repositories.wts '{"type": "path", "url": "../", "options": {"symlink": true}}'
 composer require "mwguerra/web-terminal-stream:@dev" "filament/filament:^5.0" -W --no-interaction
 
 php artisan filament:install --panels --no-interaction
