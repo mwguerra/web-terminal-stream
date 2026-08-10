@@ -15,7 +15,8 @@ class TerminalServeCommand extends Command
      */
     protected $signature = 'terminal-stream:serve
                             {--host= : The host to bind to}
-                            {--port= : The port to listen on}';
+                            {--port= : The port to listen on}
+                            {--workers= : Worker processes sharing the port (default 1)}';
 
     /**
      * The console command description.
@@ -46,11 +47,133 @@ class TerminalServeCommand extends Command
             $this->warn('[preflight] '.$warning);
         }
 
+        $workers = (int) ($this->option('workers') ?: config('web-terminal-stream.stream.workers', 1));
+
+        if ($workers > 1) {
+            return $this->serveWithWorkers($host, (int) $port, $workers);
+        }
+
         $this->info("Starting WebSocket server on {$host}:{$port}...");
         $this->info('Press Ctrl+C to stop.');
 
         $provider = new ReactPhpProvider($this->laravel);
         $provider->start($host, (int) $port);
+
+        return self::SUCCESS;
+    }
+
+    /**
+     * Run N independent server processes sharing one port.
+     *
+     * WHY: a session's SSH connect + auth runs synchronously on its server's
+     * event loop, so while one connects, every session on THAT loop stalls. The
+     * fix that does not mean rewriting the SSH layer is to have more than one
+     * loop: with N workers a connect storm freezes 1/N of the fleet instead of
+     * all of it, and the phpseclib crypto spreads across N cores.
+     *
+     * Each worker binds the same port with SO_REUSEPORT rather than inheriting
+     * one listening socket, which keeps the child startup identical to the
+     * single-process path — no descriptor passing, no shared accept queue to
+     * reason about.
+     *
+     * A session lives entirely inside the worker that accepted it, and the
+     * token→config handoff goes through the shared cache, so no worker needs to
+     * know anything about another.
+     */
+    private function serveWithWorkers(string $host, int $port, int $workers): int
+    {
+        if (! function_exists('pcntl_fork')) {
+            $this->error('--workers needs ext-pcntl. Install it, or run a single process.');
+
+            return self::FAILURE;
+        }
+
+        $this->info("Starting {$workers} WebSocket workers on {$host}:{$port}...");
+        $this->info('Press Ctrl+C to stop.');
+
+        $children = [];
+        $shuttingDown = false;
+
+        $spawn = function () use ($host, $port): int {
+            $pid = pcntl_fork();
+
+            if ($pid === 0) {
+                // Child: its own loop, its own sessions, its own bind.
+                (new ReactPhpProvider($this->laravel))->start($host, $port, reusePort: true);
+                exit(0);
+            }
+
+            return $pid;
+        };
+
+        for ($i = 0; $i < $workers; $i++) {
+            $pid = $spawn();
+
+            if ($pid > 0) {
+                $children[$pid] = true;
+
+                continue;
+            }
+
+            // Only the parent reaches here — the child exits inside $spawn — so
+            // anything not a child pid is a failed fork.
+            $this->error('Failed to fork a worker.');
+
+            return self::FAILURE;
+        }
+
+        pcntl_async_signals(true);
+
+        $stop = function (int $signal) use (&$children, &$shuttingDown): void {
+            if ($shuttingDown) {
+                return;
+            }
+
+            $shuttingDown = true;
+            $this->info('[supervisor] shutting down; signalling workers.');
+
+            // Pass the signal on so each worker runs its own graceful shutdown
+            // and tears down its PTYs, rather than being killed with sessions
+            // still open.
+            foreach (array_keys($children) as $pid) {
+                posix_kill($pid, $signal);
+            }
+        };
+
+        foreach ([SIGINT, SIGTERM] as $signal) {
+            pcntl_signal($signal, $stop);
+        }
+
+        // Supervise: a worker that dies takes its sessions with it, but the
+        // fleet must not shrink silently for the rest of the process's life.
+        //
+        // WNOHANG + a short sleep rather than a blocking pcntl_wait(): a
+        // blocking wait never yielded to the signal handler here, so SIGTERM
+        // was accepted and then ignored — the supervisor and every worker
+        // stayed up (reproduced 3/3 before this changed). Polling for exits is
+        // cheap at this cadence and leaves an obvious point where pending
+        // signals get dispatched.
+        while ($children !== []) {
+            $pid = pcntl_wait($status, WNOHANG);
+
+            if ($pid > 0) {
+                unset($children[$pid]);
+
+                if (! $shuttingDown) {
+                    $this->warn("[supervisor] worker {$pid} exited; replacing it.");
+                    $replacement = $spawn();
+
+                    if ($replacement > 0) {
+                        $children[$replacement] = true;
+                    }
+                }
+
+                continue;
+            }
+
+            pcntl_signal_dispatch();
+            usleep(200_000);
+        }
 
         return self::SUCCESS;
     }

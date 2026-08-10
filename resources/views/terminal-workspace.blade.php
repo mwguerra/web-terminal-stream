@@ -9,7 +9,9 @@
     is therefore read from $wire inside init(), never inlined via @js().
 --}}
 <div
-    class="wts-workspace relative overflow-hidden"
+    {{-- See the dashboard's note: the divider background is clipped to the
+         pane silhouette so it cannot show as square corners behind them. --}}
+    class="wts-workspace relative overflow-hidden rounded-xl"
     style="height: {{ $height }}; min-height: 200px;@foreach ($themeCss as $property => $value) {{ $property }}: {{ $value }};@endforeach"
     data-wts-workspace="{{ $componentId }}"
     x-data="wtsWorkspace"
@@ -38,7 +40,19 @@
             class="wts-pane absolute"
             tabindex="-1"
             x-bind:style="paneStyle('{{ $paneId }}')"
-            x-bind:class="{ 'wts-pane-zoomed': zoomedPaneId === '{{ $paneId }}' }"
+            {{-- wts-pane-solo dims the pane's close dots when this is the only
+                 pane left. The server prop cannot express this: Livewire skips
+                 keyed children on re-render, so a pane mounted while closable
+                 never hears that it became the last one. The container knows,
+                 so the container says so. --}}
+            x-bind:class="{
+                'wts-pane-zoomed': zoomedPaneId === '{{ $paneId }}',
+                'wts-pane-solo': paneCount <= 1,
+            }"
+            {{-- Window controls route to the same close() the × button uses,
+                 and to the same guard: the last pane is not closable, so the
+                 workspace would be left empty by a stray click. --}}
+            x-on:wts-window-close.stop="paneCount > 1 && close('{{ $paneId }}')"
         >
             {{-- Per-pane close button — only while more than one pane exists.
                  The sole remaining pane has no button and fills the workspace. --}}

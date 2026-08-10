@@ -17,6 +17,7 @@ coverage.txt
 /screenshots/
 /test-results/
 /tests/screenshots/
+/tests/e2e/artifacts/
 test-scripts.mjs
 debug-csrf.mjs
 

@@ -10,6 +10,7 @@ use Illuminate\Contracts\Encryption\Encrypter;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use MWGuerra\WebTerminalStream\Data\ConnectionConfig;
+use MWGuerra\WebTerminalStream\Metrics\ServerMetrics;
 use MWGuerra\WebTerminalStream\Security\ConnectionPolicy;
 use MWGuerra\WebTerminalStream\Services\TerminalLogger;
 use Ratchet\RFC6455\Handshake\RequestVerifier;
@@ -17,6 +18,7 @@ use Ratchet\RFC6455\Handshake\ServerNegotiator;
 use Ratchet\RFC6455\Messaging\CloseFrameChecker;
 use Ratchet\RFC6455\Messaging\Frame;
 use Ratchet\RFC6455\Messaging\MessageBuffer;
+use React\EventLoop\LoopInterface;
 use React\Socket\ConnectionInterface;
 
 class ReactPhpWebSocketServer
@@ -60,6 +62,16 @@ class ReactPhpWebSocketServer
 
     private ?TerminalLogger $logger;
 
+    private ?LoopInterface $loop = null;
+
+    private ?ServerMetrics $metrics = null;
+
+    /** 'event' = the loop wakes us on readable transports; 'poll' = the legacy timer sweep. */
+    private string $ioMode = 'poll';
+
+    /** @var array<int, list<resource>> connection id => streams registered with the loop */
+    private array $watched = [];
+
     public function __construct(
         PtySessionRegistry $registry,
         Encrypter $encrypter,
@@ -78,6 +90,81 @@ class ReactPhpWebSocketServer
             new HttpFactory,
         );
         $this->originValidator = new OriginValidator($config['allowed_origins'] ?? []);
+    }
+
+    /**
+     * Hand the server the event loop so PTY output can be event-driven.
+     *
+     * Without this the server falls back to polling every session on a timer —
+     * the historical behaviour, kept reachable through `stream.io_mode=poll`
+     * so a host that hits trouble can revert without downgrading the package.
+     */
+    public function attachLoop(LoopInterface $loop, string $ioMode = 'event'): void
+    {
+        $this->loop = $loop;
+        $this->ioMode = $ioMode === 'poll' ? 'poll' : 'event';
+    }
+
+    public function isEventDriven(): bool
+    {
+        return $this->ioMode === 'event' && $this->loop !== null;
+    }
+
+    public function attachMetrics(ServerMetrics $metrics): void
+    {
+        $this->metrics = $metrics;
+    }
+
+    /** Live PTY count for this worker — what the published snapshot reports. */
+    public function liveSessions(): int
+    {
+        return count($this->bridges);
+    }
+
+    /**
+     * Ask the loop to wake us when this session's transport has bytes, instead
+     * of asking the session every few milliseconds whether it does.
+     */
+    private function watchBridge(int $id): void
+    {
+        if (! $this->isEventDriven()) {
+            return;
+        }
+
+        $bridge = $this->bridges[$id] ?? null;
+
+        if ($bridge === null) {
+            return;
+        }
+
+        $streams = $bridge->readableStreams();
+
+        if ($streams === []) {
+            // Nothing watchable (shouldn't happen) — the backstop sweep still
+            // covers this session, so it degrades to slow rather than silent.
+            return;
+        }
+
+        $bridge->useEventDrivenReads();
+
+        foreach ($streams as $stream) {
+            $this->loop->addReadStream($stream, function () use ($id): void {
+                $this->pumpSession($id);
+            });
+        }
+
+        $this->watched[$id] = $streams;
+    }
+
+    private function unwatchBridge(int $id): void
+    {
+        foreach ($this->watched[$id] ?? [] as $stream) {
+            if (is_resource($stream)) {
+                $this->loop?->removeReadStream($stream);
+            }
+        }
+
+        unset($this->watched[$id]);
     }
 
     public function handleConnection(ConnectionInterface $conn): void
@@ -232,6 +319,9 @@ class ReactPhpWebSocketServer
         // just closes — the client can retry once capacity frees up.
         $reason = $this->capacityReason(is_int($userId) ? $userId : (is_numeric($userId) ? (int) $userId : null));
         if ($reason !== null) {
+            // Capacity actually denied to a user — the number an operator has
+            // to see before customers start reporting it.
+            $this->metrics?->refusedConnection($reason);
             Log::warning("[web-terminal-stream] refused session {$sessionId}: {$reason}");
             $conn->write("HTTP/1.1 503 Service Unavailable\r\nConnection: close\r\nContent-Length: 0\r\n\r\n");
             $conn->close();
@@ -251,7 +341,13 @@ class ReactPhpWebSocketServer
             $shell = $this->config['shell'] ?? '/bin/bash';
 
             $bridge = new TerminalPtyBridge($connectionConfig, $sessionId, (int) ($userId ?? 0), $this->registry);
+
+            // Timed because this is the blocking one: SSH connect + auth runs
+            // synchronously on the loop, so every OTHER session on this worker
+            // is frozen for exactly this long.
+            $connectStartedAt = microtime(true);
             $bridge->start($shell);
+            $connectMs = (microtime(true) - $connectStartedAt) * 1000;
         } catch (\Throwable $e) {
             Log::warning("[web-terminal-stream] failed to start terminal for session {$sessionId}: {$e->getMessage()}");
             $conn->close();
@@ -265,6 +361,11 @@ class ReactPhpWebSocketServer
         $this->startedAt[$id] = time();
         $this->sessionIds[$id] = $sessionId;
         $this->connectionTypes[$id] = is_string($configData['type'] ?? null) ? $configData['type'] : 'local';
+
+        // From here the loop owns the wakeups for this session.
+        $this->watchBridge($id);
+
+        $this->metrics?->sessionOpened($this->connectionTypes[$id], $connectMs);
 
         // Set up WebSocket message buffer for this connection.
         // expectMask = true because browser clients always mask frames.
@@ -306,6 +407,15 @@ class ReactPhpWebSocketServer
 
     private function handleClose(int $id): void
     {
+        // Deregister BEFORE terminating: the loop must stop watching a stream
+        // while that stream is still a live resource, or it keeps a handle to
+        // a closed descriptor and wakes up forever on it.
+        $this->unwatchBridge($id);
+
+        if (isset($this->bridges[$id])) {
+            $this->metrics?->sessionClosed($this->connectionTypes[$id] ?? 'local');
+        }
+
         $bridge = $this->bridges[$id] ?? null;
         if ($bridge !== null) {
             try {
@@ -348,36 +458,19 @@ class ReactPhpWebSocketServer
      */
     public function tick(): void
     {
-        foreach ($this->bridges as $id => $bridge) {
-            try {
-                if (! $bridge->isRunning()) {
-                    // The shell exited (e.g. the user typed `exit`) or the SSH
-                    // transport dropped. Close the socket and evict the bridge —
-                    // otherwise a finished session leaks here forever and the
-                    // client is never told the terminal is gone.
-                    $this->closeSession($id);
-
-                    continue;
-                }
-
-                $output = $bridge->read();
-                if ($output === '') {
-                    continue;
-                }
-
-                $conn = $this->connections[$id] ?? null;
-                if ($conn !== null) {
-                    // Server-to-client frames are not masked per RFC6455.
-                    $frame = new Frame($output, true, Frame::OP_TEXT);
-                    $conn->write($frame->getContents());
-                }
-            } catch (\Throwable) {
-                // One bad session must not crash the shared event loop or
-                // poison any of the other active sessions. Close it cleanly
-                // and move on.
-                $this->closeSession($id);
-            }
+        if ($this->bridges === []) {
+            return;
         }
+
+        // Timed because this is the loop's own heartbeat: a sweep that grows is
+        // a worker running out of headroom, visible before users feel it.
+        $startedAt = microtime(true);
+
+        foreach (array_keys($this->bridges) as $id) {
+            $this->pumpSession($id);
+        }
+
+        $this->metrics?->sweepTook((microtime(true) - $startedAt) * 1000);
     }
 
     /**
@@ -386,6 +479,59 @@ class ReactPhpWebSocketServer
      * Used both from explicit close events and from the loop's safety net
      * (tick / handleMessage) when a bridge throws unexpectedly.
      */
+    /**
+     * Drain one session's PTY and forward whatever it produced.
+     *
+     * Called by the loop the moment a transport becomes readable (event mode)
+     * and by the periodic sweep (both modes). Draining in a loop matters: one
+     * readable notification can cover many buffered packets, and phpseclib
+     * hands them over a `read()` at a time, so returning after the first would
+     * leave output stranded until the next wakeup.
+     */
+    private function pumpSession(int $id): void
+    {
+        $bridge = $this->bridges[$id] ?? null;
+
+        if ($bridge === null) {
+            return;
+        }
+
+        try {
+            if (! $bridge->isRunning()) {
+                // The shell exited (e.g. the user typed `exit`) or the SSH
+                // transport dropped. Close the socket and evict the bridge —
+                // otherwise a finished session leaks here forever and the
+                // client is never told the terminal is gone.
+                $this->closeSession($id);
+
+                return;
+            }
+
+            $conn = $this->connections[$id] ?? null;
+
+            // Bounded so a firehose (`yes`, a huge `cat`) cannot starve the
+            // other sessions sharing this loop: we take a big bite, then yield
+            // and let the loop come back to us.
+            for ($chunk = 0; $chunk < 64; $chunk++) {
+                $output = $bridge->read();
+
+                if ($output === '') {
+                    break;
+                }
+
+                if ($conn !== null) {
+                    // Server-to-client frames are not masked per RFC6455.
+                    $frame = new Frame($output, true, Frame::OP_TEXT);
+                    $conn->write($frame->getContents());
+                }
+            }
+        } catch (\Throwable) {
+            // One bad session must not crash the shared event loop or poison
+            // any of the other active sessions. Close it cleanly and move on.
+            $this->closeSession($id);
+        }
+    }
+
     private function closeSession(int $id): void
     {
         $conn = $this->connections[$id] ?? null;

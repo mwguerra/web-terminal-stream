@@ -15,17 +15,19 @@ class PtySessionRegistry
 
     public function register(string $sessionId, int $pid, int $userId): void
     {
-        $sessions = $this->all();
-        $sessions[$sessionId] = [
-            'pid' => $pid,
-            'userId' => $userId,
-            'createdAt' => time(),
-            // Kernel start-time of the PID (Linux). Recorded so a later reap
-            // can tell "our process is still alive" from "the PID was recycled
-            // by an unrelated process" — killing the latter is a serious bug.
-            'startTime' => self::processStartTime($pid),
-        ];
-        $this->save($sessions);
+        $this->mutate(function (array $sessions) use ($sessionId, $pid, $userId): array {
+            $sessions[$sessionId] = [
+                'pid' => $pid,
+                'userId' => $userId,
+                'createdAt' => time(),
+                // Kernel start-time of the PID (Linux). Recorded so a later reap
+                // can tell "our process is still alive" from "the PID was recycled
+                // by an unrelated process" — killing the latter is a serious bug.
+                'startTime' => self::processStartTime($pid),
+            ];
+
+            return $sessions;
+        });
     }
 
     /**
@@ -94,9 +96,11 @@ class PtySessionRegistry
 
     public function unregister(string $sessionId): void
     {
-        $sessions = $this->all();
-        unset($sessions[$sessionId]);
-        $this->save($sessions);
+        $this->mutate(function (array $sessions) use ($sessionId): array {
+            unset($sessions[$sessionId]);
+
+            return $sessions;
+        });
     }
 
     public function find(string $sessionId): ?array
@@ -120,33 +124,70 @@ class PtySessionRegistry
 
     public function cleanupStale(int $maxLifetimeSeconds): array
     {
-        $sessions = $this->all();
         $stale = [];
         $now = time();
 
-        foreach ($sessions as $sessionId => $session) {
-            if ($now - $session['createdAt'] > $maxLifetimeSeconds) {
-                $stale[$sessionId] = $session;
-                unset($sessions[$sessionId]);
+        $this->mutate(function (array $sessions) use ($maxLifetimeSeconds, $now, &$stale): array {
+            foreach ($sessions as $sessionId => $session) {
+                if ($now - $session['createdAt'] > $maxLifetimeSeconds) {
+                    $stale[$sessionId] = $session;
+                    unset($sessions[$sessionId]);
+                }
             }
-        }
 
-        $this->save($sessions);
+            return $sessions;
+        });
 
         return $stale;
     }
 
-    private function save(array $sessions): void
+    /**
+     * Read-modify-write the registry under an exclusive lock.
+     *
+     * `LOCK_EX` on the write alone is not enough: two processes can both read
+     * the old state, and the second write silently drops the first's entry.
+     * That was harmless while the server was a single process; with
+     * `--workers` it is several processes touching one file, so the whole
+     * cycle has to be inside the lock.
+     *
+     * @param  callable(array<string, mixed>): array<string, mixed>  $mutator
+     */
+    private function mutate(callable $mutator): void
+    {
+        $this->ensureDirectory();
+
+        $handle = @fopen($this->registryPath, 'c+');
+
+        if ($handle === false) {
+            return;
+        }
+
+        try {
+            if (! flock($handle, LOCK_EX)) {
+                return;
+            }
+
+            $content = stream_get_contents($handle) ?: '';
+            $sessions = $content === '' ? [] : (json_decode($content, true) ?? []);
+
+            $sessions = $mutator(is_array($sessions) ? $sessions : []);
+
+            ftruncate($handle, 0);
+            rewind($handle);
+            fwrite($handle, json_encode($sessions, JSON_PRETTY_PRINT));
+            fflush($handle);
+            flock($handle, LOCK_UN);
+        } finally {
+            fclose($handle);
+        }
+    }
+
+    private function ensureDirectory(): void
     {
         $dir = dirname($this->registryPath);
+
         if (! is_dir($dir)) {
             mkdir($dir, 0755, true);
         }
-
-        file_put_contents(
-            $this->registryPath,
-            json_encode($sessions, JSON_PRETTY_PRINT),
-            LOCK_EX
-        );
     }
 }

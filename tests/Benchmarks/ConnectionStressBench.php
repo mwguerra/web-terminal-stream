@@ -23,6 +23,13 @@ function bootStressServer(int $maxConnections): mixed
 {
     $repoRoot = dirname(__DIR__, 2);
 
+    $workers = max(1, (int) (getenv('WTS_STRESS_WORKERS') ?: 1));
+
+    // Keep the FLEET ceiling constant across worker counts, since the cap is
+    // per-worker; otherwise N workers would silently raise the ceiling N-fold
+    // and the over-cap probe would stop proving anything.
+    $maxConnections = (int) max(1, ceil($maxConnections / $workers));
+
     $process = proc_open(
         [
             PHP_BINARY,
@@ -44,6 +51,11 @@ function bootStressServer(int $maxConnections): mixed
             'APP_KEY' => IntegrationTestCase::APP_KEY,
             'CACHE_STORE' => 'file',
             'WEB_TERMINAL_STREAM_MAX_CONNECTIONS' => (string) $maxConnections,
+            // WTS_STRESS_WORKERS=N measures the pre-fork model. Caps are
+            // enforced PER WORKER (workers share nothing), so the per-worker
+            // ceiling is divided to keep the fleet ceiling — and therefore the
+            // over-cap probe — comparable with the single-process run.
+            'WEB_TERMINAL_STREAM_WORKERS' => (string) max(1, (int) (getenv('WTS_STRESS_WORKERS') ?: 1)),
         ]),
     );
 

@@ -236,10 +236,53 @@ The server is a single long-running process holding one PTY per connection. Cap 
 #### Operating in production
 
 - **Shared cache + `APP_KEY`.** The HTTP app issues the single-use token and caches the (encrypted) connection config; `terminal-stream:serve` pulls it back. They **must share the same cache store and `APP_KEY`** — run the server from the same deployment, and do not use the `array` cache driver. A per-request cache (or a mismatched key) means every handshake fails.
-- **Single point of failure.** The server is one process; if it dies, every live terminal drops. Supervise it (above) so it restarts, and note there is no built-in clustering — run one server per app node and pin each browser to its node's WebSocket URL if you scale horizontally.
+- **Single point of failure.** By default the server is one process; if it dies, every live terminal drops. Supervise it (above) so it restarts. Since 1.1.1 you can also run several workers on one node (see [Scaling](#scaling-workers-and-what-actually-limits-you)); across nodes there is still no clustering, so pin each browser to its node's WebSocket URL.
 - **Capability check.** On boot the server prints warnings if `ext-posix` / `ext-pcntl` are missing or the host is not Linux (local-shell PTY resizing needs `/proc` + `stty`). SSH connections are unaffected by these.
 - **Log retention.** Connection logs accumulate in `terminal_stream_logs`; schedule `terminal-stream:logs:cleanup` (see [Retention & cleanup](#retention--cleanup)).
 - **Health.** A simple liveness check is a TCP connect to the server's `host:port`; there is no HTTP health endpoint.
+
+### Scaling: workers, and what actually limits you
+
+Two different things bound this server, and they have different fixes.
+
+**Output delivery — fixed in 1.1.1.** Until then the server polled every session every 10ms and each SSH read waited out its own timeout, so an *idle* terminal cost as much as a busy one and latency grew with the number of open terminals. Sessions are now registered with the event loop and wake it only when bytes arrive. Measured at 100 concurrent sessions: round-trip p50 went 1877ms → 264ms. Nothing to configure — `stream.io_mode` defaults to `event`, with `poll` kept as an escape hatch.
+
+**Connection establishment — bounded, not removed.** A session's SSH connect + auth runs **synchronously on its event loop**, so while one session connects, every other session *on that loop* stalls. Workers bound the damage:
+
+```bash
+php artisan terminal-stream:serve --workers=4      # or stream.workers
+```
+
+Each worker is an independent server sharing the port through SO_REUSEPORT, supervised by the parent (a dead worker is replaced; SIGTERM shuts the fleet down gracefully). With N workers a connect storm freezes 1/N of the fleet, and phpseclib's crypto spreads across cores. Start with the number of cores you are willing to give the terminal server.
+
+Because workers share nothing, **`max_connections` and `max_sessions_per_user` are per worker**: 4 × 100 is a fleet ceiling of 400.
+
+**When to add workers.** Watch `sweep_ms` and `connect_ms` in the health widget below, not just the session count. The hard cap refuses at 100%, but the experience degrades well before it, so the useful trigger is sustained saturation above ~60%, or a `connect_ms` p95 that users would notice as a freeze.
+
+### Fleet metrics and the health widget
+
+Every worker publishes a snapshot — live sessions by type, SSH connect p50/p95, loop sweep p50/p95, refusals by reason, uptime — which the app reads without ever talking to a server process:
+
+```php
+use MWGuerra\WebTerminalStream\Filament\Widgets\TerminalServerHealthWidget;
+
+// Any Filament panel:
+->widgets([TerminalServerHealthWidget::class])
+```
+
+```php
+use MWGuerra\WebTerminalStream\Metrics\MetricsReader;
+
+$fleet = MetricsReader::make()->read();   // aggregate, for your own dashboards/alerts
+```
+
+Read the numbers this way:
+
+- **`connect_ms`** is not the latency of the person connecting — it is how long everyone *else* on that worker is frozen. It is the metric that makes the synchronous-connect limit visible.
+- **`sweep_ms`** is the loop's own heartbeat. Climbing sweeps mean a worker running out of headroom, before any user complains.
+- **`refused`** is capacity actually denied to a user. It should be zero.
+- A worker that stops publishing is reported as **stale**, never merged: fleet totals and capacity are derived from workers *actually alive*, so a dead worker cannot contribute phantom headroom.
+- Percentiles with no samples report `null`, not `0` — an unmeasured latency must not read as an excellent one.
 
 ### Environment variables
 
@@ -266,6 +309,11 @@ The server is a single long-running process holding one PTY per connection. Cap 
 | `WEB_TERMINAL_STREAM_MAX_CONNECTIONS` | `stream.max_connections` | `100` |
 | `WEB_TERMINAL_STREAM_MAX_SESSIONS_PER_USER` | `stream.max_sessions_per_user` | `10` |
 | `WEB_TERMINAL_STREAM_MAX_HANDSHAKE_BYTES` | `stream.max_handshake_bytes` | `16384` |
+| `WEB_TERMINAL_STREAM_IO_MODE` | `stream.io_mode` | `event` |
+| `WEB_TERMINAL_STREAM_BACKSTOP_SWEEP` | `stream.backstop_sweep_seconds` | `0.25` |
+| `WEB_TERMINAL_STREAM_WORKERS` | `stream.workers` | `1` |
+| `WEB_TERMINAL_STREAM_METRICS_INTERVAL` | `stream.metrics_interval_seconds` | `5` |
+| `WEB_TERMINAL_STREAM_METRICS_STALE_AFTER` | `metrics.stale_after_seconds` | `30` |
 
 Non-env config keys: `stream.max_session_lifetime` (default `3600` — stale PTYs older than this are killed by the server's cleanup pass), `stream.signed_url_ttl` (default `300` — lifetime of a WebSocket auth token), `stream.allowed_origins` (default `[env('APP_URL', 'http://localhost')]` — see the Origin allow-list section; it's an array, so config-file-only), `security.ssh_allowed_hosts` and `security.ssh_host_key.fingerprints` (arrays — see [Connection policy](#connection-policy--what-a-token-may-connect-to) and [SSH host-key verification](#ssh-host-key-verification)).
 

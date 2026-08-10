@@ -61,6 +61,18 @@ class StreamTerminal extends Component
     #[Locked]
     public string $connectionType = 'local';
 
+    /**
+     * Whether this terminal sits in something that can close it.
+     *
+     * Set by the containers (dashboard source, workspace pane); false for a
+     * standalone terminal, which has no window to close. It only governs
+     * whether the close dots ADVERTISE themselves as live — the container
+     * still decides at click time, because "closable" can change while the
+     * page is open (a workspace pane stops being closable once it is the last).
+     */
+    #[Locked]
+    public bool $closable = false;
+
     #[Locked]
     public string $componentId = '';
 
@@ -93,6 +105,7 @@ class StreamTerminal extends Component
         string $chrome = 'full',
         bool $squareCorners = false,
         string $connectionBehavior = 'always',
+        bool $closable = false,
         array $scripts = [],
         ?bool $loggingEnabled = null,
         ?bool $logConnections = null,

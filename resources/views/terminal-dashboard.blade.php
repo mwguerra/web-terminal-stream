@@ -26,7 +26,12 @@
          Livewire skips matched keyed children, so toggling one source never
          re-renders the others. --}}
     <div
-        class="wts-workspace wts-dashboard-panes relative overflow-hidden"
+        {{-- rounded-xl matches the pane's own corner so the divider background
+             this container paints is clipped to the same silhouette. Without
+             it the grey showed through as four SQUARE corners behind the
+             panes' rounded ones. Deliberately the same Tailwind utility the
+             pane uses, not a hand-copied radius, so the two cannot drift. --}}
+        class="wts-workspace wts-dashboard-panes relative overflow-hidden rounded-xl"
         style="height: {{ $height }}; min-height: 200px;@foreach ($themeCss as $property => $value) {{ $property }}: {{ $value }};@endforeach"
     >
         @if ($panes === [])
@@ -41,6 +46,11 @@
                 data-wts-pane="{{ $paneId }}"
                 class="wts-pane absolute"
                 x-bind:style="paneStyle('{{ $paneId }}')"
+                {{-- The pane's red/yellow window controls ask to be closed;
+                     closing a dashboard source is exactly toggling it off, so
+                     this reuses the same path as the toggle bar rather than
+                     inventing a second way to remove a pane. --}}
+                x-on:wts-window-close.stop="toggle('{{ $paneId }}')"
             >
                 @livewire('web-terminal-stream', $pane, key($componentId.'-lw-'.$paneId))
             </div>

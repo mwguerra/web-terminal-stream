@@ -173,6 +173,46 @@ class TerminalPtyBridge
         }
     }
 
+    /**
+     * The raw streams whose readability means "there may be output to drain".
+     *
+     * Event-driven I/O hands these to the event loop, so an idle session costs
+     * nothing at all. Under polling, every session — idle or not — cost up to
+     * one `read()` timeout per tick, which is precisely what made round-trip
+     * latency scale with the NUMBER OF OPEN TERMINALS rather than with load:
+     * measured 60ms at 1 session and 2044ms at 100.
+     *
+     * @return list<resource>
+     */
+    public function readableStreams(): array
+    {
+        if ($this->sshShell !== null) {
+            // phpseclib exposes the transport socket as a public property.
+            $socket = $this->sshShell->fsock ?? null;
+
+            return is_resource($socket) ? [$socket] : [];
+        }
+
+        return array_values(array_filter(
+            [$this->pipes[1] ?? null, $this->pipes[2] ?? null],
+            static fn ($pipe): bool => is_resource($pipe),
+        ));
+    }
+
+    /**
+     * Shrink the SSH read timeout for event-driven mode.
+     *
+     * The loop now says when bytes arrived, so a read that sits waiting would
+     * stall every OTHER session sharing the loop. phpseclib reads 0 as "block
+     * forever", so the smallest useful non-zero value is used instead. Partial
+     * packets are safe: phpseclib accumulates them in its own buffer across
+     * calls, so a short read costs a wakeup, never a corrupted frame.
+     */
+    public function useEventDrivenReads(): void
+    {
+        $this->sshShell?->setTimeout(0.001);
+    }
+
     public function read(): string
     {
         if ($this->sshShell !== null) {

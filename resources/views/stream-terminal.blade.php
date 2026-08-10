@@ -4,6 +4,11 @@
         'rounded-xl shadow-2xl ring-1 ring-slate-200 dark:ring-white/5' => ! ($squareCorners ?? false),
     ])
     style="height: {{ $height }}; min-height: 200px; background: {{ $theme['background'] ?? '#1a1a2e' }};"
+    {{-- Bound, not toggled imperatively: Livewire morphs this element on every
+         round trip and would restore the server-rendered class list, silently
+         dropping a class added with classList.toggle(). Alpine re-applies a
+         bound class after each morph, so fullscreen survives (re)connects. --}}
+    x-bind:class="{ 'wts-fullscreen': isFullscreen }"
     data-connection-behavior="{{ $connectionBehavior }}"
     {{-- Byte-injection channel for the workspace (literal prefix passthrough). --}}
     x-on:wts-pane-send="ws && ws.readyState === WebSocket.OPEN && ws.send($event.detail.data)"
@@ -16,6 +21,10 @@
         state: 'idle',
         showInfoPanel: false,
         copyFeedback: false,
+        // Window controls. `closable` mirrors the server prop; the container
+        // still has the final say at click time.
+        closable: {{ ($closable ?? false) ? 'true' : 'false' }},
+        isFullscreen: false,
         // Key of a script awaiting user confirmation before running.
         // Empty string = nothing pending. This gate is client-only because
         // Stream already grants raw PTY access — this is UX, not security.
@@ -282,6 +291,42 @@
             }
         },
 
+        /**
+         * Ask whoever owns this window to close it.
+         *
+         * The pane deliberately does not close itself: only the container
+         * knows whether closing is allowed right now (a workspace refuses to
+         * close its last pane) and only the container can tear down the pane's
+         * place in the layout. A standalone terminal has no listener, so the
+         * event falls on the floor — which is why the dots render dimmed when
+         * `closable` is false rather than pretending.
+         */
+        requestClose() {
+            if (! this.closable) {
+                return;
+            }
+
+            this.$dispatch('wts-window-close');
+        },
+
+        /**
+         * Fullscreen is local: no container involved, so it behaves the same
+         * in a dashboard, a workspace, or on its own. Refit after the layout
+         * settles — the PTY's row/column count has to follow the new size or
+         * the remote shell keeps wrapping to the old geometry.
+         */
+        toggleFullscreen() {
+            this.isFullscreen = ! this.isFullscreen;
+
+            this.$nextTick(() => {
+                requestAnimationFrame(() => {
+                    if (this.fitAddon) {
+                        this.fitAddon.fit();
+                    }
+                });
+            });
+        },
+
         init() {
             // Bind teardown once so add/remove match. We listen to three events:
             //   - beforeunload: full browser navigation (tab close, URL bar nav)
@@ -328,10 +373,49 @@
     @if($chrome === 'none') style="position:absolute; top:0.5rem; right:0.5rem; z-index:20;" @endif
     >
         @if($chrome === 'full')
+        {{-- Window controls, macOS semantics.
+
+             Red and yellow both ask the CONTAINER to close this window — the
+             pane cannot know whether it is closable (a workspace pane stops
+             being closable the moment it is the last one), so it asks and the
+             container decides. Yellow is deliberately the same action as red
+             for now: a real minimise has nowhere to go until there is a dock
+             to minimise into, and a button that looks live but does nothing is
+             worse than one that does something predictable.
+
+             Green is purely local — fullscreen needs no container at all, so
+             it works the same in a dashboard, a workspace, or standalone. --}}
         <div class="flex gap-2 shrink-0">
-            <span class="w-3 h-3 rounded-full bg-[#ff5f56] hover:opacity-80 transition-opacity"></span>
-            <span class="w-3 h-3 rounded-full bg-[#ffbd2e] hover:opacity-80 transition-opacity"></span>
-            <span class="w-3 h-3 rounded-full bg-[#27c93f] hover:opacity-80 transition-opacity"></span>
+            <button
+                type="button"
+                class="wts-window-close w-3 h-3 rounded-full bg-[#ff5f56] transition-opacity"
+                x-bind:class="closable ? 'hover:opacity-80 cursor-pointer' : 'opacity-40 cursor-default'"
+                x-bind:aria-disabled="!closable"
+                x-on:click="requestClose()"
+                title="{{ __('web-terminal-stream::terminal.window.close') }}"
+                aria-label="{{ __('web-terminal-stream::terminal.window.close') }}"
+            ></button>
+            <button
+                type="button"
+                class="wts-window-close w-3 h-3 rounded-full bg-[#ffbd2e] transition-opacity"
+                x-bind:class="closable ? 'hover:opacity-80 cursor-pointer' : 'opacity-40 cursor-default'"
+                x-bind:aria-disabled="!closable"
+                x-on:click="requestClose()"
+                title="{{ __('web-terminal-stream::terminal.window.close') }}"
+                aria-label="{{ __('web-terminal-stream::terminal.window.close') }}"
+            ></button>
+            <button
+                type="button"
+                class="w-3 h-3 rounded-full bg-[#27c93f] hover:opacity-80 cursor-pointer transition-opacity"
+                x-on:click="toggleFullscreen()"
+                x-bind:title="isFullscreen
+                    ? '{{ __('web-terminal-stream::terminal.window.exit_fullscreen') }}'
+                    : '{{ __('web-terminal-stream::terminal.window.fullscreen') }}'"
+                x-bind:aria-label="isFullscreen
+                    ? '{{ __('web-terminal-stream::terminal.window.exit_fullscreen') }}'
+                    : '{{ __('web-terminal-stream::terminal.window.fullscreen') }}'"
+                x-bind:aria-pressed="isFullscreen"
+            ></button>
         </div>
         @endif
         @if($chrome !== 'none')

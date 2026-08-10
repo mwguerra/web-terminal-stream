@@ -113,6 +113,47 @@ return [
         'ssl_key' => env('WEB_TERMINAL_STREAM_SSL_KEY'),
         'shell' => env('WEB_TERMINAL_STREAM_SHELL', '/bin/bash'),
         'working_directory' => env('WEB_TERMINAL_STREAM_CWD'),
+        // How the server learns that a PTY produced output.
+        //
+        // 'event' (default): each session's transport is registered with the
+        // event loop, which wakes the server exactly when bytes arrive. An
+        // idle terminal then costs nothing.
+        //
+        // 'poll': the pre-1.1.1 behaviour — sweep every session on a 10ms
+        // timer, where each SSH read waits up to its own timeout even when
+        // there is nothing to read. That made round-trip latency scale with
+        // the NUMBER OF OPEN TERMINALS: ~60ms at 1 session, ~2000ms at 100.
+        // Kept only as an escape hatch; prefer fixing forward.
+        'io_mode' => env('WEB_TERMINAL_STREAM_IO_MODE', 'event'),
+
+        // Worker processes sharing the listening port (SO_REUSEPORT).
+        //
+        // 1 (default) keeps the historical single-process behaviour. Above 1,
+        // `terminal-stream:serve` forks that many servers and supervises them.
+        //
+        // The reason to raise it: a session's SSH connect + auth runs
+        // synchronously on its server's event loop, so every session on that
+        // loop stalls while another connects. More loops means a connect storm
+        // freezes 1/N of the fleet instead of all of it, and the phpseclib
+        // crypto spreads across cores. A good starting point is the number of
+        // cores you are willing to give the terminal server.
+        //
+        // NOTE: `max_connections` and `max_sessions_per_user` below are
+        // enforced PER WORKER, because workers share nothing. With 4 workers
+        // and max_connections 100, the fleet ceiling is 400.
+        'workers' => env('WEB_TERMINAL_STREAM_WORKERS', 1),
+
+        // Backstop sweep for event mode. phpseclib can hold decoded bytes in
+        // its own buffer after the socket stops being readable, so a slow
+        // sweep guarantees such output is still delivered. Lower = snappier
+        // worst case, higher = cheaper idle. Ignored in 'poll' mode.
+        'backstop_sweep_seconds' => env('WEB_TERMINAL_STREAM_BACKSTOP_SWEEP', 0.25),
+
+        // How often each worker republishes its metrics snapshot. Read by
+        // MetricsReader / the Filament widgets; a snapshot older than
+        // `metrics.stale_after_seconds` counts as a dead worker.
+        'metrics_interval_seconds' => env('WEB_TERMINAL_STREAM_METRICS_INTERVAL', 5),
+
         'max_session_lifetime' => 3600,
         'signed_url_ttl' => 300,
 
@@ -191,5 +232,24 @@ return [
 
         // Ratio nudge applied by each keyboard resize step.
         'resize_step' => 0.03,
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Metrics
+    |--------------------------------------------------------------------------
+    |
+    | Each WebSocket worker publishes a snapshot (live sessions, connect and
+    | sweep latency, refusals) that MetricsReader and the Filament widgets read.
+    | Workers share nothing, so the fleet view is assembled from per-worker
+    | files — and a worker that dies leaves a snapshot behind, which is why a
+    | staleness window exists rather than trusting whatever is on disk.
+    |
+    */
+    'metrics' => [
+        // Past this age a snapshot is reported as a DEAD worker instead of
+        // being merged into the fleet totals. Keep it comfortably above
+        // stream.metrics_interval_seconds.
+        'stale_after_seconds' => env('WEB_TERMINAL_STREAM_METRICS_STALE_AFTER', 30),
     ],
 ];

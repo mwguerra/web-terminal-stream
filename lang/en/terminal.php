@@ -157,4 +157,34 @@ return [
         'errors' => 'Errors',
         'total_error_events' => 'Total error events',
     ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Window controls
+    |--------------------------------------------------------------------------
+    */
+    'window' => [
+        'close' => 'Close',
+        'fullscreen' => 'Enter fullscreen',
+        'exit_fullscreen' => 'Exit fullscreen',
+    ],
+
+    'metrics' => [
+        'fleet' => 'Terminal fleet',
+        'no_workers' => 'No workers',
+        'no_workers_hint' => 'No terminal-stream:serve process is publishing. Terminals cannot connect.',
+        'live_sessions' => 'Live sessions',
+        'workers' => 'Workers',
+        'workers_healthy' => 'All workers reporting',
+        'workers_missing' => ':count worker(s) stopped reporting',
+        'capacity_used' => ':percent% of :capacity capacity',
+        'capacity_unlimited' => 'No configured ceiling',
+        'connect_p95' => 'SSH connect p95',
+        'connect_hint' => 'Others on the same worker wait this long',
+        'sweep_p95' => 'Loop sweep p95',
+        'sweep_hint' => 'Worker headroom; climbing means saturation',
+        'refused' => 'Refused',
+        'refused_hint' => 'Users were denied a terminal — add workers',
+        'refused_none' => 'Nobody has been turned away',
+    ],
 ];

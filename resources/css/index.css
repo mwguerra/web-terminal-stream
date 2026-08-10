@@ -231,3 +231,34 @@
 .wts-divider-static {
     pointer-events: none;
 }
+
+/* Fullscreen (the green window control).
+
+   Deliberately a fixed-position lift rather than a real <dialog> or a modal
+   that re-parents the node: moving the element in the DOM would re-mount the
+   Livewire component, and re-mounting drops the WebSocket and kills the PTY.
+   Staying in place and only changing position keeps the session alive.
+
+   `height` overrides the inline style the pane carries (its layout height),
+   which is why it needs the !important. */
+.stream-web-terminal.wts-fullscreen {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    width: 100vw;
+    height: 100vh !important;
+    max-height: 100vh;
+    /* Square while fullscreen — rounded corners against the viewport edge
+       would show the page behind them. */
+    border-radius: 0;
+}
+
+/* The sole remaining workspace pane cannot be closed, so its close dots must
+   not advertise otherwise. Driven by the container (which knows the live pane
+   count) rather than by the pane's server-side `closable` prop, because
+   Livewire skips keyed children on re-render — a pane mounted while closable
+   is never told that it became the last one. */
+.wts-pane-solo .wts-window-close {
+    opacity: 0.4;
+    cursor: default;
+}

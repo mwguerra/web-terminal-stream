@@ -248,6 +248,12 @@ class StreamWorkspace extends Component
     {
         $config['height'] = '100%';
 
+        // Workspace panes are closable in principle; whether THIS one is right
+        // now depends on the live pane count, which the container applies as a
+        // class (see .wts-pane-solo) because a keyed child never re-renders to
+        // hear that it became the last pane.
+        $config['closable'] = true;
+
         // Every pane prop set lands in a public Livewire property, so a raw
         // connection config here would ship to the browser. Panes cloned on
         // split inherit the handle, which is correct: same target, same custody.

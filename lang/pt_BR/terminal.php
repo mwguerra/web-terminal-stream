@@ -157,4 +157,34 @@ return [
         'errors' => 'Erros',
         'total_error_events' => 'Total de eventos de erro',
     ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Window controls
+    |--------------------------------------------------------------------------
+    */
+    'window' => [
+        'close' => 'Fechar',
+        'fullscreen' => 'Entrar em tela cheia',
+        'exit_fullscreen' => 'Sair da tela cheia',
+    ],
+
+    'metrics' => [
+        'fleet' => 'Frota de terminais',
+        'no_workers' => 'Sem workers',
+        'no_workers_hint' => 'Nenhum processo terminal-stream:serve está publicando. Terminais não conseguem conectar.',
+        'live_sessions' => 'Sessões ativas',
+        'workers' => 'Workers',
+        'workers_healthy' => 'Todos os workers reportando',
+        'workers_missing' => ':count worker(s) pararam de reportar',
+        'capacity_used' => ':percent% de :capacity de capacidade',
+        'capacity_unlimited' => 'Sem teto configurado',
+        'connect_p95' => 'Connect SSH p95',
+        'connect_hint' => 'Quanto os outros do mesmo worker esperam',
+        'sweep_p95' => 'Varredura do loop p95',
+        'sweep_hint' => 'Folga do worker; subindo indica saturação',
+        'refused' => 'Recusadas',
+        'refused_hint' => 'Usuários ficaram sem terminal — adicione workers',
+        'refused_none' => 'Ninguém foi recusado',
+    ],
 ];

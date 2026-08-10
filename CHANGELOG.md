@@ -7,6 +7,49 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.1] - 2026-08-10
+
+### Performance
+
+- **Round-trip latency no longer scales with the number of open terminals.** The server asked every session, every 10ms, whether it had output, and each SSH read waited out its own timeout even when the answer was "no" — so an IDLE terminal cost as much as a busy one and latency grew linearly with the fleet. Each session's transport is now registered with the event loop, which wakes the server exactly when bytes arrive.
+
+  Measured on one machine, 100 concurrent sessions, before → after:
+
+  | | before | after | |
+  |---|---|---|---|
+  | round-trip p50 | 1877 ms | **264 ms** | 7.1× |
+  | round-trip p95 | 2116 ms | **359 ms** | 5.9× |
+  | connect p50 | 17866 ms | **3637 ms** | 4.9× |
+  | connect p95 | 57206 ms | **7959 ms** | 7.2× |
+
+  Establishment improved as a side effect: the serial connect no longer competes with a polling sweep that grew with every session already up.
+
+  A slow backstop sweep still runs (`stream.backstop_sweep_seconds`, default 250ms) because phpseclib can hold decoded bytes after its socket stops being readable — a missed wakeup must degrade to "slightly late", never to "silent". Set `stream.io_mode=poll` to restore the previous behaviour without downgrading.
+
+- **`terminal-stream:serve --workers=N`** runs N servers sharing the port via SO_REUSEPORT, supervised (a worker that dies is replaced; SIGTERM/SIGINT are forwarded for a graceful fleet shutdown). SSH connect + auth is still synchronous on its own loop — this does not change that — but a stalling handshake now freezes 1/N of the fleet instead of all of it, and the phpseclib crypto spreads across cores. Default remains 1, so upgrading changes nothing until you ask for more.
+
+  `max_connections` and `max_sessions_per_user` are enforced **per worker**, since workers share nothing: 4 workers × 100 is a fleet ceiling of 400.
+
+### Added
+
+- **Fleet metrics + a Filament widget.** Each worker publishes a snapshot (live sessions by type, SSH connect p50/p95, loop sweep p50/p95, refusals by reason, uptime); `Metrics\MetricsReader` aggregates them and `Filament\Widgets\TerminalServerHealthWidget` renders them.
+
+  Two aggregation choices worth knowing: the fleet reports the **worst** worker's latency rather than the average (a fleet is only as good as its slowest loop, and averaging hides the worker that is stalling users), and capacity is derived from workers **actually alive**, so a dead worker cannot contribute phantom headroom. Percentiles with no samples report `null`, never `0` — an unmeasured latency must not read as an excellent one.
+
+  New config: `stream.metrics_interval_seconds` (5), `metrics.stale_after_seconds` (30).
+
+### Fixed
+
+- **`PtySessionRegistry` lost sessions under concurrent writers.** `LOCK_EX` guarded the write but not the read-modify-write around it, so two processes could read the same state and the later write dropped the earlier one's entries. Harmless while the server was one process; with `--workers` it is severe — measured, 8 concurrent writers registering 96 sessions left **4**. The whole cycle now runs under `flock`.
+
+- The green window control lifted a pane to fullscreen by toggling a class imperatively, which Livewire's DOM morph then stripped on the next round trip. The class is Alpine-bound instead, so fullscreen survives (re)connects.
+
+### Changed
+
+- **The three title-bar dots do something.** They were decorative `<span>`s; they are now labelled, keyboard-reachable buttons with macOS semantics. Red and yellow ask the *container* to close the window (a dashboard toggles the source off — so it stays reopenable from the bar; a workspace closes the pane, refusing when it is the last one). Green toggles fullscreen locally, so it works in a dashboard, a workspace, or standalone. A terminal with no container renders the close dots dimmed and `aria-disabled` rather than pretending. Escape is deliberately NOT bound to exit fullscreen: the terminal forwards it to the PTY, and stealing it would break vim, less, and anything modal inside the shell.
+
+- **Rounded panes no longer show a square corner behind them.** The pane container paints the divider colour and had no radius, so it showed through at the four corners the pane rounds away. It is now clipped to the same silhouette, using the same utility the pane uses so the two cannot drift; inner dividers are unaffected.
+
 ## [1.1.0] - 2026-08-10
 
 ### Security

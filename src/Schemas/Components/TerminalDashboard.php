@@ -146,6 +146,10 @@ class TerminalDashboard extends Livewire
             $props = $source->getComponentProperties();
             $props['height'] = '100%';
 
+            // Every dashboard source can be closed — closing one is exactly
+            // toggling it off, and the toggle bar keeps it reachable again.
+            $props['closable'] = true;
+
             // Fall back to the dashboard theme for panes that set none.
             if ($this->theme !== null && $source->getThemeObject() === null && $source->getTheme() === []) {
                 $props['theme'] = $this->theme->toColors();
