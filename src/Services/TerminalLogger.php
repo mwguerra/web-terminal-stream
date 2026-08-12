@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace MWGuerra\WebTerminalStream\Services;
 
+use Illuminate\Database\QueryException;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use MWGuerra\WebTerminalStream\Models\TerminalLog;
 
@@ -120,8 +122,15 @@ class TerminalLogger
 
     /**
      * Get the current user ID.
+     *
+     * Deliberately NOT `?int`: an application is free to key its users by ULID,
+     * UUID or any other string, and Laravel's own `auth()->id()` returns
+     * whatever that key is. Declaring `?int` under strict_types turned every
+     * such application's audit trail into a silent no-op — the TypeError was
+     * raised inside createLog() and swallowed by its catch, so no row was ever
+     * written and nothing anywhere said why.
      */
-    protected function getUserId(): ?int
+    protected function getUserId(): int|string|null
     {
         return auth()->id();
     }
@@ -183,7 +192,7 @@ class TerminalLogger
      * the reliable place to record the end of a session. De-duplicated against a
      * disconnect the browser may already have logged for the same session.
      */
-    public function logServerDisconnection(string $sessionId, ?int $userId = null, ?string $connectionType = null): ?TerminalLog
+    public function logServerDisconnection(string $sessionId, int|string|null $userId = null, ?string $connectionType = null): ?TerminalLog
     {
         if (! $this->shouldLog('disconnections')) {
             return null;
@@ -334,8 +343,27 @@ class TerminalLogger
             }
 
             return TerminalLog::create($logData);
-        } catch (\Throwable) {
-            // Table may not exist yet (migration not run)
+        } catch (QueryException $e) {
+            // The published migration may not have been run yet. That is the
+            // one failure this method is allowed to absorb, and even then it
+            // says so — a logger that goes quiet is indistinguishable from a
+            // logger with nothing to log.
+            Log::warning('web-terminal-stream: could not write the terminal audit row.', [
+                'event_type' => $eventType,
+                'exception' => $e->getMessage(),
+            ]);
+
+            return null;
+        } catch (\Throwable $e) {
+            // Anything else is a BUG in this package or its configuration.
+            // It used to be swallowed by the same blanket catch as the missing
+            // table, which is how a return-type mismatch on the user id silently
+            // discarded every audit row in a ULID-keyed application.
+            Log::error('web-terminal-stream: terminal audit row failed unexpectedly.', [
+                'event_type' => $eventType,
+                'exception' => $e::class.': '.$e->getMessage(),
+            ]);
+
             return null;
         }
     }

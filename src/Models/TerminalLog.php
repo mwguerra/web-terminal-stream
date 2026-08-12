@@ -101,7 +101,7 @@ class TerminalLog extends Model
     /**
      * Scope to filter by user ID.
      */
-    public function scopeForUser(Builder $query, int $userId): Builder
+    public function scopeForUser(Builder $query, int|string $userId): Builder
     {
         return $query->where('user_id', $userId);
     }

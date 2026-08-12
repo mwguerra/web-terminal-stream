@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.2] - 2026-08-12
+
+### Fixed
+
+- **No audit row was ever written in an application whose users are keyed by ULID or UUID.** `TerminalLogger::getUserId()` was declared `?int` and returned `auth()->id()`, which is whatever the application's user key is. Under `declare(strict_types=1)` a string key made the return itself raise a `TypeError` — inside `createLog()`, whose `catch (\Throwable)` swallowed it while the comment claimed the table might not exist. The audit trail was therefore silently empty, and nothing anywhere said why. Reproduced on a ULID-keyed panel: a real root shell was opened through the terminal and `terminal_stream_logs` stayed at zero rows.
+
+  `getUserId()` now returns `int|string|null`, `logServerDisconnection()` accepts `int|string|null` for `$userId`, and `TerminalLog::scopeForUser()` accepts `int|string`. No migration is needed — the published stub already lets the host application choose its own user-key column type.
+
+- **`createLog()` no longer swallows every failure in silence.** A missing table (the migration not being run yet) is still tolerated, because that is a legitimate state during installation — but it is now logged as a warning instead of vanishing. Anything else is logged as an error: a bug in this package or its configuration must not present as "there was nothing to log". That blanket `catch` is precisely what hid the type error above for an entire release cycle.
+
+
 ## [1.1.1] - 2026-08-10
 
 ### Performance
