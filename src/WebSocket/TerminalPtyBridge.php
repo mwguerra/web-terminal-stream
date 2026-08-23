@@ -9,6 +9,7 @@ use MWGuerra\WebTerminalStream\Enums\ConnectionType;
 use MWGuerra\WebTerminalStream\Security\HostKeyVerificationException;
 use MWGuerra\WebTerminalStream\Security\SshHostKeyVerifier;
 use phpseclib3\Crypt\PublicKeyLoader;
+use phpseclib3\Exception\TimeoutException;
 use phpseclib3\Net\SSH2;
 
 class TerminalPtyBridge
@@ -220,7 +221,32 @@ class TerminalPtyBridge
             // Transport-level failures are handled at the event-loop boundary
             // (ReactPhpWebSocketServer::tick), not here — this method stays
             // a simple read of whatever is buffered on the channel.
-            return $this->sshShell->read('') ?: '';
+            //
+            // A timeout is NOT a transport failure, though, and letting it
+            // escape is what silently killed long-running sessions.
+            //
+            // startSsh() sets a 1ms budget so reads never stall the shared
+            // event loop. phpseclib treats that budget as a hard deadline and
+            // throws TimeoutException ("Timed out waiting for server") whenever
+            // a complete channel packet does not arrive inside it — which is
+            // routine, because the loop wakes us whenever the SOCKET is
+            // readable, and a keepalive or a window adjustment makes it
+            // readable while carrying no channel data. The exception then
+            // reached tick()'s `catch (\Throwable)`, which closes the session.
+            //
+            // Symptom seen in the field: run anything slow (an `acme.sh
+            // --issue` taking minutes) and the terminal stops responding
+            // entirely — the command echo appears and nothing ever comes back,
+            // even for later commands. Reconnecting fixes it, which is what
+            // makes it read like a hang rather than a teardown.
+            //
+            // With a 1ms budget, a timeout means "nothing to read right now",
+            // so it is an empty string, not an error.
+            try {
+                return $this->sshShell->read('') ?: '';
+            } catch (TimeoutException) {
+                return '';
+            }
         }
 
         $output = '';
