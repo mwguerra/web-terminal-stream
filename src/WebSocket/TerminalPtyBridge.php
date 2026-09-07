@@ -16,7 +16,7 @@ class TerminalPtyBridge
 {
     private string $sessionId;
 
-    private int $userId;
+    private int|string|null $userId;
 
     private ConnectionConfig $config;
 
@@ -33,7 +33,7 @@ class TerminalPtyBridge
     public function __construct(
         ConnectionConfig $config,
         string $sessionId,
-        int $userId,
+        int|string|null $userId,
         PtySessionRegistry $registry,
     ) {
         $this->config = $config;

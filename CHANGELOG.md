@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.4] - 2026-09-07
+
+### Fixed
+
+- **The server-side disconnect audit row was rejected in every ULID/UUID-keyed application.** `ReactPhpWebSocketServer` cast the user id from the connection token to `int` (`(int) $userId`, `is_numeric(...) ? (int) : 0`), so a ULID became `0`; `logServerDisconnection()` then inserted `user_id = 0`, which the foreign key to `users` refuses — the "disconnected" event was never written and the session looked open forever. The id is now kept exactly as the application keys its users (`normalizeUserId()`: int, string or null — never `0`), all the way through `TerminalPtyBridge` and `PtySessionRegistry`, and the per-user session cap counts ULID users correctly. Seen on a ULID-keyed panel 2026-09-07.
+
 ## [1.1.2] - 2026-08-12
 
 ### Fixed

@@ -169,3 +169,24 @@ describe('shutdown', function () {
             ->and($server->activeConnectionCount())->toBe(0);
     });
 });
+
+describe('user ids are kept as the application keys them', function () {
+    it('keeps a ULID string, an int and null as they are, never 0', function () {
+        expect(ReactPhpWebSocketServer::normalizeUserId('01m1x1jnnfpmmkkjjysgbctny3'))->toBe('01m1x1jnnfpmmkkjjysgbctny3')
+            ->and(ReactPhpWebSocketServer::normalizeUserId(42))->toBe(42)
+            ->and(ReactPhpWebSocketServer::normalizeUserId('42'))->toBe(42)
+            ->and(ReactPhpWebSocketServer::normalizeUserId(null))->toBeNull()
+            ->and(ReactPhpWebSocketServer::normalizeUserId(''))->toBeNull()
+            ->and(ReactPhpWebSocketServer::normalizeUserId(0))->toBeNull()
+            ->and(ReactPhpWebSocketServer::normalizeUserId('0'))->toBeNull();
+    });
+
+    it('counts per-user sessions for ULID-keyed users too', function () {
+        $server = new ReactPhpWebSocketServer(new PtySessionRegistry(sys_get_temp_dir().'/test-'.uniqid()), Mockery::mock(Encrypter::class), ['max_sessions_per_user' => 2, 'max_connections' => 0]);
+        resSet($server, 'bridges', [1 => null, 2 => null]);
+        resSet($server, 'userIds', [1 => '01m1x1jnnfpmmkkjjysgbctny3', 2 => '01m1x1jnnfpmmkkjjysgbctny3']);
+
+        expect($server->capacityReason('01m1x1jnnfpmmkkjjysgbctny3'))->toContain('session limit')
+            ->and($server->capacityReason('01other'))->toBeNull();
+    });
+});

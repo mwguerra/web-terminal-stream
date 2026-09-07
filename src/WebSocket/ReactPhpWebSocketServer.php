@@ -32,7 +32,7 @@ class ReactPhpWebSocketServer
     /** @var array<int, MessageBuffer> Maps connection object ID to message buffer */
     private array $buffers = [];
 
-    /** @var array<int, int> Maps connection object ID to the owning user id */
+    /** @var array<int, int|string|null> Maps connection object ID to the owning user id (as the application keys it) */
     private array $userIds = [];
 
     /** @var array<int, int> Maps connection object ID to its start timestamp */
@@ -317,7 +317,8 @@ class ReactPhpWebSocketServer
         // Enforce resource caps before committing a PTY to this connection.
         // The token is already consumed (Cache::pull); a rejected connection
         // just closes — the client can retry once capacity frees up.
-        $reason = $this->capacityReason(is_int($userId) ? $userId : (is_numeric($userId) ? (int) $userId : null));
+        $userId = self::normalizeUserId($userId);
+        $reason = $this->capacityReason($userId);
         if ($reason !== null) {
             // Capacity actually denied to a user — the number an operator has
             // to see before customers start reporting it.
@@ -340,7 +341,7 @@ class ReactPhpWebSocketServer
             $connectionConfig = ConnectionConfig::fromArray($configData);
             $shell = $this->config['shell'] ?? '/bin/bash';
 
-            $bridge = new TerminalPtyBridge($connectionConfig, $sessionId, (int) ($userId ?? 0), $this->registry);
+            $bridge = new TerminalPtyBridge($connectionConfig, $sessionId, $userId, $this->registry);
 
             // Timed because this is the blocking one: SSH connect + auth runs
             // synchronously on the loop, so every OTHER session on this worker
@@ -357,7 +358,7 @@ class ReactPhpWebSocketServer
 
         $this->bridges[$id] = $bridge;
         $this->connections[$id] = $conn;
-        $this->userIds[$id] = is_numeric($userId) ? (int) $userId : 0;
+        $this->userIds[$id] = $userId;
         $this->startedAt[$id] = time();
         $this->sessionIds[$id] = $sessionId;
         $this->connectionTypes[$id] = is_string($configData['type'] ?? null) ? $configData['type'] : 'local';
@@ -549,13 +550,39 @@ class ReactPhpWebSocketServer
      * 0 means unlimited. Kept as a small pure-ish method so it is unit-testable
      * without a real socket or token.
      */
-    public function capacityReason(?int $userId): ?string
+    /**
+     * The user id exactly as the application keys its users — int for
+     * auto-increment tables, string for ULID/UUID keys, null when unknown.
+     * Casting to int turned every ULID into 0, so the server-side disconnect
+     * audit row was written with user_id = 0 and rejected by the foreign key
+     * (seen on a ULID-keyed app 2026-09-07).
+     */
+    public static function normalizeUserId(mixed $userId): int|string|null
+    {
+        if (is_int($userId)) {
+            return $userId > 0 ? $userId : null;
+        }
+
+        if (is_string($userId)) {
+            $userId = trim($userId);
+
+            if ($userId === '' || $userId === '0') {
+                return null;
+            }
+
+            return ctype_digit($userId) ? (int) $userId : $userId;
+        }
+
+        return null;
+    }
+
+    public function capacityReason(int|string|null $userId): ?string
     {
         if ($this->maxConnections > 0 && count($this->bridges) >= $this->maxConnections) {
             return "server at capacity ({$this->maxConnections} connections)";
         }
 
-        if ($this->maxSessionsPerUser > 0 && $userId !== null && $userId > 0) {
+        if ($this->maxSessionsPerUser > 0 && $userId !== null) {
             $forUser = 0;
             foreach ($this->userIds as $owner) {
                 if ($owner === $userId) {

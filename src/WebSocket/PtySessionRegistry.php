@@ -13,7 +13,7 @@ class PtySessionRegistry
         $this->registryPath = rtrim($storagePath, '/').'/pty-sessions.json';
     }
 
-    public function register(string $sessionId, int $pid, int $userId): void
+    public function register(string $sessionId, int $pid, int|string|null $userId): void
     {
         $this->mutate(function (array $sessions) use ($sessionId, $pid, $userId): array {
             $sessions[$sessionId] = [
