@@ -38,7 +38,7 @@
         "pestphp/pest": "^4.0",
         "pestphp/pest-plugin-laravel": "^4.1",
         "phpstan/phpstan": "^2.0",
-        "phrity/websocket": "^3.0",
+        "phrity/websocket": "^3.0 || ^4.0",
         "ratchet/pawl": "^0.4"
     },
     "suggest": {
